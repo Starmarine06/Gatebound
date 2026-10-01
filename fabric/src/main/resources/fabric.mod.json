@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "gatebound",
+  "version": "${version}",
+  "name": "Gatebound",
+  "description": "Pick a class, level up, and conquer dungeon gates.",
+  "authors": ["flame"],
+  "license": "All-Rights-Reserved",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.gatebound.fabric.GateboundFabric"]
+  },
+  "depends": {
+    "minecraft": ">=26.3",
+    "fabricloader": ">=0.19.5",
+    "fabric-api": "*",
+    "architectury": ">=22.0.3"
+  }
+}

@@ -1,0 +1,31 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "All-Rights-Reserved"
+
+[[mods]]
+modId = "gatebound"
+version = "${version}"
+displayName = "Gatebound"
+authors = "flame"
+description = "Pick a class, level up, and conquer dungeon gates."
+
+[[dependencies.gatebound]]
+modId = "minecraft"
+type = "required"
+versionRange = "[26.3,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.gatebound]]
+modId = "neoforge"
+type = "required"
+versionRange = "[26.3.0.0-beta,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.gatebound]]
+modId = "architectury"
+type = "required"
+versionRange = "[22.0.3,)"
+ordering = "NONE"
+side = "BOTH"
