@@ -5,9 +5,7 @@ import dev.gatebound.data.ClientPlayerData;
 import dev.gatebound.data.GateboundClass;
 import dev.gatebound.data.Stat;
 import dev.gatebound.network.SpendStatPayload;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -19,8 +17,8 @@ public final class StatusScreen extends Screen {
     private static final int PANEL_H = 206;
     private static final int ROW_H = 24;
 
-    private final Button[] plusOne = new Button[Stat.values().length];
-    private final Button[] plusFive = new Button[Stat.values().length];
+    private final StatButton[] plusOne = new StatButton[Stat.values().length];
+    private final StatButton[] plusFive = new StatButton[Stat.values().length];
     private int left;
     private int top;
 
@@ -36,15 +34,11 @@ public final class StatusScreen extends Screen {
         for (int i = 0; i < stats.length; i++) {
             Stat s = stats[i];
             int y = rowY(i);
-            plusOne[i] = addRenderableWidget(Button.builder(
-                            Component.literal("+1").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD), b -> spend(s, 1))
-                    .bounds(left + PANEL_W - 84, y - 5, 36, 20)
-                    .tooltip(Tooltip.create(Component.translatable("stat.gatebound." + s.id() + ".desc")))
-                    .build());
-            plusFive[i] = addRenderableWidget(Button.builder(
-                            Component.literal("+5").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD), b -> spend(s, 5))
-                    .bounds(left + PANEL_W - 44, y - 5, 36, 20)
-                    .build());
+            plusOne[i] = addRenderableWidget(new StatButton(left + PANEL_W - 84, y - 5, 36, 20,
+                    Component.literal("+1"), this.font, () -> spend(s, 1)));
+            plusOne[i].setTooltip(Tooltip.create(Component.translatable("stat.gatebound." + s.id() + ".desc")));
+            plusFive[i] = addRenderableWidget(new StatButton(left + PANEL_W - 44, y - 5, 36, 20,
+                    Component.literal("+5"), this.font, () -> spend(s, 5)));
         }
     }
 
@@ -94,10 +88,6 @@ public final class StatusScreen extends Screen {
         for (int i = 0; i < stats.length; i++) {
             Stat s = stats[i];
             int y = rowY(i);
-            if (points > 0) {
-                // Highlight rows that can take points so the + buttons stand out.
-                g.fill(left + 6, y - 7, left + PANEL_W - 6, y + 17, 0x3358C878);
-            }
             g.text(this.font, Component.translatable("stat.gatebound." + s.id()).getString(), left + 10, y, 0xFFFFFFFF);
             g.text(this.font, String.valueOf(ClientPlayerData.STATS[i]), left + 110, y, 0xFF8FD0FF);
             plusOne[i].active = points >= 1;
