@@ -4,6 +4,7 @@ import dev.architectury.event.EventResult;
 import dev.architectury.event.events.common.EntityEvent;
 import dev.architectury.event.events.common.PlayerEvent;
 import dev.architectury.networking.NetworkManager;
+import dev.gatebound.network.OpenAwakeningPayload;
 import dev.gatebound.network.SyncDataPayload;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -17,7 +18,10 @@ public final class Progression {
     }
 
     public static void init() {
-        PlayerEvent.PLAYER_JOIN.register(Progression::refresh);
+        PlayerEvent.PLAYER_JOIN.register(player -> {
+            refresh(player);
+            openAwakeningIfNeeded(player);
+        });
         PlayerEvent.PLAYER_RESPAWN.register((player, conqueredEnd, reason) -> refresh(player));
         EntityEvent.LIVING_DEATH.register((entity, source) -> {
             if (entity instanceof Enemy && source.getEntity() instanceof ServerPlayer player) {
@@ -25,6 +29,39 @@ public final class Progression {
             }
             return EventResult.pass();
         });
+    }
+
+    /** Applies a class choice. Ignored (with a message) if the player already has a class or the id is unknown. */
+    public static void chooseClass(ServerPlayer player, String classId) {
+        PlayerData data = PlayerDataStore.of(player);
+        GateboundClass chosen = GateboundClass.byId(classId);
+        if (chosen == null || !data.classId.isEmpty()) {
+            player.sendSystemMessage(Component.literal("[Gatebound] You cannot choose a class right now."));
+            return;
+        }
+        data.classId = chosen.id();
+        for (Stat s : Stat.values()) {
+            data.stats[s.ordinal()] += chosen.bonus(s);
+        }
+        save(player, data);
+        player.sendSystemMessage(Component.literal("[Gatebound] You awakened as a ")
+                .append(Component.translatable(chosen.nameKey())).append("."));
+    }
+
+    /** Wipes the class and spent stat points, refunding points for the current level. */
+    public static void resetClass(ServerPlayer player) {
+        PlayerData data = PlayerDataStore.of(player);
+        data.classId = "";
+        java.util.Arrays.fill(data.stats, Stat.BASE_VALUE);
+        data.statPoints = (data.level - 1) * PlayerData.STAT_POINTS_PER_LEVEL;
+        save(player, data);
+        openAwakeningIfNeeded(player);
+    }
+
+    public static void openAwakeningIfNeeded(ServerPlayer player) {
+        if (PlayerDataStore.of(player).classId.isEmpty()) {
+            NetworkManager.sendToPlayer(player, new OpenAwakeningPayload());
+        }
     }
 
     public static void giveXp(ServerPlayer player, int amount) {

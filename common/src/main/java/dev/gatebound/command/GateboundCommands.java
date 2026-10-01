@@ -79,6 +79,18 @@ public final class GateboundCommands {
                                 return 1;
                             }))));
 
+            // /gatebound awaken reopens the class screen if no class is chosen; /gatebound class reset is admin-only.
+            root.then(Commands.literal("awaken").executes(ctx -> {
+                Progression.openAwakeningIfNeeded(ctx.getSource().getPlayerOrException());
+                return 1;
+            }));
+            root.then(Commands.literal("class").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                    .then(Commands.literal("reset").executes(ctx -> {
+                        Progression.resetClass(ctx.getSource().getPlayerOrException());
+                        ctx.getSource().sendSuccess(() -> Component.literal("Class reset"), false);
+                        return 1;
+                    })));
+
             dispatcher.register(root);
         });
     }

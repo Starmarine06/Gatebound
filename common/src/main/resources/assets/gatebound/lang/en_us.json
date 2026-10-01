@@ -1,4 +1,24 @@
 {
   "itemGroup.gatebound.main": "Gatebound",
-  "item.gatebound.awakening_stone": "Awakening Stone"
+  "item.gatebound.awakening_stone": "Awakening Stone",
+
+  "screen.gatebound.awakening.title": "Awakening",
+  "screen.gatebound.awakening.subtitle": "Choose your path. This cannot be undone.",
+
+  "stat.gatebound.strength": "Strength",
+  "stat.gatebound.agility": "Agility",
+  "stat.gatebound.vitality": "Vitality",
+  "stat.gatebound.intellect": "Intellect",
+  "stat.gatebound.luck": "Luck",
+
+  "class.gatebound.warrior": "Warrior",
+  "class.gatebound.warrior.desc": "Front-line fighter. Hits hard and takes hits.",
+  "class.gatebound.rogue": "Rogue",
+  "class.gatebound.rogue.desc": "Fast and lucky. Strikes quickly and slips away.",
+  "class.gatebound.mage": "Mage",
+  "class.gatebound.mage.desc": "Master of mana. Fragile, but devastating at range.",
+  "class.gatebound.ranger": "Ranger",
+  "class.gatebound.ranger.desc": "Mobile marksman. Balanced speed, power and fortune.",
+  "class.gatebound.summoner": "Summoner",
+  "class.gatebound.summoner.desc": "Commands allies from the other side."
 }

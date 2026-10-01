@@ -1,9 +1,14 @@
 package dev.gatebound.network;
 
 import dev.architectury.networking.NetworkManager;
+import dev.architectury.utils.Env;
+import dev.architectury.utils.EnvExecutor;
 import dev.gatebound.Gatebound;
+import dev.gatebound.client.ClientHooks;
 import dev.gatebound.data.ClientPlayerData;
+import dev.gatebound.data.Progression;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 
 public final class GateboundNetwork {
     private GateboundNetwork() {
@@ -18,7 +23,17 @@ public final class GateboundNetwork {
         NetworkManager.registerS2C(SyncDataPayload.TYPE, SyncDataPayload.CODEC, (payload, context) ->
                 context.queue(() -> ClientPlayerData.update(payload)));
 
+        NetworkManager.registerS2C(OpenAwakeningPayload.TYPE, OpenAwakeningPayload.CODEC, (payload, context) ->
+                context.queue(() -> EnvExecutor.runInEnv(Env.CLIENT, () -> ClientHooks::openAwakening)));
+
         NetworkManager.registerC2S(PongPayload.TYPE, PongPayload.CODEC, (payload, context) ->
                 context.queue(() -> Gatebound.LOGGER.info("Received pong from {}", context.getPlayer().getName().getString())));
+
+        NetworkManager.registerC2S(ChooseClassPayload.TYPE, ChooseClassPayload.CODEC, (payload, context) ->
+                context.queue(() -> {
+                    if (context.getPlayer() instanceof ServerPlayer player) {
+                        Progression.chooseClass(player, payload.classId());
+                    }
+                }));
     }
 }
