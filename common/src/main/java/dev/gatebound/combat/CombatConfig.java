@@ -23,6 +23,9 @@ public final class CombatConfig {
     /** Ticks of Strength given to the player after a successful parry (the counter window). */
     public static volatile int counterTicks = 40;
 
+    /** Mana restored by a successful parry. */
+    public static volatile double parryMana = 6;
+
     private CombatConfig() {
     }
 }

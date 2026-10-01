@@ -15,7 +15,9 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.tags.DamageTypeTags;
+import dev.gatebound.skill.ManaState;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
@@ -70,7 +72,8 @@ public final class CombatHandler {
 
     private static boolean isMelee(DamageSource source) {
         return source.getDirectEntity() != null && source.getDirectEntity() == source.getEntity()
-                && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY);
+                && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)
+                && !source.is(DamageTypes.MAGIC) && !source.is(DamageTypes.INDIRECT_MAGIC);
     }
 
     private static EventResult onPlayerHit(ServerPlayer player, LivingEntity attacker, DamageSource source, int now, ServerLevel level) {
@@ -105,6 +108,7 @@ public final class CombatHandler {
 
         // A second swing with the other arm on a clean parry, so a successful deflect looks different from a miss.
         player.swing(InteractionHand.OFF_HAND, SwingAnimation.DEFAULT, true);
+        ManaState.add(player, CombatConfig.parryMana);
         player.addEffect(new MobEffectInstance(MobEffects.STRENGTH, CombatConfig.counterTicks, 1));
         player.sendOverlayMessage(Component.literal("PARRY!").withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.BOLD));
 
@@ -113,7 +117,7 @@ public final class CombatHandler {
     }
 
     private static void onMobHit(ServerPlayer player, Mob mob, DamageSource source, int now, ServerLevel level) {
-        if (CombatState.isStaggered(mob.getUUID(), now)) {
+        if (isMelee(source) && CombatState.isStaggered(mob.getUUID(), now)) {
             // Finisher: a heavy extra hit on a staggered mob, once.
             CombatState.clearStagger(mob.getUUID());
             CombatState.resetPosture(mob.getUUID());

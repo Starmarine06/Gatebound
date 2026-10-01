@@ -2,6 +2,10 @@ package dev.gatebound.client;
 
 import dev.gatebound.data.ClientCombatData;
 import dev.gatebound.data.ClientPlayerData;
+import dev.gatebound.data.ClientSkillData;
+import dev.gatebound.skill.Skill;
+import dev.gatebound.skill.Skills;
+import java.util.List;
 import dev.gatebound.data.GateboundClass;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -30,8 +34,8 @@ public final class GateboundHud {
         int x = 6;
         int y = 6;
         int w = 112;
-        g.fill(x - 3, y - 3, x + w + 3, y + 30, 0x90000000);
-        g.outline(x - 3, y - 3, w + 6, 33, 0x885A6BFF);
+        g.fill(x - 3, y - 3, x + w + 3, y + 42, 0x90000000);
+        g.outline(x - 3, y - 3, w + 6, 45, 0x885A6BFF);
 
         GateboundClass c = GateboundClass.byId(ClientPlayerData.classId);
         String cls = c == null ? "" : "  " + Component.translatable(c.nameKey()).getString();
@@ -43,8 +47,39 @@ public final class GateboundHud {
         g.fill(x, barY, x + Math.min(w, filled), barY + 6, 0xFF3DDC84);
         g.outline(x, barY, w, 6, 0xFF0B0B10);
 
+        // Mana bar
+        int manaY = barY + 9;
+        g.fill(x, manaY, x + w, manaY + 6, 0xFF1C1C26);
+        int manaFilled = w * ClientSkillData.mana / Math.max(1, ClientSkillData.maxMana);
+        g.fill(x, manaY, x + Math.min(w, manaFilled), manaY + 6, 0xFF3D8BFF);
+        g.outline(x, manaY, w, 6, 0xFF0B0B10);
+        g.text(mc.font, ClientSkillData.mana + " / " + ClientSkillData.maxMana + " MP", x + w + 6, manaY - 1, 0xFF8FB8FF, true);
+
         if (ClientPlayerData.statPoints > 0) {
-            g.text(mc.font, ClientPlayerData.statPoints + " points to spend", x, barY + 9, 0xFF7CFF9A, true);
+            g.text(mc.font, ClientPlayerData.statPoints + " points to spend", x, manaY + 9, 0xFF7CFF9A, true);
+        }
+
+        drawSkills(g, mc, x, y + 50, w);
+    }
+
+    /** One row per usable skill: key, name, mana cost and a cooldown fill. Greyed when mana is short. */
+    private static void drawSkills(GuiGraphicsExtractor g, Minecraft mc, int x, int y, int w) {
+        List<Skill> skills = Skills.available(ClientPlayerData.classId, ClientPlayerData.level);
+        for (int i = 0; i < skills.size() && i < ClientHooks.SKILL_KEYS.length; i++) {
+            Skill s = skills.get(i);
+            int rowY = y + i * 15;
+            float cd = ClientSkillData.cooldownRemaining(s.id());
+            boolean affordable = ClientSkillData.mana >= s.manaCost();
+            g.fill(x - 3, rowY - 2, x + w + 3, rowY + 11, 0x90000000);
+            if (cd > 0) {
+                g.fill(x - 3, rowY - 2, x - 3 + (int) ((w + 6) * (1f - cd)), rowY + 11, 0x55808090);
+            } else if (affordable) {
+                g.fill(x - 3, rowY - 2, x - 1, rowY + 11, 0xFF3DDC84);
+            }
+            String key = ClientHooks.SKILL_KEYS[i].getTranslatedKeyMessage().getString();
+            int color = cd > 0 ? 0xFF888894 : (affordable ? 0xFFFFFFFF : 0xFF7A7A99);
+            g.text(mc.font, "[" + key + "] " + Component.translatable(s.nameKey()).getString(), x + 3, rowY, color, true);
+            g.text(mc.font, s.manaCost() + "mp", x + w - 22, rowY, affordable ? 0xFF8FB8FF : 0xFF666680, true);
         }
     }
 

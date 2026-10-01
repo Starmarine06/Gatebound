@@ -6,6 +6,7 @@ import dev.gatebound.client.ClientHooks;
 import dev.gatebound.combat.CombatHandler;
 import dev.gatebound.command.GateboundCommands;
 import dev.gatebound.data.Progression;
+import dev.gatebound.skill.SkillHandler;
 import dev.gatebound.network.GateboundNetwork;
 import dev.gatebound.registry.GateboundRegistries;
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ public final class Gatebound {
         EnvExecutor.runInEnv(Env.CLIENT, () -> ClientHooks::init);
         Progression.init();
         CombatHandler.init();
+        SkillHandler.init();
         GateboundCommands.init();
         LOGGER.info("Gatebound initialised");
     }
