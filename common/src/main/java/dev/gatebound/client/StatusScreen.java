@@ -52,13 +52,17 @@ public final class StatusScreen extends Screen {
         }
     }
 
+    /** The panel is drawn with the background so it sits underneath the buttons, which render afterwards. */
+    @Override
+    public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+        super.extractBackground(g, mouseX, mouseY, partialTick);
+        g.fill(left, top, left + PANEL_W, top + PANEL_H, 0xF0101018);
+        g.outline(left, top, PANEL_W, PANEL_H, 0xFF5A6BFF);
+    }
+
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(g, mouseX, mouseY, partialTick);
-
-        // Panel
-        g.fill(left, top, left + PANEL_W, top + PANEL_H, 0xE0101018);
-        g.outline(left, top, PANEL_W, PANEL_H, 0xFF5A6BFF);
 
         g.centeredText(this.font, this.title, this.width / 2, top + 8, 0xFFFFFFFF);
 

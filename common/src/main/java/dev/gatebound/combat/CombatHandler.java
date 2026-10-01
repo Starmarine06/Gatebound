@@ -7,6 +7,8 @@ import dev.architectury.networking.NetworkManager;
 import dev.gatebound.network.ParryStatePayload;
 import dev.gatebound.network.PostureSyncPayload;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -45,6 +47,8 @@ public final class CombatHandler {
         int now = player.level().getServer().getTickCount();
         if (CombatState.startParry(player.getUUID(), now)) {
             NetworkManager.sendToPlayer(player, new ParryStatePayload(CombatConfig.parryWindowTicks, CombatConfig.parryCooldownTicks));
+            // Arm swing, shown to the player and everyone nearby.
+            player.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, true);
             player.level().playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.5f, 1.6f);
         }
     }
@@ -99,6 +103,8 @@ public final class CombatHandler {
         level.playSound(null, player.blockPosition(), SoundEvents.SHIELD_BLOCK.value(), SoundSource.PLAYERS, 1.0f, 1.3f);
         level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 0.8f, 1.5f);
 
+        // A second swing with the other arm on a clean parry, so a successful deflect looks different from a miss.
+        player.swing(InteractionHand.OFF_HAND, SwingAnimation.DEFAULT, true);
         player.addEffect(new MobEffectInstance(MobEffects.STRENGTH, CombatConfig.counterTicks, 1));
         player.sendOverlayMessage(Component.literal("PARRY!").withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.BOLD));
 
