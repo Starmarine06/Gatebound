@@ -64,7 +64,7 @@ public final class GateboundHud {
 
     /** One row per usable skill: key, name, mana cost and a cooldown fill. Greyed when mana is short. */
     private static void drawSkills(GuiGraphicsExtractor g, Minecraft mc, int x, int y, int w) {
-        List<Skill> skills = Skills.available(ClientPlayerData.classId, ClientPlayerData.level);
+        List<Skill> skills = Skills.available(ClientPlayerData.classId, ClientPlayerData.elements, ClientPlayerData.level);
         for (int i = 0; i < skills.size() && i < ClientHooks.SKILL_KEYS.length; i++) {
             Skill s = skills.get(i);
             int rowY = y + i * 15;

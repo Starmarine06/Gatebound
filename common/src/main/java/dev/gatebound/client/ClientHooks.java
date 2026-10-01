@@ -1,5 +1,6 @@
 package dev.gatebound.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import dev.architectury.event.events.client.ClientGuiEvent;
 import dev.architectury.event.events.client.ClientTickEvent;
 import dev.architectury.networking.NetworkManager;
@@ -13,20 +14,21 @@ import net.minecraft.resources.Identifier;
 
 /** Entry points that touch client-only classes. Only call these through EnvExecutor on the client. */
 public final class ClientHooks {
-    /** GLFW_KEY_CAPS_LOCK. Rebindable in Controls. */
-    private static final int KEY_CAPS_LOCK = 280;
+    // Defaults match the keybinds saved in the Fabric dev instance, so both loaders start identical:
+    // status = Tab, parry = mouse button 5 (the side button), skills = Z X C then V B N.
+    /** GLFW_KEY_TAB. */
+    private static final int KEY_TAB = 258;
+    /** Mouse button index 4 is shown in the options file as key.mouse.5. */
+    private static final int MOUSE_BUTTON_5 = 4;
 
     public static final KeyMapping.Category CATEGORY =
             KeyMapping.Category.register(Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, "main"));
-    public static final KeyMapping OPEN_STATUS = new KeyMapping("key.gatebound.status", KEY_CAPS_LOCK, CATEGORY);
+    public static final KeyMapping OPEN_STATUS = new KeyMapping("key.gatebound.status", KEY_TAB, CATEGORY);
+    public static final KeyMapping PARRY = new KeyMapping("key.gatebound.parry", InputConstants.Type.MOUSE, MOUSE_BUTTON_5, CATEGORY);
 
-    /** GLFW_KEY_R. */
-    private static final int KEY_R = 82;
-    public static final KeyMapping PARRY = new KeyMapping("key.gatebound.parry", KEY_R, CATEGORY);
-
-    /** GLFW keys Z, X, C: skill slots 1 to 3. */
-    private static final int[] SKILL_DEFAULT_KEYS = {90, 88, 67};
-    public static final KeyMapping[] SKILL_KEYS = new KeyMapping[3];
+    /** GLFW keys Z, X, C, V, B, N: skill slots 1 to 6. */
+    private static final int[] SKILL_DEFAULT_KEYS = {90, 88, 67, 86, 66, 78};
+    public static final KeyMapping[] SKILL_KEYS = new KeyMapping[6];
 
     static {
         for (int i = 0; i < SKILL_KEYS.length; i++) {
@@ -71,5 +73,9 @@ public final class ClientHooks {
 
     public static void openAwakening() {
         Minecraft.getInstance().setScreenAndShow(new AwakeningScreen());
+    }
+
+    public static void openElement() {
+        Minecraft.getInstance().setScreenAndShow(new ElementScreen());
     }
 }

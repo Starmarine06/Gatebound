@@ -2,7 +2,9 @@ package dev.gatebound.data;
 
 import dev.gatebound.network.SyncDataPayload;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /** Client-side mirror of the local player progression, filled by SyncDataPayload. Read-only for UI and HUD. */
 public final class ClientPlayerData {
@@ -12,6 +14,7 @@ public final class ClientPlayerData {
     public static int statPoints;
     public static final int[] STATS = new int[Stat.values().length];
     public static String classId = "";
+    public static List<String> elements = new ArrayList<>();
 
     static {
         Arrays.fill(STATS, Stat.BASE_VALUE);
@@ -29,5 +32,6 @@ public final class ClientPlayerData {
             STATS[n] = n < p.stats().size() ? p.stats().get(n) : Stat.BASE_VALUE;
         }
         classId = p.classId();
+        elements = new ArrayList<>(p.elements());
     }
 }

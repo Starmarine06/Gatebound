@@ -1,14 +1,18 @@
 package dev.gatebound.skill;
 
+import dev.gatebound.data.Element;
 import dev.gatebound.data.GateboundClass;
 import dev.gatebound.data.PlayerData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
-/** An active skill. Class-locked and level-gated; costs mana and has a cooldown. */
-public record Skill(String id, GateboundClass owner, int minLevel, int manaCost, int cooldownTicks, Effect effect) {
+/**
+ * An active skill. Class-locked and level-gated; costs mana and has a cooldown.
+ * Mage skills also belong to an element and are only usable by Mages who hold it. Other classes use a null element.
+ */
+public record Skill(String id, GateboundClass owner, Element element, int minLevel, int manaCost, int cooldownTicks, Effect effect) {
 
-    /** Runs the skill. Return false if it had no valid target, so no mana or cooldown is spent. */
+    /** Runs the skill. The return value only decides whether to show a "no target" hint; mana is spent either way. */
     @FunctionalInterface
     public interface Effect {
         boolean cast(ServerPlayer player, ServerLevel level, PlayerData data);

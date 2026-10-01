@@ -34,17 +34,17 @@ public final class SkillHandler {
                 if (tick % 5 == 0) {
                     sendMana(player, false);
                 }
+                if (tick % 100 == 0) {
+                    // Mana lives in PlayerData; flag the save so it is written with the next world save.
+                    PlayerDataStore.markDirty(player);
+                }
             }
         });
-        PlayerEvent.PLAYER_JOIN.register(player -> {
-            ManaState.fill(player);
-            sendMana(player, true);
-        });
-        PlayerEvent.PLAYER_RESPAWN.register((player, conqueredEnd, reason) -> {
-            ManaState.fill(player);
-            sendMana(player, true);
-        });
+        // Mana is deliberately NOT refilled on join or respawn: it is saved with the player and picks up where it left off.
+        PlayerEvent.PLAYER_JOIN.register(player -> sendMana(player, true));
+        PlayerEvent.PLAYER_RESPAWN.register((player, conqueredEnd, reason) -> sendMana(player, true));
         PlayerEvent.PLAYER_QUIT.register(player -> {
+            PlayerDataStore.markDirty(player);
             ManaState.forget(player.getUUID());
             COOLDOWN_END.remove(player.getUUID());
         });
@@ -57,10 +57,10 @@ public final class SkillHandler {
         }
     }
 
-    /** Casts the skill in the given 0-based slot, if the player can. */
+    /** Casts the skill in the given 0-based slot. Mana and cooldown are spent the moment it is cast, hit or miss. */
     public static void use(ServerPlayer player, int slot) {
         PlayerData data = PlayerDataStore.of(player);
-        List<Skill> skills = Skills.available(data.classId, data.level);
+        List<Skill> skills = Skills.available(data.classId, data.elements, data.level);
         if (slot < 0 || slot >= skills.size() || !player.isAlive()) {
             return;
         }
@@ -71,17 +71,18 @@ public final class SkillHandler {
         if (cooldowns.getOrDefault(skill.id(), 0) > now) {
             return;
         }
-        if (ManaState.get(player) < skill.manaCost()) {
+        if (!ManaState.spend(player, skill.manaCost())) {
             player.sendOverlayMessage(Component.translatable("skill.gatebound.not_enough_mana"));
             return;
         }
-        if (!skill.effect().cast(player, player.level(), data)) {
-            player.sendOverlayMessage(Component.translatable("skill.gatebound.no_target"));
-            return;
-        }
-        ManaState.spend(player, skill.manaCost());
         cooldowns.put(skill.id(), now + skill.cooldownTicks());
         NetworkManager.sendToPlayer(player, new SkillCooldownPayload(skill.id(), skill.cooldownTicks()));
         sendMana(player, true);
+
+        boolean connected = skill.effect().cast(player, player.level(), data);
+        if (!connected) {
+            player.sendOverlayMessage(Component.translatable("skill.gatebound.no_target"));
+        }
+        PlayerDataStore.markDirty(player);
     }
 }

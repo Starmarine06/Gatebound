@@ -10,13 +10,17 @@ import java.util.List;
 public final class PlayerData {
     public static final int MAX_LEVEL = 100;
     public static final int STAT_POINTS_PER_LEVEL = 3;
+    /** Marks mana as never initialised; the first read treats it as full. */
+    public static final double MANA_UNSET = -1;
 
     public static final Codec<PlayerData> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.INT.optionalFieldOf("level", 1).forGetter(d -> d.level),
             Codec.INT.optionalFieldOf("xp", 0).forGetter(d -> d.xp),
             Codec.INT.optionalFieldOf("stat_points", 0).forGetter(d -> d.statPoints),
             Codec.INT.listOf().optionalFieldOf("stats", List.of()).forGetter(d -> toList(d.stats)),
-            Codec.STRING.optionalFieldOf("class", "").forGetter(d -> d.classId)
+            Codec.STRING.optionalFieldOf("class", "").forGetter(d -> d.classId),
+            Codec.STRING.listOf().optionalFieldOf("elements", List.of()).forGetter(d -> d.elements),
+            Codec.DOUBLE.optionalFieldOf("mana", MANA_UNSET).forGetter(d -> d.mana)
     ).apply(i, PlayerData::new));
 
     public int level;
@@ -24,16 +28,22 @@ public final class PlayerData {
     public int statPoints;
     public final int[] stats = new int[Stat.values().length];
     public String classId;
+    /** Element ids for Mages, in the order they were gained. Empty for every other class. */
+    public final List<String> elements = new ArrayList<>();
+    public double mana;
 
     public PlayerData() {
-        this(1, 0, 0, List.of(), "");
+        this(1, 0, 0, List.of(), "", List.of(), MANA_UNSET);
     }
 
-    private PlayerData(int level, int xp, int statPoints, List<Integer> savedStats, String classId) {
+    private PlayerData(int level, int xp, int statPoints, List<Integer> savedStats, String classId,
+                       List<String> savedElements, double mana) {
         this.level = Math.max(1, Math.min(MAX_LEVEL, level));
         this.xp = Math.max(0, xp);
         this.statPoints = Math.max(0, statPoints);
         this.classId = classId;
+        this.elements.addAll(savedElements);
+        this.mana = mana;
         for (int n = 0; n < stats.length; n++) {
             stats[n] = n < savedStats.size() ? savedStats.get(n) : Stat.BASE_VALUE;
         }
@@ -49,6 +59,10 @@ public final class PlayerData {
 
     public int get(Stat stat) {
         return stats[stat.ordinal()];
+    }
+
+    public boolean hasElement(Element element) {
+        return elements.contains(element.id());
     }
 
     public static int xpToNext(int level) {

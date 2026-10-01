@@ -6,6 +6,10 @@ import dev.architectury.event.events.common.CommandRegistrationEvent;
 import dev.architectury.networking.NetworkManager;
 import dev.gatebound.combat.CombatConfig;
 import dev.gatebound.combat.CombatState;
+import dev.gatebound.data.Element;
+import dev.gatebound.skill.MagicConfig;
+import dev.gatebound.skill.ManaState;
+import dev.gatebound.skill.SkillHandler;
 import dev.gatebound.data.PlayerData;
 import dev.gatebound.data.PlayerDataStore;
 import dev.gatebound.data.Progression;
@@ -115,6 +119,42 @@ public final class GateboundCommands {
                                         + (int) CombatConfig.postureMax), true);
                                 return 1;
                             }))));
+
+            // Magic testing (op only): /gatebound element grant <element>, /gatebound mana set <n>, /gatebound magic odds <second> <third>
+            LiteralArgumentBuilder<CommandSourceStack> grant = Commands.literal("grant");
+            for (Element element : Element.values()) {
+                grant.then(Commands.literal(element.id()).executes(ctx -> {
+                    ServerPlayer player = ctx.getSource().getPlayerOrException();
+                    PlayerData d = PlayerDataStore.of(player);
+                    if (!d.hasElement(element)) {
+                        d.elements.add(element.id());
+                    }
+                    Progression.save(player, d);
+                    ctx.getSource().sendSuccess(() -> Component.literal("Elements: " + String.join(", ", d.elements)), false);
+                    return 1;
+                }));
+            }
+            root.then(Commands.literal("element").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)).then(grant));
+            root.then(Commands.literal("mana").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                    .then(Commands.literal("set").then(Commands.argument("amount", IntegerArgumentType.integer(0, 10000))
+                            .executes(ctx -> {
+                                ServerPlayer player = ctx.getSource().getPlayerOrException();
+                                ManaState.set(player, IntegerArgumentType.getInteger(ctx, "amount"));
+                                SkillHandler.sendMana(player, true);
+                                ctx.getSource().sendSuccess(() -> Component.literal("Mana set to " + (int) ManaState.get(player)), false);
+                                return 1;
+                            }))));
+            root.then(Commands.literal("magic").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                    .then(Commands.literal("odds")
+                            .then(Commands.argument("second", IntegerArgumentType.integer(0, 100))
+                                    .then(Commands.argument("third", IntegerArgumentType.integer(0, 100)).executes(ctx -> {
+                                        MagicConfig.secondElementChance = IntegerArgumentType.getInteger(ctx, "second") / 100.0;
+                                        MagicConfig.thirdElementChance = IntegerArgumentType.getInteger(ctx, "third") / 100.0;
+                                        ctx.getSource().sendSuccess(() -> Component.literal("Extra element odds: second "
+                                                + (int) (MagicConfig.secondElementChance * 100) + "%, third "
+                                                + (int) (MagicConfig.thirdElementChance * 100) + "%"), true);
+                                        return 1;
+                                    })))));
 
             dispatcher.register(root);
         });

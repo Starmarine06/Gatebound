@@ -9,9 +9,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/** Server-side mana. Not saved: it refills on join and respawn. */
+/**
+ * Mana helpers. The value itself lives in PlayerData.mana, so it is saved with the player and carries across
+ * sessions, deaths and rejoining. A brand new player (mana unset) starts full, and never refills for free after that.
+ */
 public final class ManaState {
-    private static final Map<UUID, Double> MANA = new HashMap<>();
     private static final Map<UUID, int[]> LAST_SENT = new HashMap<>();
 
     private ManaState() {
@@ -27,12 +29,15 @@ public final class ManaState {
 
     public static double get(ServerPlayer player) {
         PlayerData data = PlayerDataStore.of(player);
-        double mana = MANA.getOrDefault(player.getUUID(), (double) max(data));
-        return Math.min(mana, max(data));
+        if (data.mana == PlayerData.MANA_UNSET) {
+            data.mana = max(data);
+        }
+        return Math.min(data.mana, max(data));
     }
 
     public static void set(ServerPlayer player, double value) {
-        MANA.put(player.getUUID(), Math.max(0, Math.min(max(PlayerDataStore.of(player)), value)));
+        PlayerData data = PlayerDataStore.of(player);
+        data.mana = Math.max(0, Math.min(max(data), value));
     }
 
     public static void add(ServerPlayer player, double amount) {
@@ -48,11 +53,6 @@ public final class ManaState {
         return true;
     }
 
-    public static void fill(ServerPlayer player) {
-        set(player, max(PlayerDataStore.of(player)));
-        LAST_SENT.remove(player.getUUID());
-    }
-
     /** Returns {mana, max} if it changed since the last send (or force is set), otherwise null. */
     public static int[] changedSnapshot(ServerPlayer player, boolean force) {
         int[] now = {(int) get(player), max(PlayerDataStore.of(player))};
@@ -65,7 +65,6 @@ public final class ManaState {
     }
 
     public static void forget(UUID id) {
-        MANA.remove(id);
         LAST_SENT.remove(id);
     }
 }

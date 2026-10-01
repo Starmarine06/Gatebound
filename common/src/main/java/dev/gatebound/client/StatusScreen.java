@@ -2,6 +2,7 @@ package dev.gatebound.client;
 
 import dev.architectury.networking.NetworkManager;
 import dev.gatebound.data.ClientPlayerData;
+import dev.gatebound.data.Element;
 import dev.gatebound.data.GateboundClass;
 import dev.gatebound.data.Stat;
 import dev.gatebound.network.SpendStatPayload;
@@ -70,7 +71,18 @@ public final class StatusScreen extends Screen {
         String className = ClientPlayerData.classId.isEmpty()
                 ? Component.translatable("screen.gatebound.status.no_class").getString()
                 : Component.translatable(classKey()).getString();
-        g.text(this.font, Component.translatable("screen.gatebound.status.class", className).getString(), left + 10, top + 24, 0xFFDDDDDD);
+        StringBuilder classLine = new StringBuilder(Component.translatable("screen.gatebound.status.class", className).getString());
+        if (!ClientPlayerData.elements.isEmpty()) {
+            classLine.append(" (");
+            for (int i = 0; i < ClientPlayerData.elements.size(); i++) {
+                Element e = Element.byId(ClientPlayerData.elements.get(i));
+                if (e != null) {
+                    classLine.append(i > 0 ? ", " : "").append(Component.translatable(e.nameKey()).getString());
+                }
+            }
+            classLine.append(")");
+        }
+        g.text(this.font, classLine.toString(), left + 10, top + 24, 0xFFDDDDDD);
         g.text(this.font, Component.translatable("screen.gatebound.status.level", ClientPlayerData.level).getString(), left + 10, top + 36, 0xFFFFD866);
 
         // XP bar

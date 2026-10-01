@@ -5,6 +5,10 @@ import dev.architectury.event.events.common.EntityEvent;
 import dev.architectury.event.events.common.PlayerEvent;
 import dev.architectury.networking.NetworkManager;
 import dev.gatebound.network.OpenAwakeningPayload;
+import dev.gatebound.network.OpenElementPayload;
+import dev.gatebound.skill.MagicConfig;
+import java.util.ArrayList;
+import java.util.List;
 import dev.gatebound.network.SyncDataPayload;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -46,6 +50,38 @@ public final class Progression {
         save(player, data);
         player.sendSystemMessage(Component.literal("[Gatebound] You awakened as a ")
                 .append(Component.translatable(chosen.nameKey())).append("."));
+        if (chosen == GateboundClass.MAGE) {
+            NetworkManager.sendToPlayer(player, new OpenElementPayload());
+        }
+    }
+
+    /**
+     * A Mage picks their main element; the server then rolls for bonus elements.
+     * Each extra element is chosen at random from the ones they do not yet have.
+     */
+    public static void chooseElement(ServerPlayer player, String elementId) {
+        PlayerData data = PlayerDataStore.of(player);
+        Element chosen = Element.byId(elementId);
+        if (chosen == null || !GateboundClass.MAGE.id().equals(data.classId) || !data.elements.isEmpty()) {
+            player.sendSystemMessage(Component.literal("[Gatebound] You cannot choose an element right now."));
+            return;
+        }
+        data.elements.add(chosen.id());
+        player.sendSystemMessage(Component.literal("[Gatebound] Your primary affinity is ")
+                .append(Component.translatable(chosen.nameKey())).append("."));
+
+        List<Element> remaining = new ArrayList<>(List.of(Element.values()));
+        remaining.remove(chosen);
+        double chance = MagicConfig.secondElementChance;
+        while (!remaining.isEmpty() && player.getRandom().nextDouble() < chance) {
+            Element extra = remaining.remove(player.getRandom().nextInt(remaining.size()));
+            data.elements.add(extra.id());
+            player.sendSystemMessage(Component.literal("[Gatebound] Rare awakening! You also gained ")
+                    .append(Component.translatable(extra.nameKey())).append(" magic.")
+                    .withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE));
+            chance = MagicConfig.thirdElementChance;
+        }
+        save(player, data);
     }
 
     /** Server-validated stat spending; used by both the GUI packet and the command. */
@@ -63,6 +99,7 @@ public final class Progression {
     public static void resetClass(ServerPlayer player) {
         PlayerData data = PlayerDataStore.of(player);
         data.classId = "";
+        data.elements.clear();
         java.util.Arrays.fill(data.stats, Stat.BASE_VALUE);
         data.statPoints = (data.level - 1) * PlayerData.STAT_POINTS_PER_LEVEL;
         save(player, data);
@@ -70,8 +107,12 @@ public final class Progression {
     }
 
     public static void openAwakeningIfNeeded(ServerPlayer player) {
-        if (PlayerDataStore.of(player).classId.isEmpty()) {
+        PlayerData data = PlayerDataStore.of(player);
+        if (data.classId.isEmpty()) {
             NetworkManager.sendToPlayer(player, new OpenAwakeningPayload());
+        } else if (GateboundClass.MAGE.id().equals(data.classId) && data.elements.isEmpty()) {
+            // A Mage who left before picking an element is asked again on the next join.
+            NetworkManager.sendToPlayer(player, new OpenElementPayload());
         }
     }
 

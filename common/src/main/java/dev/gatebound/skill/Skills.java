@@ -1,5 +1,6 @@
 package dev.gatebound.skill;
 
+import dev.gatebound.data.Element;
 import dev.gatebound.data.GateboundClass;
 import dev.gatebound.data.PlayerData;
 import dev.gatebound.data.Stat;
@@ -19,25 +20,44 @@ import net.minecraft.world.phys.Vec3;
 import java.util.ArrayList;
 import java.util.List;
 
-/** The skill registry. Two skills per class: one at level 1 and one at level 5. */
+/**
+ * The skill registry. Non-mage classes have two skills each (levels 1 and 5).
+ * Mages get two skills per element they hold, so a Mage with several elements can have up to six or more.
+ */
 public final class Skills {
     public static final List<Skill> ALL = new ArrayList<>();
 
     // Warrior
-    public static final Skill SHOCKWAVE = add(new Skill("shockwave", GateboundClass.WARRIOR, 1, 12, 160, Skills::shockwave));
-    public static final Skill WAR_CRY = add(new Skill("war_cry", GateboundClass.WARRIOR, 5, 20, 400, Skills::warCry));
+    public static final Skill SHOCKWAVE = add(new Skill("shockwave", GateboundClass.WARRIOR, null, 1, 12, 160, Skills::shockwave));
+    public static final Skill WAR_CRY = add(new Skill("war_cry", GateboundClass.WARRIOR, null, 5, 20, 400, Skills::warCry));
     // Rogue
-    public static final Skill SHADOW_STEP = add(new Skill("shadow_step", GateboundClass.ROGUE, 1, 8, 100, Skills::shadowStep));
-    public static final Skill VANISH = add(new Skill("vanish", GateboundClass.ROGUE, 5, 18, 360, Skills::vanish));
-    // Mage
-    public static final Skill ARC_BOLT = add(new Skill("arc_bolt", GateboundClass.MAGE, 1, 10, 60, Skills::arcBolt));
-    public static final Skill FROST_NOVA = add(new Skill("frost_nova", GateboundClass.MAGE, 5, 22, 240, Skills::frostNova));
+    public static final Skill SHADOW_STEP = add(new Skill("shadow_step", GateboundClass.ROGUE, null, 1, 8, 100, Skills::shadowStep));
+    public static final Skill VANISH = add(new Skill("vanish", GateboundClass.ROGUE, null, 5, 18, 360, Skills::vanish));
     // Ranger
-    public static final Skill EAGLE_EYE = add(new Skill("eagle_eye", GateboundClass.RANGER, 1, 8, 300, Skills::eagleEye));
-    public static final Skill PIERCING_SHOT = add(new Skill("piercing_shot", GateboundClass.RANGER, 5, 16, 120, Skills::piercingShot));
+    public static final Skill EAGLE_EYE = add(new Skill("eagle_eye", GateboundClass.RANGER, null, 1, 8, 300, Skills::eagleEye));
+    public static final Skill PIERCING_SHOT = add(new Skill("piercing_shot", GateboundClass.RANGER, null, 5, 16, 120, Skills::piercingShot));
     // Summoner
-    public static final Skill SPIRIT_WARD = add(new Skill("spirit_ward", GateboundClass.SUMMONER, 1, 14, 240, Skills::spiritWard));
-    public static final Skill SOUL_DRAIN = add(new Skill("soul_drain", GateboundClass.SUMMONER, 5, 16, 140, Skills::soulDrain));
+    public static final Skill SPIRIT_WARD = add(new Skill("spirit_ward", GateboundClass.SUMMONER, null, 1, 14, 240, Skills::spiritWard));
+    public static final Skill SOUL_DRAIN = add(new Skill("soul_drain", GateboundClass.SUMMONER, null, 5, 16, 140, Skills::soulDrain));
+
+    // Mage: Fire
+    public static final Skill FIREBALL = add(new Skill("fireball", GateboundClass.MAGE, Element.FIRE, 1, 10, 60, Skills::fireball));
+    public static final Skill FLAME_BURST = add(new Skill("flame_burst", GateboundClass.MAGE, Element.FIRE, 5, 22, 220, Skills::flameBurst));
+    // Mage: Ice
+    public static final Skill FROST_SHARD = add(new Skill("frost_shard", GateboundClass.MAGE, Element.ICE, 1, 9, 50, Skills::frostShard));
+    public static final Skill FROST_NOVA = add(new Skill("frost_nova", GateboundClass.MAGE, Element.ICE, 5, 22, 240, Skills::frostNova));
+    // Mage: Lightning
+    public static final Skill ARC_BOLT = add(new Skill("arc_bolt", GateboundClass.MAGE, Element.LIGHTNING, 1, 10, 60, Skills::arcBolt));
+    public static final Skill THUNDER_STORM = add(new Skill("thunder_storm", GateboundClass.MAGE, Element.LIGHTNING, 5, 24, 260, Skills::thunderStorm));
+    // Mage: Wind
+    public static final Skill GUST = add(new Skill("gust", GateboundClass.MAGE, Element.WIND, 1, 8, 70, Skills::gust));
+    public static final Skill CYCLONE = add(new Skill("cyclone", GateboundClass.MAGE, Element.WIND, 5, 20, 220, Skills::cyclone));
+    // Mage: Earth
+    public static final Skill STONE_SPIKE = add(new Skill("stone_spike", GateboundClass.MAGE, Element.EARTH, 1, 10, 70, Skills::stoneSpike));
+    public static final Skill STONE_SKIN = add(new Skill("stone_skin", GateboundClass.MAGE, Element.EARTH, 5, 18, 360, Skills::stoneSkin));
+    // Mage: Light
+    public static final Skill RADIANT_BOLT = add(new Skill("radiant_bolt", GateboundClass.MAGE, Element.LIGHT, 1, 10, 60, Skills::radiantBolt));
+    public static final Skill SANCTUARY = add(new Skill("sanctuary", GateboundClass.MAGE, Element.LIGHT, 5, 20, 300, Skills::sanctuary));
 
     private Skills() {
     }
@@ -56,16 +76,30 @@ public final class Skills {
         return null;
     }
 
-    /** Skills the given class and level can use, in slot order (lowest level first). */
-    public static List<Skill> available(String classId, int level) {
+    /**
+     * Skills the given class, elements and level can use, in slot order.
+     * Mages: grouped by element in the order the elements were gained, lowest level first within each.
+     */
+    public static List<Skill> available(String classId, List<String> elements, int level) {
         GateboundClass cls = GateboundClass.byId(classId);
         List<Skill> out = new ArrayList<>();
         if (cls == null) {
             return out;
         }
-        for (Skill s : ALL) {
-            if (s.owner() == cls && level >= s.minLevel()) {
-                out.add(s);
+        if (cls != GateboundClass.MAGE) {
+            for (Skill s : ALL) {
+                if (s.owner() == cls && level >= s.minLevel()) {
+                    out.add(s);
+                }
+            }
+            return out;
+        }
+        for (String elementId : elements) {
+            Element element = Element.byId(elementId);
+            for (Skill s : ALL) {
+                if (s.owner() == GateboundClass.MAGE && s.element() == element && level >= s.minLevel()) {
+                    out.add(s);
+                }
             }
         }
         return out;
@@ -80,6 +114,12 @@ public final class Skills {
     private static void sound(ServerPlayer player, ServerLevel level, SoundEvent sound, float pitch) {
         level.playSound(null, player.blockPosition(), sound, SoundSource.PLAYERS, 1.0f, pitch);
     }
+
+    private static float intel(PlayerData data, double base, double scale) {
+        return (float) (base + scale * data.get(Stat.INTELLECT));
+    }
+
+    // Warrior
 
     private static boolean shockwave(ServerPlayer player, ServerLevel level, PlayerData data) {
         float damage = (float) (4 + 0.5 * data.get(Stat.STRENGTH));
@@ -104,6 +144,8 @@ public final class Skills {
         return true;
     }
 
+    // Rogue
+
     private static boolean shadowStep(ServerPlayer player, ServerLevel level, PlayerData data) {
         Vec3 look = player.getLookAngle();
         Vec3 flat = new Vec3(look.x, 0, look.z).normalize();
@@ -123,26 +165,7 @@ public final class Skills {
         return true;
     }
 
-    private static boolean arcBolt(ServerPlayer player, ServerLevel level, PlayerData data) {
-        List<LivingEntity> hits = SkillTargeting.ray(player, level, 24, 1, ParticleTypes.ELECTRIC_SPARK);
-        if (hits.isEmpty()) {
-            return false;
-        }
-        hits.get(0).hurtServer(level, magic(player, level), (float) (5 + 0.8 * data.get(Stat.INTELLECT)));
-        sound(player, level, SoundEvents.LIGHTNING_BOLT_THUNDER, 2.0f);
-        return true;
-    }
-
-    private static boolean frostNova(ServerPlayer player, ServerLevel level, PlayerData data) {
-        float damage = (float) (3 + 0.4 * data.get(Stat.INTELLECT));
-        for (LivingEntity e : SkillTargeting.enemiesAround(player, level, 5)) {
-            e.hurtServer(level, magic(player, level), damage);
-            e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 80, 2));
-        }
-        level.sendParticles(ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + 0.8, player.getZ(), 60, 2.5, 0.5, 2.5, 0.05);
-        sound(player, level, SoundEvents.GLASS_BREAK, 0.6f);
-        return true;
-    }
+    // Ranger
 
     private static boolean eagleEye(ServerPlayer player, ServerLevel level, PlayerData data) {
         for (LivingEntity e : SkillTargeting.enemiesAround(player, level, 24)) {
@@ -155,19 +178,18 @@ public final class Skills {
 
     private static boolean piercingShot(ServerPlayer player, ServerLevel level, PlayerData data) {
         List<LivingEntity> hits = SkillTargeting.ray(player, level, 40, 3, ParticleTypes.CRIT);
-        if (hits.isEmpty()) {
-            return false;
-        }
         float damage = (float) (6 + 0.6 * data.get(Stat.AGILITY));
         for (LivingEntity e : hits) {
             e.hurtServer(level, magic(player, level), damage);
         }
         sound(player, level, SoundEvents.ARROW_SHOOT, 0.8f);
-        return true;
+        return !hits.isEmpty();
     }
 
+    // Summoner
+
     private static boolean spiritWard(ServerPlayer player, ServerLevel level, PlayerData data) {
-        player.heal((float) (6 + 0.5 * data.get(Stat.INTELLECT)));
+        player.heal(intel(data, 6, 0.5));
         player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 200, 0));
         level.sendParticles(ParticleTypes.HAPPY_VILLAGER, player.getX(), player.getY() + 1, player.getZ(), 20, 0.5, 0.8, 0.5, 0);
         sound(player, level, SoundEvents.AMETHYST_BLOCK_CHIME, 1.0f);
@@ -176,13 +198,157 @@ public final class Skills {
 
     private static boolean soulDrain(ServerPlayer player, ServerLevel level, PlayerData data) {
         List<LivingEntity> hits = SkillTargeting.ray(player, level, 16, 1, ParticleTypes.SOUL);
+        sound(player, level, SoundEvents.SOUL_ESCAPE.value(), 1.0f);
         if (hits.isEmpty()) {
             return false;
         }
-        float damage = (float) (4 + 0.6 * data.get(Stat.INTELLECT));
+        float damage = intel(data, 4, 0.6);
         hits.get(0).hurtServer(level, magic(player, level), damage);
         player.heal(damage * 0.5f);
-        sound(player, level, SoundEvents.SOUL_ESCAPE.value(), 1.0f);
+        return true;
+    }
+
+    // Mage: Fire
+
+    private static boolean fireball(ServerPlayer player, ServerLevel level, PlayerData data) {
+        List<LivingEntity> hits = SkillTargeting.ray(player, level, 24, 1, ParticleTypes.FLAME);
+        sound(player, level, SoundEvents.BLAZE_SHOOT, 1.0f);
+        if (hits.isEmpty()) {
+            return false;
+        }
+        LivingEntity target = hits.get(0);
+        target.hurtServer(level, magic(player, level), intel(data, 5, 0.7));
+        target.setRemainingFireTicks(80);
+        level.sendParticles(ParticleTypes.EXPLOSION, target.getX(), target.getY(0.5), target.getZ(), 1, 0, 0, 0, 0);
+        return true;
+    }
+
+    private static boolean flameBurst(ServerPlayer player, ServerLevel level, PlayerData data) {
+        float damage = intel(data, 3, 0.4);
+        for (LivingEntity e : SkillTargeting.enemiesAround(player, level, 5)) {
+            e.hurtServer(level, magic(player, level), damage);
+            e.setRemainingFireTicks(100);
+        }
+        level.sendParticles(ParticleTypes.FLAME, player.getX(), player.getY() + 0.8, player.getZ(), 70, 2.5, 0.5, 2.5, 0.08);
+        sound(player, level, SoundEvents.FIRECHARGE_USE, 0.8f);
+        return true;
+    }
+
+    // Mage: Ice
+
+    private static boolean frostShard(ServerPlayer player, ServerLevel level, PlayerData data) {
+        List<LivingEntity> hits = SkillTargeting.ray(player, level, 24, 1, ParticleTypes.SNOWFLAKE);
+        sound(player, level, SoundEvents.GLASS_BREAK, 1.6f);
+        if (hits.isEmpty()) {
+            return false;
+        }
+        LivingEntity target = hits.get(0);
+        target.hurtServer(level, magic(player, level), intel(data, 4, 0.6));
+        target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 60, 1));
+        return true;
+    }
+
+    private static boolean frostNova(ServerPlayer player, ServerLevel level, PlayerData data) {
+        float damage = intel(data, 3, 0.4);
+        for (LivingEntity e : SkillTargeting.enemiesAround(player, level, 5)) {
+            e.hurtServer(level, magic(player, level), damage);
+            e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 80, 2));
+        }
+        level.sendParticles(ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + 0.8, player.getZ(), 60, 2.5, 0.5, 2.5, 0.05);
+        sound(player, level, SoundEvents.GLASS_BREAK, 0.6f);
+        return true;
+    }
+
+    // Mage: Lightning
+
+    private static boolean arcBolt(ServerPlayer player, ServerLevel level, PlayerData data) {
+        List<LivingEntity> hits = SkillTargeting.ray(player, level, 24, 1, ParticleTypes.ELECTRIC_SPARK);
+        sound(player, level, SoundEvents.LIGHTNING_BOLT_THUNDER, 2.0f);
+        if (hits.isEmpty()) {
+            return false;
+        }
+        hits.get(0).hurtServer(level, magic(player, level), intel(data, 5, 0.8));
+        return true;
+    }
+
+    private static boolean thunderStorm(ServerPlayer player, ServerLevel level, PlayerData data) {
+        float damage = intel(data, 4, 0.5);
+        for (LivingEntity e : SkillTargeting.enemiesAround(player, level, 6)) {
+            e.hurtServer(level, magic(player, level), damage);
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, e.getX(), e.getY(0.5), e.getZ(), 25, 0.3, 0.8, 0.3, 0.3);
+        }
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, player.getX(), player.getY() + 1, player.getZ(), 60, 3, 1, 3, 0.2);
+        sound(player, level, SoundEvents.LIGHTNING_BOLT_THUNDER, 1.4f);
+        return true;
+    }
+
+    // Mage: Wind
+
+    private static boolean gust(ServerPlayer player, ServerLevel level, PlayerData data) {
+        List<LivingEntity> hits = SkillTargeting.ray(player, level, 10, 3, ParticleTypes.CLOUD);
+        sound(player, level, SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), 1.0f);
+        Vec3 dir = player.getLookAngle();
+        for (LivingEntity e : hits) {
+            e.hurtServer(level, magic(player, level), intel(data, 2, 0.3));
+            e.push(dir.x * 1.6, 0.4, dir.z * 1.6);
+            e.needsSync = true;
+        }
+        return !hits.isEmpty();
+    }
+
+    private static boolean cyclone(ServerPlayer player, ServerLevel level, PlayerData data) {
+        float damage = intel(data, 3, 0.4);
+        for (LivingEntity e : SkillTargeting.enemiesAround(player, level, 5)) {
+            e.hurtServer(level, magic(player, level), damage);
+            e.push(0, 1.1, 0);
+            e.needsSync = true;
+        }
+        level.sendParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 0.5, player.getZ(), 80, 2.5, 1.2, 2.5, 0.1);
+        sound(player, level, SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), 0.7f);
+        return true;
+    }
+
+    // Mage: Earth
+
+    private static boolean stoneSpike(ServerPlayer player, ServerLevel level, PlayerData data) {
+        List<LivingEntity> hits = SkillTargeting.ray(player, level, 16, 1, ParticleTypes.CAMPFIRE_COSY_SMOKE);
+        sound(player, level, SoundEvents.STONE_BREAK, 0.7f);
+        if (hits.isEmpty()) {
+            return false;
+        }
+        LivingEntity target = hits.get(0);
+        target.hurtServer(level, magic(player, level), intel(data, 5, 0.5));
+        target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 80, 3));
+        level.sendParticles(ParticleTypes.CRIT, target.getX(), target.getY(0.2), target.getZ(), 15, 0.3, 0.3, 0.3, 0.2);
+        return true;
+    }
+
+    private static boolean stoneSkin(ServerPlayer player, ServerLevel level, PlayerData data) {
+        player.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 200, 1));
+        player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 200, 1));
+        level.sendParticles(ParticleTypes.CRIT, player.getX(), player.getY() + 1, player.getZ(), 20, 0.5, 0.8, 0.5, 0.1);
+        sound(player, level, SoundEvents.STONE_PLACE, 0.8f);
+        return true;
+    }
+
+    // Mage: Light
+
+    private static boolean radiantBolt(ServerPlayer player, ServerLevel level, PlayerData data) {
+        List<LivingEntity> hits = SkillTargeting.ray(player, level, 20, 1, ParticleTypes.END_ROD);
+        sound(player, level, SoundEvents.AMETHYST_BLOCK_CHIME, 0.7f);
+        if (hits.isEmpty()) {
+            return false;
+        }
+        hits.get(0).hurtServer(level, magic(player, level), intel(data, 4, 0.6));
+        player.heal(2.0f);
+        return true;
+    }
+
+    private static boolean sanctuary(ServerPlayer player, ServerLevel level, PlayerData data) {
+        player.heal(intel(data, 8, 0.6));
+        player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 100, 1));
+        level.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 1, player.getZ(), 30, 0.6, 0.9, 0.6, 0.03);
+        sound(player, level, SoundEvents.BEACON_ACTIVATE, 1.4f);
         return true;
     }
 }
