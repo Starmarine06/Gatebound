@@ -9,8 +9,8 @@ import net.minecraft.network.chat.Component;
 
 /** Solid green "+N" button that is easy to spot; turns grey when it cannot be afforded. */
 public final class StatButton extends AbstractButton {
-    private static final int GREEN = 0xFF2FA84F;
-    private static final int GREEN_HOVER = 0xFF4FD66F;
+    private static final int GREEN = 0xFF2ED158;
+    private static final int GREEN_HOVER = 0xFF5CFF86;
     private static final int GREY = 0xFF3A3A44;
     private static final int OUTLINE = 0xFF0B3A19;
 
@@ -30,13 +30,26 @@ public final class StatButton extends AbstractButton {
 
     @Override
     protected void extractContents(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
-        int fill = !this.active ? GREY : (this.isHoveredOrFocused() ? GREEN_HOVER : GREEN);
+        boolean hot = this.active && this.isHoveredOrFocused();
         int x = getX();
         int y = getY();
-        g.fill(x, y, x + getWidth(), y + getHeight(), fill);
-        g.outline(x, y, getWidth(), getHeight(), this.active ? OUTLINE : 0xFF22222A);
-        int color = this.active ? 0xFFFFFFFF : 0xFF777777;
-        g.centeredText(this.font, getMessage().getString(), x + getWidth() / 2, y + (getHeight() - 8) / 2, color);
+        int w = getWidth();
+        int h = getHeight();
+        if (!this.active) {
+            g.fill(x, y, x + w, y + h, GREY);
+            g.outline(x, y, w, h, 0xFF22222A);
+            g.centeredText(this.font, getMessage().getString(), x + w / 2, y + (h - 8) / 2, 0xFF777777);
+            return;
+        }
+        // Glow, drop shadow, body, bevel highlight and shade so the button reads as raised.
+        g.fill(x - 2, y - 2, x + w + 2, y + h + 2, hot ? 0x6657FF7F : 0x3357FF7F);
+        g.fill(x + 1, y + 2, x + w + 1, y + h + 2, 0xAA000000);
+        g.fill(x, y, x + w, y + h, hot ? GREEN_HOVER : GREEN);
+        g.fill(x, y, x + w, y + 2, hot ? 0xFFC8FFD6 : 0xFF8DFFA8);
+        g.fill(x, y + h - 2, x + w, y + h, hot ? 0xFF1F9B3F : 0xFF14772E);
+        g.outline(x, y, w, h, OUTLINE);
+        g.centeredText(this.font, getMessage().getString(), x + w / 2 + 1, y + (h - 8) / 2 + 1, 0xFF0B3A19);
+        g.centeredText(this.font, getMessage().getString(), x + w / 2, y + (h - 8) / 2, 0xFFFFFFFF);
     }
 
     @Override

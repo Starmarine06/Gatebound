@@ -4,6 +4,8 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import dev.architectury.event.events.common.CommandRegistrationEvent;
 import dev.architectury.networking.NetworkManager;
+import dev.gatebound.combat.CombatConfig;
+import dev.gatebound.combat.CombatState;
 import dev.gatebound.data.PlayerData;
 import dev.gatebound.data.PlayerDataStore;
 import dev.gatebound.data.Progression;
@@ -90,6 +92,29 @@ public final class GateboundCommands {
                         ctx.getSource().sendSuccess(() -> Component.literal("Class reset"), false);
                         return 1;
                     })));
+
+            // Combat testing: /gatebound combat debug, /gatebound combat window <ticks>, /gatebound combat posture <value>
+            root.then(Commands.literal("combat")
+                    .then(Commands.literal("debug").executes(ctx -> {
+                        ServerPlayer player = ctx.getSource().getPlayerOrException();
+                        boolean on = CombatState.toggleDebug(player.getUUID());
+                        ctx.getSource().sendSuccess(() -> Component.literal("Combat debug " + (on ? "on" : "off")), false);
+                        return 1;
+                    }))
+                    .then(Commands.literal("window").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                            .then(Commands.argument("ticks", IntegerArgumentType.integer(1, 40)).executes(ctx -> {
+                                CombatConfig.parryWindowTicks = IntegerArgumentType.getInteger(ctx, "ticks");
+                                ctx.getSource().sendSuccess(() -> Component.literal("Parry window is now "
+                                        + CombatConfig.parryWindowTicks + " ticks"), true);
+                                return 1;
+                            })))
+                    .then(Commands.literal("posture").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                            .then(Commands.argument("max", IntegerArgumentType.integer(10, 1000)).executes(ctx -> {
+                                CombatConfig.postureMax = IntegerArgumentType.getInteger(ctx, "max");
+                                ctx.getSource().sendSuccess(() -> Component.literal("Max posture is now "
+                                        + (int) CombatConfig.postureMax), true);
+                                return 1;
+                            }))));
 
             dispatcher.register(root);
         });

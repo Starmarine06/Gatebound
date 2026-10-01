@@ -5,6 +5,7 @@ import dev.architectury.utils.Env;
 import dev.architectury.utils.EnvExecutor;
 import dev.gatebound.Gatebound;
 import dev.gatebound.client.ClientHooks;
+import dev.gatebound.combat.CombatHandler;
 import dev.gatebound.data.ClientPlayerData;
 import dev.gatebound.data.Progression;
 import net.minecraft.network.chat.Component;
@@ -28,6 +29,13 @@ public final class GateboundNetwork {
 
         NetworkManager.registerC2S(PongPayload.TYPE, PongPayload.CODEC, (payload, context) ->
                 context.queue(() -> Gatebound.LOGGER.info("Received pong from {}", context.getPlayer().getName().getString())));
+
+        NetworkManager.registerC2S(ParryPayload.TYPE, ParryPayload.CODEC, (payload, context) ->
+                context.queue(() -> {
+                    if (context.getPlayer() instanceof ServerPlayer player) {
+                        CombatHandler.pressParry(player);
+                    }
+                }));
 
         NetworkManager.registerC2S(SpendStatPayload.TYPE, SpendStatPayload.CODEC, (payload, context) ->
                 context.queue(() -> {

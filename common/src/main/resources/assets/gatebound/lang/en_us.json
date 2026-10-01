@@ -7,6 +7,7 @@
 
   "key.category.gatebound.main": "Gatebound",
   "key.gatebound.status": "Open Status Window",
+  "key.gatebound.parry": "Parry",
 
   "screen.gatebound.status.title": "Status",
   "screen.gatebound.status.class": "Class: %s",

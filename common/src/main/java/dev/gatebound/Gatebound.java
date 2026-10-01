@@ -3,6 +3,7 @@ package dev.gatebound;
 import dev.architectury.utils.Env;
 import dev.architectury.utils.EnvExecutor;
 import dev.gatebound.client.ClientHooks;
+import dev.gatebound.combat.CombatHandler;
 import dev.gatebound.command.GateboundCommands;
 import dev.gatebound.data.Progression;
 import dev.gatebound.network.GateboundNetwork;
@@ -22,6 +23,7 @@ public final class Gatebound {
         GateboundNetwork.init();
         EnvExecutor.runInEnv(Env.CLIENT, () -> ClientHooks::init);
         Progression.init();
+        CombatHandler.init();
         GateboundCommands.init();
         LOGGER.info("Gatebound initialised");
     }
