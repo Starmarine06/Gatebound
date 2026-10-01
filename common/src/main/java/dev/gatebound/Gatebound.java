@@ -1,5 +1,8 @@
 package dev.gatebound;
 
+import dev.gatebound.command.GateboundCommands;
+import dev.gatebound.network.GateboundNetwork;
+import dev.gatebound.registry.GateboundRegistries;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,6 +14,9 @@ public final class Gatebound {
     }
 
     public static void init() {
+        GateboundRegistries.init();
+        GateboundNetwork.init();
+        GateboundCommands.init();
         LOGGER.info("Gatebound initialised");
     }
 }
