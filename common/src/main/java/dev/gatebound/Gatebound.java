@@ -1,6 +1,7 @@
 package dev.gatebound;
 
 import dev.gatebound.command.GateboundCommands;
+import dev.gatebound.data.Progression;
 import dev.gatebound.network.GateboundNetwork;
 import dev.gatebound.registry.GateboundRegistries;
 import org.slf4j.Logger;
@@ -16,6 +17,7 @@ public final class Gatebound {
     public static void init() {
         GateboundRegistries.init();
         GateboundNetwork.init();
+        Progression.init();
         GateboundCommands.init();
         LOGGER.info("Gatebound initialised");
     }

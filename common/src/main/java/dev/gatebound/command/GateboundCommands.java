@@ -1,8 +1,15 @@
 package dev.gatebound.command;
 
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import dev.architectury.event.events.common.CommandRegistrationEvent;
 import dev.architectury.networking.NetworkManager;
+import dev.gatebound.data.PlayerData;
+import dev.gatebound.data.PlayerDataStore;
+import dev.gatebound.data.Progression;
+import dev.gatebound.data.Stat;
 import dev.gatebound.network.PingPayload;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -12,14 +19,67 @@ public final class GateboundCommands {
     }
 
     public static void init() {
-        CommandRegistrationEvent.EVENT.register((dispatcher, registry, selection) ->
-                dispatcher.register(Commands.literal("gatebound")
-                        .then(Commands.literal("ping")
-                                .executes(ctx -> {
-                                    ServerPlayer player = ctx.getSource().getPlayerOrException();
-                                    NetworkManager.sendToPlayer(player, new PingPayload("pong from the server"));
-                                    ctx.getSource().sendSuccess(() -> Component.literal("Ping sent"), false);
-                                    return 1;
-                                }))));
+        CommandRegistrationEvent.EVENT.register((dispatcher, registry, selection) -> {
+            LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal("gatebound");
+
+            root.then(Commands.literal("ping").executes(ctx -> {
+                ServerPlayer player = ctx.getSource().getPlayerOrException();
+                NetworkManager.sendToPlayer(player, new PingPayload("pong from the server"));
+                ctx.getSource().sendSuccess(() -> Component.literal("Ping sent"), false);
+                return 1;
+            }));
+
+            root.then(Commands.literal("status").executes(ctx -> {
+                ServerPlayer player = ctx.getSource().getPlayerOrException();
+                PlayerData d = PlayerDataStore.of(player);
+                StringBuilder sb = new StringBuilder("Level " + d.level + " (" + d.xp + "/" + d.xpToNext() + " XP), "
+                        + d.statPoints + " stat points\n");
+                for (Stat s : Stat.values()) {
+                    sb.append(s.id()).append(": ").append(d.get(s)).append("  ");
+                }
+                ctx.getSource().sendSuccess(() -> Component.literal(sb.toString()), false);
+                return 1;
+            }));
+
+            // Spend stat points: /gatebound stat <stat> <points>
+            LiteralArgumentBuilder<CommandSourceStack> stat = Commands.literal("stat");
+            for (Stat s : Stat.values()) {
+                stat.then(Commands.literal(s.id()).then(Commands.argument("points", IntegerArgumentType.integer(1))
+                        .executes(ctx -> {
+                            ServerPlayer player = ctx.getSource().getPlayerOrException();
+                            PlayerData d = PlayerDataStore.of(player);
+                            int points = IntegerArgumentType.getInteger(ctx, "points");
+                            if (!d.spend(s, points)) {
+                                ctx.getSource().sendFailure(Component.literal("Not enough stat points (" + d.statPoints + " left)"));
+                                return 0;
+                            }
+                            Progression.save(player, d);
+                            ctx.getSource().sendSuccess(() -> Component.literal(s.id() + " is now " + d.get(s)), false);
+                            return 1;
+                        })));
+            }
+            root.then(stat);
+
+            // Admin/testing: /gatebound level set <n>, /gatebound xp add <n>
+            root.then(Commands.literal("level").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                    .then(Commands.literal("set").then(Commands.argument("level", IntegerArgumentType.integer(1, PlayerData.MAX_LEVEL))
+                            .executes(ctx -> {
+                                ServerPlayer player = ctx.getSource().getPlayerOrException();
+                                PlayerData d = PlayerDataStore.of(player);
+                                d.setLevel(IntegerArgumentType.getInteger(ctx, "level"));
+                                Progression.save(player, d);
+                                ctx.getSource().sendSuccess(() -> Component.literal("Level set to " + d.level), false);
+                                return 1;
+                            }))));
+            root.then(Commands.literal("xp").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                    .then(Commands.literal("add").then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                            .executes(ctx -> {
+                                ServerPlayer player = ctx.getSource().getPlayerOrException();
+                                Progression.giveXp(player, IntegerArgumentType.getInteger(ctx, "amount"));
+                                return 1;
+                            }))));
+
+            dispatcher.register(root);
+        });
     }
 }
