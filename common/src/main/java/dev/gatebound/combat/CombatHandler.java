@@ -3,6 +3,9 @@ package dev.gatebound.combat;
 import dev.architectury.event.EventResult;
 import dev.architectury.event.events.common.EntityEvent;
 import dev.architectury.event.events.common.PlayerEvent;
+import dev.architectury.networking.NetworkManager;
+import dev.gatebound.network.ParryStatePayload;
+import dev.gatebound.network.PostureSyncPayload;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -41,6 +44,7 @@ public final class CombatHandler {
         }
         int now = player.level().getServer().getTickCount();
         if (CombatState.startParry(player.getUUID(), now)) {
+            NetworkManager.sendToPlayer(player, new ParryStatePayload(CombatConfig.parryWindowTicks, CombatConfig.parryCooldownTicks));
             player.level().playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.5f, 1.6f);
         }
     }
@@ -107,6 +111,7 @@ public final class CombatHandler {
             // Finisher: a heavy extra hit on a staggered mob, once.
             CombatState.clearStagger(mob.getUUID());
             CombatState.resetPosture(mob.getUUID());
+            syncPosture(player, mob, 0, false);
             applyingFinisher = true;
             try {
                 mob.hurtServer(level, level.damageSources().playerAttack(player), (float) (mob.getMaxHealth() * CombatConfig.finisherFraction));
@@ -124,18 +129,24 @@ public final class CombatHandler {
 
     private static void addPostureAndMaybeBreak(LivingEntity target, double amount, int now, ServerLevel level, ServerPlayer player) {
         double value = CombatState.addPosture(target.getUUID(), amount, now);
+        syncPosture(player, target, value, false);
         if (CombatState.debug(player.getUUID())) {
             player.sendOverlayMessage(Component.literal("Posture " + (int) value + " / " + (int) CombatConfig.postureMax));
         }
         if (value >= CombatConfig.postureMax) {
             CombatState.stagger(target.getUUID(), now);
             CombatState.resetPosture(target.getUUID());
+            syncPosture(player, target, CombatConfig.postureMax, true);
             target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, CombatConfig.staggerTicks, 4));
             target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, CombatConfig.staggerTicks, 2));
             level.sendParticles(ParticleTypes.CRIT, target.getX(), target.getY(0.8), target.getZ(), 20, 0.3, 0.3, 0.3, 0.3);
             level.playSound(null, target.blockPosition(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 0.6f, 1.8f);
             player.sendOverlayMessage(Component.literal("POSTURE BROKEN - strike now!").withStyle(net.minecraft.ChatFormatting.YELLOW, net.minecraft.ChatFormatting.BOLD));
         }
+    }
+
+    private static void syncPosture(ServerPlayer player, LivingEntity target, double value, boolean staggered) {
+        NetworkManager.sendToPlayer(player, new PostureSyncPayload(target.getId(), (int) value, (int) CombatConfig.postureMax, staggered));
     }
 
     /** True when the attacker is within about 60 degrees of where the player is looking. */

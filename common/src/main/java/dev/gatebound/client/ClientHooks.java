@@ -1,5 +1,6 @@
 package dev.gatebound.client;
 
+import dev.architectury.event.events.client.ClientGuiEvent;
 import dev.architectury.event.events.client.ClientTickEvent;
 import dev.architectury.networking.NetworkManager;
 import dev.architectury.registry.client.keymappings.KeyMappingRegistry;
@@ -28,6 +29,7 @@ public final class ClientHooks {
     public static void init() {
         KeyMappingRegistry.register(OPEN_STATUS);
         KeyMappingRegistry.register(PARRY);
+        ClientGuiEvent.RENDER_HUD.register(GateboundHud::render);
         ClientTickEvent.CLIENT_POST.register(mc -> {
             while (PARRY.consumeClick()) {
                 if (mc.gui.screen() == null && mc.player != null) {
