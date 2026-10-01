@@ -48,6 +48,17 @@ public final class Progression {
                 .append(Component.translatable(chosen.nameKey())).append("."));
     }
 
+    /** Server-validated stat spending; used by both the GUI packet and the command. */
+    public static boolean spendStat(ServerPlayer player, String statId, int points) {
+        Stat stat = Stat.byId(statId);
+        PlayerData data = PlayerDataStore.of(player);
+        if (stat == null || !data.spend(stat, points)) {
+            return false;
+        }
+        save(player, data);
+        return true;
+    }
+
     /** Wipes the class and spent stat points, refunding points for the current level. */
     public static void resetClass(ServerPlayer player) {
         PlayerData data = PlayerDataStore.of(player);

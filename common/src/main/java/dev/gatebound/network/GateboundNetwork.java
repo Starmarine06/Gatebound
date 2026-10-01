@@ -29,6 +29,13 @@ public final class GateboundNetwork {
         NetworkManager.registerC2S(PongPayload.TYPE, PongPayload.CODEC, (payload, context) ->
                 context.queue(() -> Gatebound.LOGGER.info("Received pong from {}", context.getPlayer().getName().getString())));
 
+        NetworkManager.registerC2S(SpendStatPayload.TYPE, SpendStatPayload.CODEC, (payload, context) ->
+                context.queue(() -> {
+                    if (context.getPlayer() instanceof ServerPlayer player) {
+                        Progression.spendStat(player, payload.statId(), payload.points());
+                    }
+                }));
+
         NetworkManager.registerC2S(ChooseClassPayload.TYPE, ChooseClassPayload.CODEC, (payload, context) ->
                 context.queue(() -> {
                     if (context.getPlayer() instanceof ServerPlayer player) {

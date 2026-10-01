@@ -5,6 +5,22 @@
   "screen.gatebound.awakening.title": "Awakening",
   "screen.gatebound.awakening.subtitle": "Choose your path. This cannot be undone.",
 
+  "key.category.gatebound.main": "Gatebound",
+  "key.gatebound.status": "Open Status Window",
+
+  "screen.gatebound.status.title": "Status",
+  "screen.gatebound.status.class": "Class: %s",
+  "screen.gatebound.status.no_class": "None",
+  "screen.gatebound.status.level": "Level %s",
+  "screen.gatebound.status.points": "Unspent points: %s",
+  "screen.gatebound.status.hint": "Press the status key again to close",
+
+  "stat.gatebound.strength.desc": "+0.15 attack damage per point",
+  "stat.gatebound.agility.desc": "+0.4% move speed and +0.02 attack speed per point",
+  "stat.gatebound.vitality.desc": "+1 max health per point",
+  "stat.gatebound.intellect.desc": "Mana and spell power (coming with skills)",
+  "stat.gatebound.luck.desc": "+0.25 luck per point",
+
   "stat.gatebound.strength": "Strength",
   "stat.gatebound.agility": "Agility",
   "stat.gatebound.vitality": "Vitality",

@@ -1,5 +1,8 @@
 package dev.gatebound;
 
+import dev.architectury.utils.Env;
+import dev.architectury.utils.EnvExecutor;
+import dev.gatebound.client.ClientHooks;
 import dev.gatebound.command.GateboundCommands;
 import dev.gatebound.data.Progression;
 import dev.gatebound.network.GateboundNetwork;
@@ -17,6 +20,7 @@ public final class Gatebound {
     public static void init() {
         GateboundRegistries.init();
         GateboundNetwork.init();
+        EnvExecutor.runInEnv(Env.CLIENT, () -> ClientHooks::init);
         Progression.init();
         GateboundCommands.init();
         LOGGER.info("Gatebound initialised");
