@@ -1,0 +1,40 @@
+package dev.gatebound.echo;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/** A player's saved Echoes (bound mobs) plus their behaviour mode. Lives inside PlayerData. */
+public final class EchoRoster {
+    /** One bound mob: its entity type id (e.g. minecraft:zombie) and the display name captured at binding. */
+    public record Entry(String type, String name) {
+        public static final Codec<Entry> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.STRING.fieldOf("type").forGetter(Entry::type),
+                Codec.STRING.optionalFieldOf("name", "").forGetter(Entry::name)
+        ).apply(i, Entry::new));
+    }
+
+    public static final Codec<EchoRoster> CODEC = RecordCodecBuilder.create(i -> i.group(
+            Entry.CODEC.listOf().optionalFieldOf("entries", List.of()).forGetter(r -> r.entries),
+            Codec.BOOL.optionalFieldOf("guard", false).forGetter(r -> r.guard)
+    ).apply(i, EchoRoster::new));
+
+    public final List<Entry> entries = new ArrayList<>();
+    /** False = follow the owner, true = hold position near where summoned. */
+    public boolean guard;
+
+    public EchoRoster() {
+    }
+
+    /** Defensive copy; codec defaults are shared objects. */
+    public EchoRoster copy() {
+        return new EchoRoster(entries, guard);
+    }
+
+    private EchoRoster(List<Entry> saved, boolean guard) {
+        this.entries.addAll(saved);
+        this.guard = guard;
+    }
+}

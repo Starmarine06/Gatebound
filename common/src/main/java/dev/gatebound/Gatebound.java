@@ -24,10 +24,15 @@ public final class Gatebound {
         GateboundNetwork.init();
         EnvExecutor.runInEnv(Env.CLIENT, () -> ClientHooks::init);
         Progression.init();
+        // Order matters: dodge i-frames and unauthorised-hit cancelling must run before the parry handler.
+        dev.gatebound.network.Combat4bNetwork.init();
+        dev.gatebound.combat.PlayerCombat.init();
         CombatHandler.init();
         SkillHandler.init();
+        dev.gatebound.dungeon.DungeonManager.init();
         GateboundCommands.init();
         dev.gatebound.trade.NpcHandler.init();
+        dev.gatebound.echo.EchoManager.init();
         LOGGER.info("Gatebound initialised");
     }
 }
