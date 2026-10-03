@@ -1,7 +1,13 @@
 {
   "variants": {
-    "": {
+    "kind=home": {
       "model": "gatebound:block/gate_exit"
+    },
+    "kind=up": {
+      "model": "gatebound:block/gate_exit_up"
+    },
+    "kind=down": {
+      "model": "gatebound:block/gate_exit_down"
     }
   }
 }
