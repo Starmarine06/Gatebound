@@ -118,5 +118,14 @@
   "npc.gatebound.desc.tome_of_intellect": "Permanently raises Intellect",
   "npc.gatebound.desc.tome_of_luck": "Permanently raises Luck",
   "npc.gatebound.desc.info_scroll": "Reveals info about your progress",
-  "npc.gatebound.desc.gate_shard": "Sell-back: trade gems for shards"
+  "npc.gatebound.desc.gate_shard": "Sell-back: trade gems for shards",
+  "gatebound.tower.building": "%s takes shape... %s%%",
+  "gatebound.tower.queued": "Waiting for the Spire...",
+  "gatebound.tower.enter": "You pass beneath the arch of the Spire.",
+  "gatebound.tower.forming": "The floor takes shape around you...",
+  "gatebound.tower.floor": "Floor %s / %s",
+  "gatebound.tower.floor_title": "Floor %s - %s",
+  "gatebound.tower.record": "New highest floor reached!",
+  "gatebound.tower.rest": "A safe haven. Rest by the fire; you will wake here if you fall.",
+  "gatebound.tower.boss": "A guardian lairs on this floor. The way up is sealed until it falls."
 }
