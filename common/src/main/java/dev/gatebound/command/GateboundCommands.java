@@ -120,6 +120,8 @@ public final class GateboundCommands {
                                 return 1;
                             }))));
 
+            root.then(Combat4bCommands.node()); // merges into the combat node above
+
             // Magic testing (op only): /gatebound element grant <element>, /gatebound mana set <n>, /gatebound magic odds <second> <third>
             LiteralArgumentBuilder<CommandSourceStack> grant = Commands.literal("grant");
             for (Element element : Element.values()) {

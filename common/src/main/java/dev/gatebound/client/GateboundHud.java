@@ -28,14 +28,15 @@ public final class GateboundHud {
         drawStatus(g, mc);
         drawTargetPosture(g, mc);
         drawParry(g, mc);
+        Combat4bClient.renderHud(g, mc);
     }
 
     private static void drawStatus(GuiGraphicsExtractor g, Minecraft mc) {
         int x = 6;
         int y = 6;
         int w = 112;
-        g.fill(x - 3, y - 3, x + w + 3, y + 42, 0x90000000);
-        g.outline(x - 3, y - 3, w + 6, 45, 0x885A6BFF);
+        g.fill(x - 3, y - 3, x + w + 3, y + 47, 0x90000000);
+        g.outline(x - 3, y - 3, w + 6, 50, 0x885A6BFF);
 
         GateboundClass c = GateboundClass.byId(ClientPlayerData.classId);
         String cls = c == null ? "" : "  " + Component.translatable(c.nameKey()).getString();
@@ -55,11 +56,13 @@ public final class GateboundHud {
         g.outline(x, manaY, w, 6, 0xFF0B0B10);
         g.text(mc.font, ClientSkillData.mana + " / " + ClientSkillData.maxMana + " MP", x + w + 6, manaY - 1, 0xFF8FB8FF, true);
 
+        Combat4bClient.drawStamina(g, x, manaY + 8, w);
+
         if (ClientPlayerData.statPoints > 0) {
-            g.text(mc.font, ClientPlayerData.statPoints + " points to spend", x, manaY + 9, 0xFF7CFF9A, true);
+            g.text(mc.font, ClientPlayerData.statPoints + " points to spend", x, manaY + 15, 0xFF7CFF9A, true);
         }
 
-        drawSkills(g, mc, x, y + 50, w);
+        drawSkills(g, mc, x, y + 55, w);
     }
 
     /** One row per usable skill: key, name, mana cost and a cooldown fill. Greyed when mana is short. */

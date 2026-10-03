@@ -46,6 +46,9 @@ public final class CombatHandler {
         if (!player.isAlive()) {
             return;
         }
+        if (PlayerCombat.isStaggered(player)) {
+            return;
+        }
         int now = player.level().getServer().getTickCount();
         if (CombatState.startParry(player.getUUID(), now)) {
             NetworkManager.sendToPlayer(player, new ParryStatePayload(CombatConfig.parryWindowTicks, CombatConfig.parryCooldownTicks));
@@ -83,7 +86,21 @@ public final class CombatHandler {
         boolean timed = CombatState.isParrying(player.getUUID(), now);
         boolean inFront = isInFront(player, attacker);
 
+        // Heavy attacks cannot be parried; trying to costs posture. They can only be dodged.
+        if (TelegraphGoal.isHeavyStrike(attacker)) {
+            if (timed) {
+                player.sendOverlayMessage(Component.translatable("combat.gatebound.cant_parry").withStyle(net.minecraft.ChatFormatting.RED, net.minecraft.ChatFormatting.BOLD));
+                PlayerCombat.addPosture(player, CombatConfig.heavyParryPosture);
+            }
+            return EventResult.pass();
+        }
+
         if (!(timed && inFront)) {
+            int sincePress = CombatState.ticksSinceParry(player.getUUID(), now);
+            if (sincePress > CombatConfig.parryWindowTicks && sincePress <= CombatConfig.parryCooldownTicks) {
+                // Pressed, but too early: the mistimed block costs posture.
+                PlayerCombat.addPosture(player, CombatConfig.lateParryPosture);
+            }
             if (CombatState.debug(player.getUUID())) {
                 int since = CombatState.ticksSinceParry(player.getUUID(), now);
                 String why = since < 0 ? "no parry pressed yet"
