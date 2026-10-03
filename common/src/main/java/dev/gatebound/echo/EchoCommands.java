@@ -38,6 +38,11 @@ final class EchoCommands {
                 EchoManager.summonAll(ctx.getSource().getPlayerOrException());
                 return 1;
             }));
+            echo.then(Commands.literal("debug").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)).executes(ctx -> {
+                Component report = EchoManager.debug(ctx.getSource().getPlayerOrException());
+                ctx.getSource().sendSuccess(() -> report, false);
+                return 1;
+            }));
             echo.then(Commands.literal("dismiss").executes(ctx -> {
                 EchoManager.dismissAll(ctx.getSource().getPlayerOrException(), true);
                 return 1;

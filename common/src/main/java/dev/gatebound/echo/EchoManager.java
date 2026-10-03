@@ -7,6 +7,7 @@ import dev.architectury.event.events.common.TickEvent;
 import dev.architectury.networking.NetworkManager;
 import dev.architectury.utils.Env;
 import dev.architectury.utils.EnvExecutor;
+import dev.gatebound.Gatebound;
 import dev.gatebound.data.PlayerData;
 import dev.gatebound.data.PlayerDataStore;
 import dev.gatebound.data.Progression;
@@ -257,6 +258,8 @@ public final class EchoManager {
 
     /** Toggles: if any echo is active dismiss all, else summon all. Used by the keybind. */
     public static void toggle(ServerPlayer player) {
+        Gatebound.LOGGER.info("[echo] toggle received from {} (active echoes: {})",
+                player.getName().getString(), activeCount(player.getUUID()));
         if (activeCount(player.getUUID()) > 0) {
             dismissAll(player, true);
         } else {
@@ -264,34 +267,90 @@ public final class EchoManager {
         }
     }
 
-    public static void summonAll(ServerPlayer player) {
+    /** Tells the player something, in chat and as an overlay, so no failure path is ever silent. */
+    private static void tell(ServerPlayer player, Component message) {
+        player.sendSystemMessage(message);
+        player.sendOverlayMessage(message);
+    }
+
+    private static Component msg(String key, String fallback, Object... args) {
+        return Component.translatableWithFallback(key, fallback, args);
+    }
+
+    /** Summons every roster echo that is not already out. Returns how many were summoned. */
+    public static int summonAll(ServerPlayer player) {
+        String who = player.getName().getString();
         PlayerData data = PlayerDataStore.of(player);
         if (!isSummoner(data)) {
-            player.sendSystemMessage(Component.translatable("gatebound.echo.not_summoner"));
-            return;
+            Gatebound.LOGGER.info("[echo] summon for {} refused: class is '{}'", who, data.classId);
+            tell(player, msg("gatebound.echo.not_summoner", "Only Summoners can command echoes."));
+            return 0;
         }
         if (data.echo.entries.isEmpty()) {
-            player.sendSystemMessage(Component.translatable("gatebound.echo.none"));
-            return;
+            Gatebound.LOGGER.info("[echo] summon for {} refused: empty roster", who);
+            tell(player, msg("gatebound.echo.none", "No echoes in your roster yet. Defeat monsters as a Summoner to bind them."));
+            return 0;
         }
+        int slotCount = slots(data);
         int summoned = 0;
-        for (int slot = 0; slot < data.echo.entries.size() && slot < slots(data); slot++) {
+        boolean anyPending = false;
+        for (int slot = 0; slot < data.echo.entries.size() && slot < slotCount; slot++) {
             if (isActive(player.getUUID(), slot)) {
                 continue;
             }
+            anyPending = true;
             if (!ManaState.spend(player, EchoConfig.summonMana)) {
-                player.sendOverlayMessage(Component.translatable("skill.gatebound.not_enough_mana"));
+                Gatebound.LOGGER.info("[echo] summon for {} stopped: not enough mana (need {})", who, EchoConfig.summonMana);
+                tell(player, msg("gatebound.echo.no_mana", "Not enough mana (need %s)", EchoConfig.summonMana));
                 break;
             }
-            if (spawn(player, data, slot) != null) {
-                summoned++;
+            String name = data.echo.entries.get(slot).name();
+            Mob mob = null;
+            try {
+                mob = spawn(player, data, slot);
+            } catch (RuntimeException e) {
+                Gatebound.LOGGER.error("[echo] exception while summoning {} for {}", name, who, e);
             }
+            if (mob != null) {
+                summoned++;
+            } else {
+                ManaState.add(player, EchoConfig.summonMana);
+                tell(player, msg("gatebound.echo.spawn_failed", "Could not spawn %s", name));
+            }
+        }
+        if (!anyPending) {
+            tell(player, msg("gatebound.echo.all_out", "All your echoes are already out."));
         }
         SkillHandler.sendMana(player, true);
         PlayerDataStore.markDirty(player);
+        Gatebound.LOGGER.info("[echo] summoned {} echo(es) for {} (roster {}, slots {})",
+                summoned, who, data.echo.entries.size(), slotCount);
         if (summoned > 0) {
-            player.sendOverlayMessage(Component.translatable("gatebound.echo.summoned", summoned));
+            player.sendOverlayMessage(msg("gatebound.echo.summoned", "Summoned %s echo(es)", summoned));
         }
+        return summoned;
+    }
+
+    /** Op self-test for /gatebound echo debug: same code path as the key, with a report. */
+    static Component debug(ServerPlayer player) {
+        PlayerData data = PlayerDataStore.of(player);
+        StringBuilder sb = new StringBuilder();
+        sb.append("class=").append(data.classId.isEmpty() ? "(none)" : data.classId)
+                .append(" roster=").append(data.echo.entries.size()).append(" slots=").append(slots(data))
+                .append(" mana=").append((int) ManaState.get(player)).append("/").append(ManaState.max(data))
+                .append(" cost=").append(EchoConfig.summonMana);
+        if (!isSummoner(data)) {
+            return Component.literal(sb + " -> not a Summoner; nothing run.");
+        }
+        if (data.echo.entries.isEmpty()) {
+            data.echo.entries.add(new EchoRoster.Entry("minecraft:zombie", "Zombie"));
+            PlayerDataStore.markDirty(player);
+            sb.append(" (roster was empty: added a test Zombie)");
+        }
+        dismissAll(player, false);
+        int n = summonAll(player);
+        sb.append(" -> summoned ").append(n).append(", active now ").append(activeCount(player.getUUID()));
+        return Component.literal(sb.toString());
     }
 
     public static void dismissAll(ServerPlayer player, boolean message) {
@@ -336,10 +395,12 @@ public final class EchoManager {
         Optional<EntityType<?>> type = BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.parse(entry.type()));
         ServerLevel level = owner.level();
         if (type.isEmpty()) {
+            Gatebound.LOGGER.warn("[echo] unknown entity type in roster: {}", entry.type());
             return null;
         }
         Entity created = type.get().create(level, EntitySpawnReason.MOB_SUMMONED);
         if (!(created instanceof Mob mob)) {
+            Gatebound.LOGGER.warn("[echo] {} did not create a Mob (got {})", entry.type(), created);
             return null;
         }
         double angle = owner.getRandom().nextDouble() * Math.PI * 2;
@@ -371,6 +432,7 @@ public final class EchoManager {
         mob.setTarget(null);
 
         if (!level.addFreshEntity(mob)) {
+            Gatebound.LOGGER.warn("[echo] addFreshEntity refused {} (vetoed by another handler?)", entry.type());
             ACTIVE.remove(mob.getUUID());
             return null;
         }

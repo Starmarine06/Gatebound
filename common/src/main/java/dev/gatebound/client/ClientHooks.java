@@ -43,6 +43,7 @@ public final class ClientHooks {
         KeyMappingRegistry.register(OPEN_STATUS);
         KeyMappingRegistry.register(PARRY);
         Combat4bClient.init();
+        NpcClient.init();
         ClientGuiEvent.RENDER_HUD.register(GateboundHud::render);
         for (KeyMapping key : SKILL_KEYS) {
             KeyMappingRegistry.register(key);
