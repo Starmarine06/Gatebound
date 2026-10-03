@@ -1,13 +1,10 @@
 {
   "itemGroup.gatebound.main": "Gatebound",
   "item.gatebound.awakening_stone": "Awakening Stone",
-
   "screen.gatebound.awakening.title": "Awakening",
   "screen.gatebound.awakening.subtitle": "Choose your path. This cannot be undone.",
-
   "screen.gatebound.element.title": "Elemental Affinity",
   "screen.gatebound.element.subtitle": "Choose your main element. Fate may grant you more.",
-
   "key.category.gatebound.main": "Gatebound",
   "key.gatebound.status": "Open Status Window",
   "key.gatebound.parry": "Parry",
@@ -17,7 +14,6 @@
   "key.gatebound.skill4": "Skill Slot 4",
   "key.gatebound.skill5": "Skill Slot 5",
   "key.gatebound.skill6": "Skill Slot 6",
-
   "element.gatebound.fire": "Fire",
   "element.gatebound.fire.desc": "Burning bolts and blasts. Sets enemies alight.",
   "element.gatebound.ice": "Ice",
@@ -30,7 +26,6 @@
   "element.gatebound.earth.desc": "Stone spikes and armour. Tough and steady.",
   "element.gatebound.light": "Light",
   "element.gatebound.light.desc": "Radiant bolts and healing. Hurts foes, mends you.",
-
   "skill.gatebound.not_enough_mana": "Not enough mana",
   "skill.gatebound.no_target": "No target in sight",
   "skill.gatebound.shockwave": "Shockwave",
@@ -53,26 +48,22 @@
   "skill.gatebound.stone_skin": "Stone Skin",
   "skill.gatebound.radiant_bolt": "Radiant Bolt",
   "skill.gatebound.sanctuary": "Sanctuary",
-
   "screen.gatebound.status.title": "Status",
   "screen.gatebound.status.class": "Class: %s",
   "screen.gatebound.status.no_class": "None",
   "screen.gatebound.status.level": "Level %s",
   "screen.gatebound.status.points": "Unspent points: %s",
   "screen.gatebound.status.hint": "Press the status key again to close",
-
   "stat.gatebound.strength.desc": "+0.15 attack damage per point",
   "stat.gatebound.agility.desc": "+0.4% move speed and +0.02 attack speed per point",
   "stat.gatebound.vitality.desc": "+1 max health per point",
   "stat.gatebound.intellect.desc": "+4 max mana, faster mana regen and stronger spells",
   "stat.gatebound.luck.desc": "+0.25 luck per point",
-
   "stat.gatebound.strength": "Strength",
   "stat.gatebound.agility": "Agility",
   "stat.gatebound.vitality": "Vitality",
   "stat.gatebound.intellect": "Intellect",
   "stat.gatebound.luck": "Luck",
-
   "class.gatebound.warrior": "Warrior",
   "class.gatebound.warrior.desc": "Front-line fighter. Hits hard and takes hits.",
   "class.gatebound.rogue": "Rogue",
@@ -82,5 +73,30 @@
   "class.gatebound.ranger": "Ranger",
   "class.gatebound.ranger.desc": "Mobile marksman. Balanced speed, power and fortune.",
   "class.gatebound.summoner": "Summoner",
-  "class.gatebound.summoner.desc": "Commands allies from the other side."
+  "class.gatebound.summoner.desc": "Commands allies from the other side.",
+  "key.gatebound.dodge": "Dodge",
+  "combat.gatebound.staggered": "You are staggered!",
+  "combat.gatebound.no_stamina": "Not enough stamina",
+  "combat.gatebound.posture_broken": "POSTURE BROKEN",
+  "combat.gatebound.perfect_dodge": "PERFECT DODGE!",
+  "combat.gatebound.cant_parry": "CAN'T PARRY - DODGE!",
+  "block.gatebound.gate": "Gate",
+  "block.gatebound.gate_exit": "Gate Exit",
+  "key.gatebound.echo_toggle": "Summon/Dismiss Echoes",
+  "gatebound.echo.bound": "Echo bound: %s",
+  "gatebound.echo.fallen": "Your echo (%s) has fallen. Summon it again when ready.",
+  "gatebound.echo.summoned": "Summoned %s echo(es)",
+  "gatebound.echo.dismissed": "Dismissed %s echo(es)",
+  "gatebound.echo.none": "You have no echoes yet. Defeat monsters as a Summoner to bind them.",
+  "gatebound.echo.not_summoner": "Only Summoners can command echoes.",
+  "item.gatebound.gate_shard": "Gate Shard",
+  "item.gatebound.info_scroll": "Info Scroll",
+  "item.gatebound.respec_token": "Respec Token",
+  "item.gatebound.tome_of_strength": "Tome of Might",
+  "item.gatebound.tome_of_agility": "Tome of Swiftness",
+  "item.gatebound.tome_of_vitality": "Tome of Vigor",
+  "item.gatebound.tome_of_intellect": "Tome of Insight",
+  "item.gatebound.tome_of_luck": "Tome of Fortune",
+  "npc.gatebound.broker": "Skill Broker",
+  "npc.gatebound.scholar": "Scholar"
 }
