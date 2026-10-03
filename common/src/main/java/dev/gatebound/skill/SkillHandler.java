@@ -50,6 +50,21 @@ public final class SkillHandler {
         });
     }
 
+    /** Shortens every running skill cooldown by the given ticks (used by perfect dodges). */
+    public static void reduceCooldowns(ServerPlayer player, int ticks) {
+        Map<String, Integer> cooldowns = COOLDOWN_END.get(player.getUUID());
+        if (cooldowns == null) {
+            return;
+        }
+        int now = player.level().getServer().getTickCount();
+        for (Map.Entry<String, Integer> e : cooldowns.entrySet()) {
+            if (e.getValue() > now) {
+                e.setValue(Math.max(now, e.getValue() - ticks));
+                NetworkManager.sendToPlayer(player, new SkillCooldownPayload(e.getKey(), e.getValue() - now));
+            }
+        }
+    }
+
     public static void sendMana(ServerPlayer player, boolean force) {
         int[] snap = ManaState.changedSnapshot(player, force);
         if (snap != null) {

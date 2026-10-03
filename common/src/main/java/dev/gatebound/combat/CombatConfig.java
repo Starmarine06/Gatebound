@@ -26,6 +26,48 @@ public final class CombatConfig {
     /** Mana restored by a successful parry. */
     public static volatile double parryMana = 6;
 
+    // ---- Combat 4b: dodge, stamina, telegraphed attacks, player posture ----
+    /** Stamina spent by a dodge. */
+    public static volatile double dodgeCost = 20;
+    /** Ticks after a dodge before another can start. */
+    public static volatile int dodgeCooldownTicks = 20;
+    /** Ticks of invulnerability to melee and projectiles after a dodge starts. */
+    public static volatile int iframeTicks = 8;
+    /** Horizontal dash speed of a dodge (blocks per tick). */
+    public static volatile double dodgeSpeed = 1.1;
+    /** Stamina refunded by a perfect dodge. */
+    public static volatile double perfectDodgeRefund = 15;
+    /** Ticks shaved off every skill cooldown by a perfect dodge. */
+    public static volatile int perfectDodgeCooldownCut = 30;
+    /** Stamina regenerated per tick, after the regen delay. */
+    public static volatile double staminaRegenPerTick = 0.6;
+    /** Ticks after spending stamina before it regenerates. */
+    public static volatile int staminaRegenDelay = 20;
+
+    /** Master switch for the mob wind-up system. */
+    public static volatile boolean telegraphEnabled = true;
+    /** Ticks a normal mob attack winds up before landing. */
+    public static volatile int windupTicks = 10;
+    /** Ticks a heavy mob attack winds up before landing. */
+    public static volatile int heavyWindupTicks = 16;
+    /** Chance (0 to 1) a wind-up is a heavy, unparryable attack. */
+    public static volatile double heavyChance = 0.2;
+    /** Base ticks a mob rests after swinging before it can wind up again. */
+    public static volatile int attackRecoverTicks = 18;
+
+    /** Player posture needed to be staggered. */
+    public static volatile double playerPostureMax = 100;
+    /** Player posture from a hit that came just after a parry press (bad timing). */
+    public static volatile double lateParryPosture = 20;
+    /** Player posture from trying to parry a heavy attack. */
+    public static volatile double heavyParryPosture = 35;
+    /** Ticks without posture damage before the player's posture recovers. */
+    public static volatile int playerPostureRecoveryDelay = 60;
+    /** Player posture recovered per tick. */
+    public static volatile double playerPostureRecoveryPerTick = 0.4;
+    /** How long a staggered player cannot parry or dodge. */
+    public static volatile int playerStaggerTicks = 20;
+
     private CombatConfig() {
     }
 }

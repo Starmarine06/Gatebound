@@ -24,6 +24,8 @@ public final class Gatebound {
         GateboundNetwork.init();
         EnvExecutor.runInEnv(Env.CLIENT, () -> ClientHooks::init);
         Progression.init();
+        dev.gatebound.network.Combat4bNetwork.init();
+        dev.gatebound.combat.PlayerCombat.init(); // before CombatHandler: i-frames resolve first
         CombatHandler.init();
         SkillHandler.init();
         GateboundCommands.init();
