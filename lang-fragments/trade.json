@@ -1,0 +1,12 @@
+{
+  "item.gatebound.gate_shard": "Gate Shard",
+  "item.gatebound.info_scroll": "Info Scroll",
+  "item.gatebound.respec_token": "Respec Token",
+  "item.gatebound.tome_of_strength": "Tome of Might",
+  "item.gatebound.tome_of_agility": "Tome of Swiftness",
+  "item.gatebound.tome_of_vitality": "Tome of Vigor",
+  "item.gatebound.tome_of_intellect": "Tome of Insight",
+  "item.gatebound.tome_of_luck": "Tome of Fortune",
+  "npc.gatebound.broker": "Skill Broker",
+  "npc.gatebound.scholar": "Scholar"
+}

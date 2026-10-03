@@ -27,6 +27,7 @@ public final class Gatebound {
         CombatHandler.init();
         SkillHandler.init();
         GateboundCommands.init();
+        dev.gatebound.trade.NpcHandler.init();
         LOGGER.info("Gatebound initialised");
     }
 }
