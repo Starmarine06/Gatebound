@@ -1,0 +1,23 @@
+{
+  "entity.gatebound.npc": "Gatebound NPC",
+  "gatebound.echo.none": "No echoes in your roster yet. Defeat monsters as a Summoner to bind them.",
+  "gatebound.echo.no_mana": "Not enough mana (need %s)",
+  "gatebound.echo.spawn_failed": "Could not spawn %s",
+  "gatebound.echo.all_out": "All your echoes are already out.",
+  "gatebound.npc.buy": "Buy",
+  "gatebound.npc.shards": "Gate Shards: %s",
+  "gatebound.npc.stock": "Stock %s/%s",
+  "gatebound.npc.hint": "Prices scale with your level. Stock restocks daily.",
+  "gatebound.npc.too_far": "You are too far away.",
+  "gatebound.npc.sold_out": "Sold out for today.",
+  "gatebound.npc.cannot_afford": "You cannot afford that.",
+  "gatebound.npc.bought": "Bought %s",
+  "npc.gatebound.desc.respec_token": "Reset your stat points",
+  "npc.gatebound.desc.tome_of_strength": "Permanently raises Strength",
+  "npc.gatebound.desc.tome_of_agility": "Permanently raises Agility",
+  "npc.gatebound.desc.tome_of_vitality": "Permanently raises Vitality",
+  "npc.gatebound.desc.tome_of_intellect": "Permanently raises Intellect",
+  "npc.gatebound.desc.tome_of_luck": "Permanently raises Luck",
+  "npc.gatebound.desc.info_scroll": "Reveals info about your progress",
+  "npc.gatebound.desc.gate_shard": "Sell-back: trade gems for shards"
+}
