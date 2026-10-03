@@ -20,6 +20,7 @@ public final class Gatebound {
     }
 
     public static void init() {
+        dev.gatebound.config.GateboundConfig.load();
         GateboundRegistries.init();
         GateboundNetwork.init();
         EnvExecutor.runInEnv(Env.CLIENT, () -> ClientHooks::init);
