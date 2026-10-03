@@ -20,7 +20,8 @@ public final class PlayerData {
             Codec.INT.listOf().optionalFieldOf("stats", List.of()).forGetter(d -> toList(d.stats)),
             Codec.STRING.optionalFieldOf("class", "").forGetter(d -> d.classId),
             Codec.STRING.listOf().optionalFieldOf("elements", List.of()).forGetter(d -> d.elements),
-            Codec.DOUBLE.optionalFieldOf("mana", MANA_UNSET).forGetter(d -> d.mana)
+            Codec.DOUBLE.optionalFieldOf("mana", MANA_UNSET).forGetter(d -> d.mana),
+            dev.gatebound.echo.EchoRoster.CODEC.optionalFieldOf("echo", new dev.gatebound.echo.EchoRoster()).forGetter(d -> d.echo)
     ).apply(i, PlayerData::new));
 
     public int level;
@@ -31,13 +32,16 @@ public final class PlayerData {
     /** Element ids for Mages, in the order they were gained. Empty for every other class. */
     public final List<String> elements = new ArrayList<>();
     public double mana;
+    /** Summoner's saved Echoes (bound mobs). */
+    public dev.gatebound.echo.EchoRoster echo = new dev.gatebound.echo.EchoRoster();
 
     public PlayerData() {
-        this(1, 0, 0, List.of(), "", List.of(), MANA_UNSET);
+        this(1, 0, 0, List.of(), "", List.of(), MANA_UNSET, new dev.gatebound.echo.EchoRoster());
     }
 
     private PlayerData(int level, int xp, int statPoints, List<Integer> savedStats, String classId,
-                       List<String> savedElements, double mana) {
+                       List<String> savedElements, double mana, dev.gatebound.echo.EchoRoster echo) {
+        this.echo = echo.copy();
         this.level = Math.max(1, Math.min(MAX_LEVEL, level));
         this.xp = Math.max(0, xp);
         this.statPoints = Math.max(0, statPoints);

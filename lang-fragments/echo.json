@@ -1,0 +1,9 @@
+{
+  "key.gatebound.echo_toggle": "Summon/Dismiss Echoes",
+  "gatebound.echo.bound": "Echo bound: %s",
+  "gatebound.echo.fallen": "Your echo (%s) has fallen. Summon it again when ready.",
+  "gatebound.echo.summoned": "Summoned %s echo(es)",
+  "gatebound.echo.dismissed": "Dismissed %s echo(es)",
+  "gatebound.echo.none": "You have no echoes yet. Defeat monsters as a Summoner to bind them.",
+  "gatebound.echo.not_summoner": "Only Summoners can command echoes."
+}
