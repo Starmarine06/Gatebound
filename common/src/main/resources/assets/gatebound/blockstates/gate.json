@@ -1,0 +1,94 @@
+{
+  "variants": {
+    "facing=south,rank=e": {
+      "model": "gatebound:block/gate_e"
+    },
+    "facing=west,rank=e": {
+      "model": "gatebound:block/gate_e",
+      "y": 90
+    },
+    "facing=north,rank=e": {
+      "model": "gatebound:block/gate_e",
+      "y": 180
+    },
+    "facing=east,rank=e": {
+      "model": "gatebound:block/gate_e",
+      "y": 270
+    },
+    "facing=south,rank=d": {
+      "model": "gatebound:block/gate_d"
+    },
+    "facing=west,rank=d": {
+      "model": "gatebound:block/gate_d",
+      "y": 90
+    },
+    "facing=north,rank=d": {
+      "model": "gatebound:block/gate_d",
+      "y": 180
+    },
+    "facing=east,rank=d": {
+      "model": "gatebound:block/gate_d",
+      "y": 270
+    },
+    "facing=south,rank=c": {
+      "model": "gatebound:block/gate_c"
+    },
+    "facing=west,rank=c": {
+      "model": "gatebound:block/gate_c",
+      "y": 90
+    },
+    "facing=north,rank=c": {
+      "model": "gatebound:block/gate_c",
+      "y": 180
+    },
+    "facing=east,rank=c": {
+      "model": "gatebound:block/gate_c",
+      "y": 270
+    },
+    "facing=south,rank=b": {
+      "model": "gatebound:block/gate_b"
+    },
+    "facing=west,rank=b": {
+      "model": "gatebound:block/gate_b",
+      "y": 90
+    },
+    "facing=north,rank=b": {
+      "model": "gatebound:block/gate_b",
+      "y": 180
+    },
+    "facing=east,rank=b": {
+      "model": "gatebound:block/gate_b",
+      "y": 270
+    },
+    "facing=south,rank=a": {
+      "model": "gatebound:block/gate_a"
+    },
+    "facing=west,rank=a": {
+      "model": "gatebound:block/gate_a",
+      "y": 90
+    },
+    "facing=north,rank=a": {
+      "model": "gatebound:block/gate_a",
+      "y": 180
+    },
+    "facing=east,rank=a": {
+      "model": "gatebound:block/gate_a",
+      "y": 270
+    },
+    "facing=south,rank=s": {
+      "model": "gatebound:block/gate_s"
+    },
+    "facing=west,rank=s": {
+      "model": "gatebound:block/gate_s",
+      "y": 90
+    },
+    "facing=north,rank=s": {
+      "model": "gatebound:block/gate_s",
+      "y": 180
+    },
+    "facing=east,rank=s": {
+      "model": "gatebound:block/gate_s",
+      "y": 270
+    }
+  }
+}

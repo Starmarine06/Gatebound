@@ -156,6 +156,8 @@ public final class GateboundCommands {
                                         return 1;
                                     })))));
 
+            root.then(dev.gatebound.dungeon.DungeonCommands.build());
+
             dispatcher.register(root);
         });
     }

@@ -26,6 +26,7 @@ public final class Gatebound {
         Progression.init();
         CombatHandler.init();
         SkillHandler.init();
+        dev.gatebound.dungeon.DungeonManager.init();
         GateboundCommands.init();
         LOGGER.info("Gatebound initialised");
     }
