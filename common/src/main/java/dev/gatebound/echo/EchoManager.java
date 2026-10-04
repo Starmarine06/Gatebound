@@ -57,10 +57,10 @@ public final class EchoManager {
     public static final String SUMMONER = "summoner";
 
     /** Mobs that would grief, wander off, split into untracked children or summon untracked helpers. */
-    private static final Set<String> BLOCKED = Set.of(
-            "creeper", "enderman", "ghast", "blaze", "phantom", "vex", "wither", "ender_dragon", "warden", "shulker",
-            "guardian", "elder_guardian", "ravager", "silverfish", "endermite", "slime", "magma_cube", "giant",
-            "evoker", "illusioner", "breeze", "zoglin", "hoglin", "piglin_brute");
+    private static final Set<String> BLOCKED = Set.of("wither", "ender_dragon");
+
+    /** Slots of echoes that were out when their owner died; they come back free on respawn. */
+    private static final Map<UUID, List<Integer>> DIED_WITH = new HashMap<>();
 
     public static final class Info {
         public final UUID owner;
@@ -94,7 +94,18 @@ public final class EchoManager {
         EntityEvent.LIVING_DEATH.register(EchoManager::onDeath);
         TickEvent.SERVER_POST.register(server -> tick(server.getTickCount(), server));
         PlayerEvent.PLAYER_QUIT.register(player -> dismissAll(player, false));
-        PlayerEvent.PLAYER_RESPAWN.register((player, end, reason) -> dismissAll(player, false));
+        PlayerEvent.PLAYER_RESPAWN.register((player, end, reason) -> {
+            dismissAll(player, false);
+            List<Integer> slots = DIED_WITH.remove(player.getUUID());
+            if (slots != null) {
+                PlayerData data = PlayerDataStore.of(player);
+                for (int slot : slots) {
+                    if (slot < data.echo.entries.size() && slot < slots(data)) {
+                        spawn(player, data, slot);
+                    }
+                }
+            }
+        });
         EchoNetwork.init();
         EchoCommands.init();
         EnvExecutor.runInEnv(Env.CLIENT, () -> EchoClient::init);
@@ -152,17 +163,32 @@ public final class EchoManager {
     }
 
     public static boolean eligible(LivingEntity entity) {
-        if (!(entity instanceof Mob) || !(entity instanceof Enemy) || isEcho(entity) || entity.entityTags().contains(TAG)) {
+        if (!(entity instanceof Mob) || entity instanceof EchoEntity || entity instanceof dev.gatebound.trade.GateboundNpc
+                || isEcho(entity) || entity.entityTags().contains(TAG)) {
             return false;
         }
         Identifier key = EntityType.getKey(entity.getType());
-        return key != null && !BLOCKED.contains(key.getPath()) && entity.getMaxHealth() <= 120;
+        return key != null && !BLOCKED.contains(key.getPath());
     }
 
     // ---------------------------------------------------------------- extraction and xp
 
     private static EventResult onDeath(LivingEntity victim, DamageSource source) {
         if (victim.level().isClientSide()) {
+            return EventResult.pass();
+        }
+        if (victim instanceof ServerPlayer dead) {
+            // Echoes are dismissed when their owner falls and come back for free when the owner respawns.
+            List<Integer> slots = new ArrayList<>();
+            for (Info i : ACTIVE.values()) {
+                if (i.owner.equals(dead.getUUID())) {
+                    slots.add(i.slot);
+                }
+            }
+            if (!slots.isEmpty()) {
+                DIED_WITH.put(dead.getUUID(), slots);
+            }
+            dismissAll(dead, false);
             return EventResult.pass();
         }
         Entity killer = source.getEntity();
@@ -398,32 +424,27 @@ public final class EchoManager {
             Gatebound.LOGGER.warn("[echo] unknown entity type in roster: {}", entry.type());
             return null;
         }
-        Entity created = type.get().create(level, EntitySpawnReason.MOB_SUMMONED);
-        if (!(created instanceof Mob mob)) {
-            Gatebound.LOGGER.warn("[echo] {} did not create a Mob (got {})", entry.type(), created);
+        // The bound mob is only a template for stats and size; it is never added to the world.
+        Entity template = type.get().create(level, EntitySpawnReason.MOB_SUMMONED);
+        if (!(template instanceof LivingEntity proto)) {
+            Gatebound.LOGGER.warn("[echo] {} is not a living entity (got {})", entry.type(), template);
             return null;
         }
+        EchoEntity mob = EchoEntities.ECHO.get().create(level, EntitySpawnReason.MOB_SUMMONED);
+        if (mob == null) {
+            return null;
+        }
+        double bonus = data.level * EchoConfig.healthPerLevel + data.get(Stat.INTELLECT) * EchoConfig.healthPerIntellect;
+        mob.configure(entry.type(), proto, 1 + bonus, 1 + bonus / 2);
+        proto.discard();
         double angle = owner.getRandom().nextDouble() * Math.PI * 2;
         double x = owner.getX() + Math.cos(angle) * 2;
         double z = owner.getZ() + Math.sin(angle) * 2;
         mob.snapTo(x, owner.getY(), z, owner.getYRot(), 0);
         ACTIVE.put(mob.getUUID(), new Info(owner.getUUID(), slot, owner.getX(), owner.getY(), owner.getZ()));
         mob.addTag(TAG);
-        mob.finalizeSpawn(level, level.getCurrentDifficultyAt(mob.blockPosition()), EntitySpawnReason.MOB_SUMMONED, null);
-        // Spiders can spawn a jockey on finalize; echoes carry no passengers.
-        for (Entity passenger : new ArrayList<>(mob.getPassengers())) {
-            passenger.discard();
-        }
-        mob.ejectPassengers();
         mob.setPersistenceRequired();
         mob.setCanPickUpLoot(false);
-        mob.removeAllGoals(g -> g instanceof RestrictSunGoal || g instanceof FleeSunGoal || g instanceof BreakDoorGoal);
-        mob.getGoalSelector().addGoal(6, new EchoFollowGoal(mob));
-
-        double bonus = data.level * EchoConfig.healthPerLevel + data.get(Stat.INTELLECT) * EchoConfig.healthPerIntellect;
-        scale(mob.getAttribute(Attributes.MAX_HEALTH), 1 + bonus);
-        scale(mob.getAttribute(Attributes.ATTACK_DAMAGE), 1 + bonus / 2);
-        mob.setHealth(mob.getMaxHealth());
 
         mob.setCustomName(Component.literal("Echo: " + entry.name()));
         mob.setCustomNameVisible(true);
@@ -475,8 +496,18 @@ public final class EchoManager {
                 continue;
             }
             Entity entity = owner.level().getEntityInAnyDimension(e.getKey());
-            if (!(entity instanceof Mob mob) || mob.isRemoved() || !mob.isAlive()) {
+            if (!(entity instanceof Mob mob) || mob.isRemoved() || !mob.isAlive() || mob.level() != owner.level()) {
+                // Lost: left behind in an unloaded chunk or another dimension. Drop the stale one and bring a fresh
+                // copy to the owner for free. (Defeated echoes leave ACTIVE through defeat() and never reach here.)
+                boolean lost = entity == null || (entity instanceof Mob m && m.isAlive());
+                if (entity instanceof Mob m) {
+                    remove(m);
+                }
                 ACTIVE.remove(e.getKey());
+                PlayerData data = PlayerDataStore.of(owner);
+                if (lost && info.slot < data.echo.entries.size() && info.slot < slots(data)) {
+                    spawn(owner, data, info.slot);
+                }
                 continue;
             }
             // Never burn from daylight (lava still hurts).

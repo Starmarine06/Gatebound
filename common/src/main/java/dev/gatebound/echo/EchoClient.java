@@ -17,6 +17,7 @@ final class EchoClient {
 
     static void init() {
         KeyMappingRegistry.register(TOGGLE);
+        dev.architectury.registry.client.level.entity.EntityRendererRegistry.register(EchoEntities.ECHO, EchoRenderer::new);
         ClientTickEvent.CLIENT_POST.register(mc -> {
             while (TOGGLE.consumeClick()) {
                 if (mc.gui.screen() == null && mc.player != null) {

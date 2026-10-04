@@ -80,18 +80,11 @@ public final class SkillHandler {
             return;
         }
         Skill skill = skills.get(slot);
-        int now = player.level().getServer().getTickCount();
-        Map<String, Integer> cooldowns = COOLDOWN_END.computeIfAbsent(player.getUUID(), id -> new HashMap<>());
-
-        if (cooldowns.getOrDefault(skill.id(), 0) > now) {
-            return;
-        }
+        // Skills have no cooldowns: mana is the only limit.
         if (!ManaState.spend(player, skill.manaCost())) {
             player.sendOverlayMessage(Component.translatable("skill.gatebound.not_enough_mana"));
             return;
         }
-        cooldowns.put(skill.id(), now + skill.cooldownTicks());
-        NetworkManager.sendToPlayer(player, new SkillCooldownPayload(skill.id(), skill.cooldownTicks()));
         sendMana(player, true);
 
         boolean connected = skill.effect().cast(player, player.level(), data);
