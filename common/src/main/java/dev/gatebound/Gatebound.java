@@ -27,6 +27,7 @@ public final class Gatebound {
         dev.gatebound.echo.EchoEntities.init();
         GateboundNetwork.init();
         EnvExecutor.runInEnv(Env.CLIENT, () -> ClientHooks::init);
+        dev.gatebound.data.PlayerDataStore.initAutoFlush();
         Progression.init();
         // Order matters: dodge i-frames and unauthorised-hit cancelling must run before the parry handler.
         dev.gatebound.network.Combat4bNetwork.init();

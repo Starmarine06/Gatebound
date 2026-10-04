@@ -46,6 +46,20 @@ public final class PlayerDataStore extends SavedData {
         return get(player.level().getServer()).players.computeIfAbsent(player.getUUID(), id -> new PlayerData());
     }
 
+    /**
+     * Vanilla only writes saved data on a clean quit or the 5-minute autosave, so a stopped or crashed client lost
+     * everything. Flush anything dirty (player data, tower, trade stock) about once a second instead.
+     */
+    public static void initAutoFlush() {
+        dev.architectury.event.events.common.TickEvent.SERVER_POST.register(server -> {
+            if (server.getTickCount() % 20 == 0) {
+                server.overworld().getDataStorage().scheduleSave();
+            }
+        });
+        dev.architectury.event.events.common.PlayerEvent.PLAYER_QUIT.register(player ->
+                player.level().getServer().overworld().getDataStorage().scheduleSave());
+    }
+
     public static void markDirty(ServerPlayer player) {
         get(player.level().getServer()).setDirty();
     }
