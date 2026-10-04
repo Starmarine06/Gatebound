@@ -67,6 +67,7 @@ public final class DungeonManager {
     public static void init() {
         DungeonRegistries.init();
         DungeonCommands.register();
+        GateLabels.init();
 
         TickEvent.SERVER_POST.register(DungeonManager::tick);
         LifecycleEvent.SERVER_STARTED.register(DungeonManager::onStarted);
