@@ -107,8 +107,8 @@ public final class EchoRenderer extends EntityRenderer<EchoEntity, EchoRenderer.
     @Override
     public void submit(State state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera) {
         if (state.delegate != null) {
-            // The pose is already at the Echo's position, so ask for zero offset by passing the state's own coordinates.
-            dispatcher.submit(state.delegate, camera, state.delegate.x, state.delegate.y, state.delegate.z, poseStack, collector);
+            // The pose is already at the Echo's position, so no extra translation is wanted.
+            dispatcher.submit(state.delegate, camera, 0.0, 0.0, 0.0, poseStack, collector);
         }
         super.submit(state, poseStack, collector, camera);
     }
