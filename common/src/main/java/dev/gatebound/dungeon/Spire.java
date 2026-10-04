@@ -13,6 +13,27 @@ public final class Spire {
     /** Y of the floor slab; players stand at FY + 1. */
     public static final int FY = 40;
 
+    /** Gate dungeons live at floor indices from GATE_BASE up: GATE_BASE + slot * 6 + rank. They are not part of the tower. */
+    public static final int GATE_BASE = 2000;
+    public static final int GATE_SLOTS = 600;
+
+    public static boolean isGate(int floor) {
+        return floor >= GATE_BASE && floor < GATE_BASE + GATE_SLOTS * 6;
+    }
+
+    public static int gateIndex(int slot, GateRank rank) {
+        return GATE_BASE + slot * 6 + rank.ordinal();
+    }
+
+    /** The tower floor whose difficulty a floor index stands for (gate dungeons use the middle of their rank's band). */
+    public static int scaleFloor(int floor, int total) {
+        if (!isGate(floor)) {
+            return floor;
+        }
+        int[] r = bandRange(band(floor, total), total);
+        return (r[0] + r[1]) / 2;
+    }
+
     public enum Kind {
         NORMAL, REST, BOSS, FINAL
     }
@@ -35,7 +56,7 @@ public final class Spire {
             return 0;
         }
         int f = Math.floorDiv((int) Math.floor(x), FLOOR_SPACING);
-        if (f < 1 || f > total) {
+        if (f < 1 || (f > total && !isGate(f))) {
             return 0;
         }
         double lx = x - originX(f);
@@ -53,6 +74,9 @@ public final class Spire {
     }
 
     public static Kind kind(int floor, int total) {
+        if (isGate(floor)) {
+            return Kind.BOSS; // rooms leading to a guardian arena
+        }
         if (floor == total) {
             return Kind.FINAL;
         }
@@ -67,6 +91,9 @@ public final class Spire {
 
     /** Difficulty band 0..5 (gate ranks E..S) of a floor. */
     public static int band(int floor, int total) {
+        if (isGate(floor)) {
+            return (floor - GATE_BASE) % 6;
+        }
         if (total <= 0) {
             return 0;
         }
@@ -107,6 +134,9 @@ public final class Spire {
     }
 
     public static String describe(int floor, int total) {
+        if (isGate(floor)) {
+            return "Gate Dungeon - " + theme(floor, total).label();
+        }
         Kind k = kind(floor, total);
         return switch (k) {
             case REST -> "Rest Floor";

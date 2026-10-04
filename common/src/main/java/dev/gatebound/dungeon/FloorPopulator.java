@@ -34,7 +34,7 @@ public final class FloorPopulator {
         if (plan.kind == Spire.Kind.REST) {
             return 0;
         }
-        double n = DungeonConfig.mobBase + plan.floor * DungeonConfig.mobPerFloor;
+        double n = DungeonConfig.mobBase + Spire.scaleFloor(plan.floor, plan.total) * DungeonConfig.mobPerFloor;
         if (plan.kind != Spire.Kind.NORMAL) {
             n *= 0.6;
         }
@@ -49,8 +49,8 @@ public final class FloorPopulator {
         if (mob == null) {
             return null;
         }
-        double hp = (1.0 + DungeonConfig.hpPerFloor * plan.floor) * (1.0 + DungeonConfig.hpPerLevel * popLevel) * mult;
-        double dmg = (1.0 + DungeonConfig.dmgPerFloor * plan.floor) * (mult > 1.0 ? 1.15 : 1.0);
+        double hp = (1.0 + DungeonConfig.hpPerFloor * Spire.scaleFloor(plan.floor, plan.total)) * (1.0 + DungeonConfig.hpPerLevel * popLevel) * mult;
+        double dmg = (1.0 + DungeonConfig.dmgPerFloor * Spire.scaleFloor(plan.floor, plan.total)) * (mult > 1.0 ? 1.15 : 1.0);
         setMaxHealth(mob, mob.getMaxHealth() * hp);
         scaleDamage(mob, dmg);
         mob.addTag(TAG_MOB);
@@ -66,9 +66,9 @@ public final class FloorPopulator {
         if (boss == null) {
             return null;
         }
-        double hp = 100.0 * (1.0 + 0.1 * plan.floor) * (1.0 + 0.03 * popLevel) * (fin ? 2.5 : 1.0);
+        double hp = 100.0 * (1.0 + 0.1 * Spire.scaleFloor(plan.floor, plan.total)) * (1.0 + 0.03 * popLevel) * (fin ? 2.5 : 1.0);
         setMaxHealth(boss, hp);
-        scaleDamage(boss, (1.0 + 0.02 * plan.floor) * (fin ? 1.4 : 1.0));
+        scaleDamage(boss, (1.0 + 0.02 * Spire.scaleFloor(plan.floor, plan.total)) * (fin ? 1.4 : 1.0));
         AttributeInstance size = boss.getAttribute(Attributes.SCALE);
         if (size != null) {
             size.setBaseValue(fin ? 2.4 : rank.bossScale());
@@ -78,7 +78,7 @@ public final class FloorPopulator {
         boss.setPersistenceRequired();
         Component name = fin
                 ? Component.literal("Sovereign of the Spire").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD)
-                : Component.literal("Guardian of Floor " + plan.floor).withStyle(rank.color());
+                : Component.literal(Spire.isGate(plan.floor) ? rank.label() + " Gate Guardian" : "Guardian of Floor " + plan.floor).withStyle(rank.color());
         boss.setCustomName(name);
         boss.setCustomNameVisible(true);
         boss.setGlowingTag(true);

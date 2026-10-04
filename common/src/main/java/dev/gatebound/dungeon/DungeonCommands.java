@@ -22,14 +22,14 @@ public final class DungeonCommands {
             spawn.then(Commands.literal(rank.id()).executes(ctx -> {
                 ServerPlayer player = ctx.getSource().getPlayerOrException();
                 int floor = DungeonManager.spawnGate(player, rank, 0);
-                ctx.getSource().sendSuccess(() -> Component.literal("Placed a " + rank.label() + " gate leading to floor " + floor), true);
+                ctx.getSource().sendSuccess(() -> Component.literal("Placed a " + rank.label() + " gate (its own dungeon, leaking until the guardian is slain)"), true);
                 return 1;
             }));
         }
         spawn.then(Commands.literal("floor").then(Commands.argument("n", IntegerArgumentType.integer(1, 500)).executes(ctx -> {
             ServerPlayer player = ctx.getSource().getPlayerOrException();
             int floor = DungeonManager.spawnGate(player, GateRank.E, IntegerArgumentType.getInteger(ctx, "n"));
-            ctx.getSource().sendSuccess(() -> Component.literal("Placed a gate leading to floor " + floor), true);
+            ctx.getSource().sendSuccess(() -> Component.literal("Placed a gate of that floor's rank (its own dungeon, leaking until the guardian is slain)"), true);
             return 1;
         })));
         spawn.then(Commands.literal("village").executes(ctx -> {

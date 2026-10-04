@@ -376,7 +376,7 @@ public final class FloorJob extends WorkQueue.Job {
             if (boss != null) {
                 spawned++;
             }
-            int escorts = 4 + floor / 10;
+            int escorts = 4 + Spire.scaleFloor(floor, total) / 10;
             for (int k = 0; k < escorts; k++) {
                 BlockPos spot = plan.boss.offset(rng.nextInt(13) - 6, 0, rng.nextInt(13) - 6);
                 if (level.getBlockState(spot).isAir() && level.getBlockState(spot.below()).isSolid()) {

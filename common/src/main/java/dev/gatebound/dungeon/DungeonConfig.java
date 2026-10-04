@@ -14,6 +14,13 @@ public final class DungeonConfig {
     public static double spawnChance = 0.02;
     /** Maximum natural gates that may exist at once in the world. */
     public static int maxNaturalGates = 8;
+    /** An open gate leaks monsters until its guardian is killed from inside. */
+    public static boolean gateLeaks = true;
+    /** Ticks between leaks at first; it shortens as the gate ages, down to leakMinInterval. */
+    public static int leakInterval = 400;
+    public static int leakMinInterval = 120;
+    /** Most leaked monsters alive near one gate; rises with its rank. */
+    public static int leakCap = 8;
     /** Chance that a natural gate is placed in the nearest village (within villageSearchChunks) instead of at a random spot. */
     public static double villageGateChance = 0.5;
     public static int villageSearchChunks = 8;

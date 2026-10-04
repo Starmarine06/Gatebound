@@ -102,6 +102,12 @@ public final class DungeonManager {
                 if (entity instanceof ServerPlayer sp) {
                     FAILED.add(sp.getUUID());
                     DungeonStore store = DungeonStore.get(sp.level().getServer());
+                    if (Spire.isGate(Spire.floorAt(sp.getX(), sp.getZ(), store.totalFloors))) {
+                        GATE_DEATHS.add(sp.getUUID());
+                        sp.sendSystemMessage(Component.literal(PREFIX + "You fell in the gate dungeon. You will wake outside the gate, which is still open.")
+                                .withStyle(ChatFormatting.RED));
+                        return EventResult.pass();
+                    }
                     int rest = store.progressOf(sp.getUUID()).lastRest;
                     String where = DungeonConfig.deathRespawnMode == 1 && rest > 0
                             ? "at rest floor " + rest : "at the tower entrance";
@@ -214,15 +220,13 @@ public final class DungeonManager {
         int total = store.ensureTower(server);
         DungeonStore.GateRef g = store.gateAt(from.dimension(), gatePos);
         if (g == null) {
-            g = new DungeonStore.GateRef(from.dimension(), gatePos, 0, false, now(server), 0);
-            store.gates.add(g);
+            g = newGate(store, from.dimension(), gatePos, rank, false, now(server));
+        } else if (!Spire.isGate(g.floor)) {
+            assignDungeon(store, g, rank); // a gate from before gate dungeons existed
         }
-        if (g.floor <= 0 || g.floor > total) {
-            g.floor = Spire.pickFloor(rank, total, from.getRandom());
-            BlockState st = from.getBlockState(gatePos);
-            if (st.getBlock() instanceof GateBlock) {
-                from.setBlock(gatePos, st.setValue(GateBlock.RANK, Spire.rank(g.floor, total)), 3);
-            }
+        if (g.cleared) {
+            player.sendSystemMessage(Component.literal(PREFIX + "This gate has been closed.").withStyle(ChatFormatting.GRAY));
+            return;
         }
         g.uses++;
 
@@ -243,9 +247,9 @@ public final class DungeonManager {
         markPortalUsed(player);
         GatePull.grantImmunity(player);
         GateRank r = Spire.rank(g.floor, total);
-        player.sendSystemMessage(Component.literal(PREFIX + "You are pulled through the gate! " + r.label() + " - floor " + g.floor)
+        player.sendSystemMessage(Component.literal(PREFIX + "You are pulled through the gate into a " + r.label() + " dungeon!")
                 .withStyle(r.color()));
-        travelFloor(player, g.floor, WorkQueue.Dest.RIFT);
+        travelFloor(player, g.floor, WorkQueue.Dest.BOTTOM);
     }
 
     /** A floor portal block was used. */
@@ -260,6 +264,11 @@ public final class DungeonManager {
         DungeonStore store = DungeonStore.get(server);
         int total = store.totalFloors;
         int f = Spire.floorAt(pos.getX(), pos.getZ(), total);
+        if (Spire.isGate(f)) {
+            markPortalUsed(player);
+            sendHome(player);
+            return;
+        }
         switch (kind) {
             case HOME -> sendHome(player);
             case UP -> {
@@ -285,7 +294,9 @@ public final class DungeonManager {
         MinecraftServer server = player.level().getServer();
         DungeonStore store = DungeonStore.get(server);
         int total = store.ensureTower(server);
-        floor = Math.max(1, Math.min(total, floor));
+        if (!Spire.isGate(floor)) {
+            floor = Math.max(1, Math.min(total, floor));
+        }
         if (server.getLevel(DungeonRegistries.DUNGEON) == null) {
             return;
         }
@@ -338,6 +349,13 @@ public final class DungeonManager {
         GatePull.grantImmunity(player);
         player.teleportTo(dungeon, target.getX() + 0.5, target.getY(), target.getZ() + 0.5, Set.of(), -90f, 0f, true);
 
+        if (Spire.isGate(floor)) {
+            GateRank gr = Spire.rank(floor, store.totalFloors);
+            player.sendSystemMessage(Component.literal(PREFIX + gr.label() + " gate dungeon. Slay the guardian to close the gate and stop the monsters leaking out.")
+                    .withStyle(gr.color(), ChatFormatting.BOLD));
+            player.sendOverlayMessage(Component.literal(gr.label() + " Gate Dungeon").withStyle(gr.color()));
+            return;
+        }
         int total = store.totalFloors;
         Spire.Kind kind = Spire.kind(floor, total);
         GateRank rank = Spire.rank(floor, total);
@@ -461,11 +479,16 @@ public final class DungeonManager {
         MinecraftServer server = level.getServer();
         Spire.Kind kind = Spire.kind(f, total);
         GateRank rank = Spire.rank(f, total);
-        boolean fin = kind == Spire.Kind.FINAL;
+        boolean gate = Spire.isGate(f);
+        boolean fin = kind == Spire.Kind.FINAL || gate;
         fs.bossDead = true;
         fs.cleared = true;
         fs.clearedAt = now(server);
         store.setDirty();
+
+        if (gate) {
+            closeGate(store, f);
+        }
 
         BlockPos exit = fs.upPortal;
         if (!exit.equals(BlockPos.ZERO)) {
@@ -477,13 +500,17 @@ public final class DungeonManager {
                 BlockState existing = level.getBlockState(pos);
                 if (existing.isAir() || existing.is(net.minecraft.world.level.block.Blocks.CHEST)) {
                     FloorPopulator.placeChest(level, new FloorPlan.Chest(pos, Direction.WEST), f, total, rng, false);
-                    if (fin) {
+                    if (fin && !gate) {
                         FloorPopulator.fillChest(level, pos, f + 10, total + 10, rng, false);
                     }
                 }
             }
         }
         for (ServerPlayer p : playersOnFloor(level, f)) {
+            if (gate) {
+                gateCleared(p, rank);
+                continue;
+            }
             p.sendSystemMessage(Component.literal(PREFIX + (fin ? "The Sovereign of the Spire has fallen!" : "The guardian of floor " + f + " has fallen!"))
                     .withStyle(rank.color(), ChatFormatting.BOLD));
             p.sendSystemMessage(Component.literal(PREFIX + (fin ? "A portal home and a trove of treasure appear." : "The way up opens, and treasure appears."))
@@ -503,6 +530,60 @@ public final class DungeonManager {
                         .withStyle(ChatFormatting.GOLD));
             }
         }
+    }
+
+    private static void gateCleared(ServerPlayer p, GateRank rank) {
+        p.sendSystemMessage(Component.literal(PREFIX + "The gate guardian has fallen! The gate is closing; no more monsters will leak out.")
+                .withStyle(rank.color(), ChatFormatting.BOLD));
+        p.sendSystemMessage(Component.literal(PREFIX + "A portal out and treasure appear.").withStyle(ChatFormatting.GRAY));
+        p.sendOverlayMessage(Component.literal("GATE CLEARED").withStyle(rank.color(), ChatFormatting.BOLD));
+        p.level().playSound(null, p.blockPosition(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1f, 1f);
+        int xp = rank.xpReward();
+        int shards = 3 + rank.ordinal() * 3;
+        Progression.giveXp(p, xp);
+        giveItem(p, new ItemStack(TradeItems.GATE_SHARD.get(), shards));
+        String extra = "";
+        if (rank.ordinal() >= 2) {
+            giveItem(p, new ItemStack(TradeItems.ECHO_SHARD.get(), 1));
+            extra = " and an Echo Shard";
+        }
+        p.sendSystemMessage(Component.literal(PREFIX + "Clear reward: " + xp + " XP, " + shards + " Gate Shards" + extra + ".")
+                .withStyle(ChatFormatting.GOLD));
+    }
+
+    /** Marks the gate that leads to this gate dungeon as cleared; it closes and stops leaking. */
+    private static void closeGate(DungeonStore store, int floor) {
+        for (DungeonStore.GateRef g : store.gates) {
+            if (g.floor == floor && !g.cleared) {
+                g.cleared = true;
+                store.setDirty();
+            }
+        }
+    }
+
+    static DungeonStore.GateRef newGate(DungeonStore store, net.minecraft.resources.ResourceKey<Level> dim, BlockPos pos,
+                                        GateRank rank, boolean natural, long now) {
+        DungeonStore.GateRef g = new DungeonStore.GateRef(dim, pos, 0, natural, now, 0);
+        store.gates.add(g);
+        assignDungeon(store, g, rank);
+        return g;
+    }
+
+    /** Gives a gate its own gate dungeon (a free slot), reset to a fresh state. */
+    static void assignDungeon(DungeonStore store, DungeonStore.GateRef g, GateRank rank) {
+        Set<Integer> used = new HashSet<>();
+        for (DungeonStore.GateRef o : store.gates) {
+            if (o != g && Spire.isGate(o.floor)) {
+                used.add((o.floor - Spire.GATE_BASE) / 6);
+            }
+        }
+        int slot = (int) Math.floorMod(Spire.mix(g.pos.asLong(), g.created, 11L), (long) Spire.GATE_SLOTS);
+        for (int i = 0; i < Spire.GATE_SLOTS && used.contains(slot); i++) {
+            slot = (slot + 1) % Spire.GATE_SLOTS;
+        }
+        g.floor = Spire.gateIndex(slot, rank);
+        store.floors.remove(g.floor);
+        store.setDirty();
     }
 
     private static void giveItem(ServerPlayer player, ItemStack stack) {
@@ -559,6 +640,7 @@ public final class DungeonManager {
             selfTest(server, store, tc);
         }
         maintainGates(server, store);
+        GateLeak.tick(server, store, now(server));
         ServerLevel dungeon = server.getLevel(DungeonRegistries.DUNGEON);
         if (dungeon != null) {
             maintainDungeon(server, dungeon, store, tc);
@@ -568,7 +650,13 @@ public final class DungeonManager {
         }
     }
 
+    private static final Set<UUID> GATE_DEATHS = new HashSet<>();
+
     private static void respawnAfterFall(ServerPlayer p, DungeonStore store) {
+        if (GATE_DEATHS.remove(p.getUUID())) {
+            sendHome(p);
+            return;
+        }
         int rest = store.progressOf(p.getUUID()).lastRest;
         if (DungeonConfig.deathRespawnMode == 1 && rest > 0 && store.floor(rest).built) {
             p.sendSystemMessage(Component.literal(PREFIX + "You wake at the rest floor.").withStyle(ChatFormatting.GREEN));
@@ -673,7 +761,7 @@ public final class DungeonManager {
         GatePull.grantImmunity(player);
         placeGate(level, pos, rank, player.getX(), player.getZ() + 1.0);
         store.gates.removeIf(g -> g.dim.equals(level.dimension()) && g.pos.equals(pos));
-        store.gates.add(new DungeonStore.GateRef(level.dimension(), pos, floor, false, now(server), 0));
+        floor = newGate(store, level.dimension(), pos, rank, false, now(server)).floor;
         store.setDirty();
         return floor;
     }
@@ -687,7 +775,7 @@ public final class DungeonManager {
                 continue;
             }
             boolean exists = l.getBlockState(g.pos).getBlock() instanceof GateBlock;
-            boolean expired = now - g.created > DungeonConfig.gateLifetimeTicks || g.uses >= DungeonConfig.gateMaxUses;
+            boolean expired = g.cleared;
             if (exists && expired) {
                 boolean busy = false;
                 for (ServerPlayer p : l.players()) {
@@ -767,7 +855,7 @@ public final class DungeonManager {
             GateRank rank = pickRank(rng);
             int floor = Spire.pickFloor(rank, total, rng);
             placeGate(level, pos, rank, player.getX(), player.getZ());
-            store.gates.add(new DungeonStore.GateRef(level.dimension(), pos, floor, true, now(server), 0));
+            floor = newGate(store, level.dimension(), pos, rank, true, now(server)).floor;
             store.setDirty();
             player.sendSystemMessage(Component.literal(PREFIX + "A gate has appeared...").withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.ITALIC));
             player.level().playSound(null, pos, SoundEvents.BEACON_ACTIVATE, SoundSource.AMBIENT, 1.5f, 0.6f);
@@ -817,7 +905,7 @@ public final class DungeonManager {
             GateRank rank = pickRank(rng);
             int floor = Spire.pickFloor(rank, total, rng);
             placeGate(level, pos, rank, village.getX() + 0.5, village.getZ() + 0.5);
-            store.gates.add(new DungeonStore.GateRef(level.dimension(), pos, floor, true, now(server), 0));
+            floor = newGate(store, level.dimension(), pos, rank, true, now(server)).floor;
             store.setDirty();
             player.sendSystemMessage(Component.literal(PREFIX + "A gate has opened near a village...").withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.ITALIC));
             level.playSound(null, pos, SoundEvents.BEACON_ACTIVATE, SoundSource.AMBIENT, 1.5f, 0.6f);

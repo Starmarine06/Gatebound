@@ -96,11 +96,12 @@ public final class GateLabels {
 
     private static Label gateLabel(DungeonStore store, ServerLevel level, BlockPos pos, int total) {
         for (DungeonStore.GateRef g : store.gates) {
-            if (g.dim.equals(level.dimension()) && g.pos.equals(pos) && g.floor > 0) {
+            if (g.dim.equals(level.dimension()) && g.pos.equals(pos) && Spire.isGate(g.floor)) {
                 GateRank rank = Spire.rank(g.floor, total);
                 return new Label(pos, pos.getY() + 0.9,
-                        Component.literal("Gate to Floor " + g.floor + " / " + total).withStyle(rank.color(), ChatFormatting.BOLD),
-                        Component.literal(Spire.describe(g.floor, total) + " - " + rank.label()).withStyle(ChatFormatting.GRAY));
+                        Component.literal(rank.label() + " Gate").withStyle(rank.color(), ChatFormatting.BOLD),
+                        Component.literal(DungeonConfig.gateLeaks ? "Monsters leak out until its guardian falls" : "A dungeon lies beyond")
+                                .withStyle(DungeonConfig.gateLeaks ? ChatFormatting.RED : ChatFormatting.GRAY));
             }
         }
         return new Label(pos, pos.getY() + 0.9,
@@ -111,6 +112,11 @@ public final class GateLabels {
     private static Label exitLabel(ServerLevel level, BlockPos pos, GateExitBlock.Kind kind, boolean inSpire, int total) {
         int floor = inSpire ? Spire.floorAt(pos.getX() + 0.5, pos.getZ() + 0.5, total) : 0;
         double y = pos.getY() + 0.2;
+        if (Spire.isGate(floor)) {
+            return new Label(pos, y,
+                    Component.literal(kind == GateExitBlock.Kind.HOME ? "Exit the Gate Dungeon" : "Back to the gate").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD),
+                    Component.literal(kind == GateExitBlock.Kind.HOME ? "The gate closes once its guardian has fallen" : "The gate stays open").withStyle(ChatFormatting.GRAY));
+        }
         return switch (kind) {
             case UP -> new Label(pos, y,
                     Component.literal("Up to Floor " + (floor + 1)).withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD),

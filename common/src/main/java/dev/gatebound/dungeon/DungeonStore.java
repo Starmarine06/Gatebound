@@ -44,7 +44,8 @@ public final class DungeonStore extends SavedData {
                 Codec.INT.optionalFieldOf("floor", 0).forGetter(g -> g.floor),
                 Codec.BOOL.optionalFieldOf("natural", true).forGetter(g -> g.natural),
                 Codec.LONG.optionalFieldOf("created", 0L).forGetter(g -> g.created),
-                Codec.INT.optionalFieldOf("uses", 0).forGetter(g -> g.uses)
+                Codec.INT.optionalFieldOf("uses", 0).forGetter(g -> g.uses),
+                Codec.BOOL.optionalFieldOf("cleared", false).forGetter(g -> g.cleared)
         ).apply(i, GateRef::new));
 
         public final ResourceKey<Level> dim;
@@ -53,8 +54,15 @@ public final class DungeonStore extends SavedData {
         public final boolean natural;
         public final long created;
         public int uses;
+        /** True once the gate dungeon's guardian has fallen: the gate closes and stops leaking monsters. */
+        public boolean cleared;
 
         public GateRef(ResourceKey<Level> dim, BlockPos pos, int floor, boolean natural, long created, int uses) {
+            this(dim, pos, floor, natural, created, uses, false);
+        }
+
+        public GateRef(ResourceKey<Level> dim, BlockPos pos, int floor, boolean natural, long created, int uses, boolean cleared) {
+            this.cleared = cleared;
             this.dim = dim;
             this.pos = pos;
             this.floor = floor;

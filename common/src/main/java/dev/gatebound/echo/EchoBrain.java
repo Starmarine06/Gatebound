@@ -492,8 +492,8 @@ final class EchoBrain {
             return "Way up to Floor " + (floor + 1);
         }
         for (DungeonStore.GateRef g : store.gates) {
-            if (g.dim.equals(level.dimension()) && g.pos.equals(pos) && g.floor > 0) {
-                return "Gate to Floor " + g.floor;
+            if (g.dim.equals(level.dimension()) && g.pos.equals(pos) && dev.gatebound.dungeon.Spire.isGate(g.floor)) {
+                return dev.gatebound.dungeon.Spire.rank(g.floor, total).label() + " Gate";
             }
         }
         return "Gate";
