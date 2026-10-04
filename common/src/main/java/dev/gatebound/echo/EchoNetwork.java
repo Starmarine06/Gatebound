@@ -40,6 +40,14 @@ final class EchoNetwork {
                         EchoManager.sendRoster(player, false);
                     }
                 }));
+        NetworkManager.registerC2S(EchoBindPayload.TYPE, EchoBindPayload.CODEC, (payload, context) ->
+                context.queue(() -> {
+                    if (context.getPlayer() instanceof ServerPlayer player) {
+                        EchoManager.bindCorpse(player, payload.entityId(), payload.group());
+                    }
+                }));
+        NetworkManager.registerS2C(EchoBindMenuPayload.TYPE, EchoBindMenuPayload.CODEC, (payload, context) ->
+                context.queue(() -> EnvExecutor.runInEnv(Env.CLIENT, () -> () -> EchoClient.onBindMenu(payload))));
         NetworkManager.registerS2C(EchoViewPayload.TYPE, EchoViewPayload.CODEC, (payload, context) ->
                 context.queue(() -> EnvExecutor.runInEnv(Env.CLIENT, () -> () -> EchoClient.onView(payload))));
         NetworkManager.registerS2C(EchoRosterPayload.TYPE, EchoRosterPayload.CODEC, (payload, context) ->

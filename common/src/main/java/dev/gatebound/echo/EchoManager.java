@@ -333,7 +333,7 @@ public final class EchoManager {
         }
         Entity killer = source.getEntity();
         if (killer instanceof ServerPlayer player) {
-            tryExtract(player, victim);
+            leaveBody(player, victim);
         } else if (killer != null && victim instanceof Enemy && !isEcho(victim)) {
             Info info = ACTIVE.get(killer.getUUID());
             if (info != null && killer.level() instanceof ServerLevel level) {
@@ -346,29 +346,59 @@ public final class EchoManager {
         return EventResult.pass();
     }
 
-    private static void tryExtract(ServerPlayer player, LivingEntity victim) {
+    /** A Summoner's kill leaves the mob's body behind; the owner decides later whether to bind it (see EchoCorpse). */
+    private static void leaveBody(ServerPlayer player, LivingEntity victim) {
         PlayerData data = PlayerDataStore.of(player);
-        if (!isSummoner(data) || !eligible(victim) || data.echo.entries.size() >= slots(data)) {
+        if (!isSummoner(data) || !eligible(victim) || !(victim.level() instanceof ServerLevel level)) {
             return;
         }
-        double chance = EchoConfig.chancePercent(data.get(Stat.INTELLECT), data.level);
-        if (player.getRandom().nextDouble() * 100 >= chance) {
+        EchoCorpse body = EchoEntities.CORPSE.get().create(level, EntitySpawnReason.MOB_SUMMONED);
+        if (body == null) {
             return;
         }
         Identifier key = EntityType.getKey(victim.getType());
         String name = victim.getType().getDescription().getString();
-        data.echo.entries.add(new EchoRoster.Entry(key.toString(), name));
-        PlayerDataStore.markDirty(player);
-        if (victim.level() instanceof ServerLevel level) {
+        body.configure(key.toString(), victim, 1, 1);
+        body.setNoGravity(false);
+        body.setOwner(player.getUUID(), name);
+        body.setCustomName(Component.literal("Soul of " + name));
+        body.setCustomNameVisible(true);
+        body.setGlowingTag(true);
+        body.snapTo(victim.getX(), victim.getY(), victim.getZ(), victim.getYRot(), 0);
+        if (level.addFreshEntity(body)) {
             level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, victim.getX(), victim.getY() + victim.getBbHeight() / 2,
-                    victim.getZ(), 40, 0.4, 0.6, 0.4, 0.05);
-            level.sendParticles(ParticleTypes.REVERSE_PORTAL, victim.getX(), victim.getY() + 0.5, victim.getZ(),
-                    30, 0.3, 0.5, 0.3, 0.2);
+                    victim.getZ(), 25, 0.4, 0.6, 0.4, 0.05);
+            player.sendOverlayMessage(Component.literal("The " + name + " leaves a soul body. Right-click it to bind it as an echo.")
+                    .withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE));
         }
-        player.sendSystemMessage(Component.translatable("gatebound.echo.bound", name)
+    }
+
+    /** Server side of the bind menu: turns a soul body into an echo in the chosen group. */
+    public static void bindCorpse(ServerPlayer player, int entityId, int group) {
+        Entity e = player.level().getEntity(entityId);
+        if (!(e instanceof EchoCorpse body) || !body.isAlive() || !player.getUUID().equals(body.owner())
+                || body.distanceToSqr(player) > 10 * 10) {
+            return;
+        }
+        PlayerData data = PlayerDataStore.of(player);
+        if (!isSummoner(data)) {
+            return;
+        }
+        if (data.echo.entries.size() >= slots(data)) {
+            tell(player, Component.literal("No free echo slot. Use an Echo Shard or release an echo.")
+                    .withStyle(net.minecraft.ChatFormatting.RED));
+            return;
+        }
+        int g = Math.max(0, Math.min(EchoRoster.GROUPS - 1, group));
+        data.echo.entries.add(new EchoRoster.Entry(body.mobType(), body.bodyName(), g));
+        PlayerDataStore.markDirty(player);
+        if (body.level() instanceof ServerLevel level) {
+            level.sendParticles(ParticleTypes.REVERSE_PORTAL, body.getX(), body.getY() + 0.8, body.getZ(), 30, 0.3, 0.5, 0.3, 0.2);
+        }
+        body.discard();
+        tell(player, Component.translatable("gatebound.echo.bound", body.bodyName())
                 .withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE));
-        player.sendOverlayMessage(Component.translatable("gatebound.echo.bound", name)
-                .withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE));
+        sendRoster(player, false);
     }
 
     // ---------------------------------------------------------------- damage rules

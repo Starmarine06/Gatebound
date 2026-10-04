@@ -54,6 +54,13 @@ public final class EchoRoster {
     public int bonusSlots;
 
     public EchoRoster() {
+        resetModes();
+    }
+
+    private void resetModes() {
+        for (int i = 0; i < GROUPS; i++) {
+            groupModes[i] = i; // out of the box: group 1 follows, 2 guards, 3 seeks gates, 4 guides
+        }
     }
 
     /** Defensive copy; codec defaults are shared objects. */
@@ -66,6 +73,7 @@ public final class EchoRoster {
     }
 
     private EchoRoster(List<Entry> saved, List<Integer> modes, int bonus) {
+        resetModes();
         this.entries.addAll(saved);
         this.bonusSlots = Math.max(0, bonus);
         for (int i = 0; i < GROUPS && i < modes.size(); i++) {

@@ -132,5 +132,6 @@
   "key.gatebound.echo_menu": "Open Echo Orders",
   "item.gatebound.echo_shard": "Echo Shard",
   "skill.gatebound.scouts_eye": "Scout's Eye",
-  "npc.gatebound.desc.echo_shard": "Permanently adds one Echo slot"
+  "npc.gatebound.desc.echo_shard": "Permanently adds one Echo slot",
+  "entity.gatebound.soul_body": "Soul Body"
 }

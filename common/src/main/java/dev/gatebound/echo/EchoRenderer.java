@@ -96,7 +96,11 @@ public final class EchoRenderer extends EntityRenderer<EchoEntity, EchoRenderer.
             living.walkAnimationPos = echo.walkAnimation.position(partialTick);
             living.walkAnimationSpeed = echo.walkAnimation.speed(partialTick);
             living.hasRedOverlay = echo.hurtTime > 0;
-            living.deathTime = echo.deathTime;
+            living.deathTime = echo.isCorpse() ? 20f : echo.deathTime;
+            if (echo.isCorpse()) {
+                living.walkAnimationSpeed = 0f;
+                living.hasRedOverlay = false;
+            }
             if (living instanceof net.minecraft.client.renderer.entity.state.ArmedEntityRenderState armed) {
                 armed.currentSwing = echo.getCurrentSwing();
                 armed.swingAnimation = echo.getSwingAnimation(partialTick);

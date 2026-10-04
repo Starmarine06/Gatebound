@@ -21,6 +21,14 @@ public final class EchoEntities {
                     .clientTrackingRange(10)
                     .build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, "echo"))));
 
+    /** The body left behind by a Summoner's kill; right-click it to bind it as an echo. */
+    public static final RegistrySupplier<EntityType<EchoCorpse>> CORPSE = ENTITY_TYPES.register("soul_body", () ->
+            EntityType.Builder.of(EchoCorpse::new, MobCategory.MISC)
+                    .sized(0.6f, 1.95f)
+                    .eyeHeight(1.6f)
+                    .clientTrackingRange(10)
+                    .build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, "soul_body"))));
+
     private EchoEntities() {
     }
 
@@ -28,5 +36,6 @@ public final class EchoEntities {
     public static void init() {
         ENTITY_TYPES.register();
         EntityAttributeRegistry.register(ECHO, EchoEntity::createAttributes);
+        EntityAttributeRegistry.register(CORPSE, EchoEntity::createAttributes);
     }
 }

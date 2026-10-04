@@ -37,10 +37,15 @@ final class EchoClient {
         mc.setCameraEntity(target != null ? target : mc.player);
     }
 
+    static void onBindMenu(EchoBindMenuPayload payload) {
+        net.minecraft.client.Minecraft.getInstance().setScreenAndShow(new EchoBindScreen(payload));
+    }
+
     static void init() {
         KeyMappingRegistry.register(TOGGLE);
         KeyMappingRegistry.register(MENU);
         dev.architectury.registry.client.level.entity.EntityRendererRegistry.register(EchoEntities.ECHO, EchoRenderer::new);
+        dev.architectury.registry.client.level.entity.EntityRendererRegistry.register(EchoEntities.CORPSE, EchoRenderer::new);
         ClientTickEvent.CLIENT_POST.register(mc -> {
             while (MENU.consumeClick()) {
                 if (mc.gui.screen() == null && mc.player != null && NetworkManager.canServerReceive(EchoMenuPayload.TYPE)) {

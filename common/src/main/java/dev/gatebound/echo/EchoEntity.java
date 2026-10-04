@@ -120,6 +120,11 @@ public class EchoEntity extends PathfinderMob {
         this.navigation = nav;
     }
 
+    /** True only for soul bodies, which are never tracked by the manager. */
+    public boolean isCorpse() {
+        return false;
+    }
+
     public boolean isFlier() {
         return this.entityData.get(FLIER);
     }
@@ -189,7 +194,7 @@ public class EchoEntity extends PathfinderMob {
     public void tick() {
         super.tick();
         // An echo the manager no longer tracks is a stale copy (left in another dimension, say): remove it.
-        if (!level().isClientSide() && tickCount > 10 && !EchoManager.isEcho(this)) {
+        if (!level().isClientSide() && tickCount > 10 && !isCorpse() && !EchoManager.isEcho(this)) {
             discard();
         }
     }
