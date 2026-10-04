@@ -32,6 +32,15 @@ public final class DungeonCommands {
             ctx.getSource().sendSuccess(() -> Component.literal("Placed a gate leading to floor " + floor), true);
             return 1;
         })));
+        spawn.then(Commands.literal("village").executes(ctx -> {
+            ServerPlayer player = ctx.getSource().getPlayerOrException();
+            if (!DungeonManager.spawnVillageGate(player)) {
+                ctx.getSource().sendFailure(Component.literal("No free spot found in a village within range (or that village already has a gate)."));
+                return 0;
+            }
+            ctx.getSource().sendSuccess(() -> Component.literal("Placed a gate in the nearest village"), true);
+            return 1;
+        }));
         return Commands.literal("gate")
                 .then(spawn)
                 .then(Commands.literal("leave").executes(ctx -> {

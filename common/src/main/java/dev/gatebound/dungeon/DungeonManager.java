@@ -744,6 +744,10 @@ public final class DungeonManager {
             }
         }
 
+        if (rng.nextDouble() < DungeonConfig.villageGateChance && tryVillageGate(server, store, level, player, rng)) {
+            return;
+        }
+
         int span = Math.max(1, DungeonConfig.spawnMaxDistance - DungeonConfig.spawnMinDistance);
         for (int attempt = 0; attempt < 6; attempt++) {
             double dist = DungeonConfig.spawnMinDistance + rng.nextInt(span + 1);
@@ -772,11 +776,68 @@ public final class DungeonManager {
         }
     }
 
+    /** Op command: places a gate in the nearest village right now. Returns false if no village is in range. */
+    public static boolean spawnVillageGate(ServerPlayer player) {
+        MinecraftServer server = player.level().getServer();
+        return tryVillageGate(server, DungeonStore.get(server), player.level(), player, player.getRandom());
+    }
+
+    /** Places a natural gate in the nearest village: on open ground a short walk from its centre. */
+    private static boolean tryVillageGate(MinecraftServer server, DungeonStore store, ServerLevel level, ServerPlayer player,
+                                          RandomSource rng) {
+        BlockPos village = level.findNearestMapStructure(net.minecraft.tags.StructureTags.VILLAGE, player.blockPosition(),
+                Math.max(1, DungeonConfig.villageSearchChunks), false);
+        if (village == null) {
+            return false;
+        }
+        for (DungeonStore.GateRef g : store.gates) {
+            if (g.dim.equals(level.dimension())) {
+                double dx = g.pos.getX() - village.getX();
+                double dz = g.pos.getZ() - village.getZ();
+                if (dx * dx + dz * dz < 48 * 48) {
+                    return false; // that village already has a gate
+                }
+            }
+        }
+        for (int attempt = 0; attempt < 12; attempt++) {
+            double ang = rng.nextDouble() * Math.PI * 2;
+            double dist = 8 + rng.nextInt(22);
+            int x = village.getX() + (int) Math.floor(Math.cos(ang) * dist);
+            int z = village.getZ() + (int) Math.floor(Math.sin(ang) * dist);
+            BlockPos column = new BlockPos(x, level.getSeaLevel(), z);
+            if (!level.hasChunkAt(column)) {
+                continue;
+            }
+            int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+            BlockPos pos = new BlockPos(x, y, z);
+            if (!validGateSpot(level, pos, true)) {
+                continue;
+            }
+            int total = store.ensureTower(server);
+            GateRank rank = pickRank(rng);
+            int floor = Spire.pickFloor(rank, total, rng);
+            placeGate(level, pos, rank, village.getX() + 0.5, village.getZ() + 0.5);
+            store.gates.add(new DungeonStore.GateRef(level.dimension(), pos, floor, true, now(server), 0));
+            store.setDirty();
+            player.sendSystemMessage(Component.literal(PREFIX + "A gate has opened near a village...").withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.ITALIC));
+            level.playSound(null, pos, SoundEvents.BEACON_ACTIVATE, SoundSource.AMBIENT, 1.5f, 0.6f);
+            Gatebound.LOGGER.info("Village {} gate (floor {}) spawned at {} (village at {})", rank, floor, pos, village);
+            return true;
+        }
+        return false;
+    }
+
     private static boolean validGateSpot(ServerLevel level, BlockPos pos) {
+        return validGateSpot(level, pos, false);
+    }
+
+    private static boolean validGateSpot(ServerLevel level, BlockPos pos, boolean allowStructures) {
         BlockPos below = pos.below();
         BlockState ground = level.getBlockState(below);
         boolean naturalGround = ground.is(BlockTags.DIRT) || ground.is(BlockTags.SAND) || ground.is(BlockTags.TERRACOTTA)
-                || ground.is(BlockTags.BASE_STONE_OVERWORLD) || ground.is(BlockTags.SNOW);
+                || ground.is(BlockTags.BASE_STONE_OVERWORLD) || ground.is(BlockTags.SNOW)
+                || (allowStructures && (ground.is(net.minecraft.world.level.block.Blocks.DIRT_PATH)
+                || ground.is(net.minecraft.world.level.block.Blocks.COBBLESTONE) || ground.is(BlockTags.PLANKS)));
         if (!naturalGround || !ground.getFluidState().isEmpty()) {
             return false;
         }
@@ -791,7 +852,7 @@ public final class DungeonManager {
         if (tower != null && tower.inflate(10).contains(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5)) {
             return false;
         }
-        return !level.structureManager().getStructureWithPieceAt(pos, h -> true).isValid();
+        return allowStructures || !level.structureManager().getStructureWithPieceAt(pos, h -> true).isValid();
     }
 
     private static GateRank pickRank(RandomSource rng) {

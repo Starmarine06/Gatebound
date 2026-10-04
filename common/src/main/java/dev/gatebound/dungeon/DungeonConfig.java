@@ -14,6 +14,9 @@ public final class DungeonConfig {
     public static double spawnChance = 0.02;
     /** Maximum natural gates that may exist at once in the world. */
     public static int maxNaturalGates = 8;
+    /** Chance that a natural gate is placed in the nearest village (within villageSearchChunks) instead of at a random spot. */
+    public static double villageGateChance = 0.5;
+    public static int villageSearchChunks = 8;
     /** A player will not get a new gate while another natural gate is within this many blocks. */
     public static int perPlayerRadius = 160;
     public static int spawnMinDistance = 24;
