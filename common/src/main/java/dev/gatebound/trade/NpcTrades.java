@@ -68,6 +68,7 @@ public final class NpcTrades {
             for (Stat s : new Stat[]{Stat.STRENGTH, Stat.AGILITY, Stat.VITALITY}) {
                 o.add(new Def(TradeItems.TOMES.get(s)::get, 1, TradeItems.GATE_SHARD::get, tomePrice(level), TradeConfig.offerStock));
             }
+            o.add(new Def(TradeItems.ECHO_SHARD::get, 1, TradeItems.GATE_SHARD::get, 30 + level / 2, 2));
             o.add(new Def(TradeItems.GATE_SHARD::get, 5, () -> Items.DIAMOND, 1, 8));
         } else {
             o.add(new Def(TradeItems.INFO_SCROLL::get, 1, TradeItems.GATE_SHARD::get, 2 + level / 20, 10));

@@ -32,6 +32,10 @@ public final class TradeItems {
         }
     }
 
+    public static final RegistrySupplier<Item> ECHO_SHARD = ITEMS.register("echo_shard", () ->
+            new dev.gatebound.echo.EchoShardItem(new Item.Properties().arch$tab(GateboundRegistries.MAIN_TAB).stacksTo(16)
+                    .rarity(Rarity.RARE).setId(key("echo_shard"))));
+
     public static final RegistrySupplier<Item> INFO_SCROLL = ITEMS.register("info_scroll", () ->
             new InfoScrollItem(new Item.Properties().arch$tab(GateboundRegistries.MAIN_TAB).stacksTo(16).setId(key("info_scroll"))));
 

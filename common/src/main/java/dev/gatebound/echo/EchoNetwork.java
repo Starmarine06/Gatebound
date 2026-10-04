@@ -30,12 +30,15 @@ final class EchoNetwork {
                             case 0 -> EchoManager.setGroupMode(player, payload.a(), payload.b());
                             case 1 -> EchoManager.setEchoGroup(player, payload.a(), payload.b());
                             case 2 -> EchoManager.selectGate(player, payload.a());
+                            case 3 -> EchoView.order(player, payload.a());
                             default -> {
                             }
                         }
                         EchoManager.sendRoster(player, false);
                     }
                 }));
+        NetworkManager.registerS2C(EchoViewPayload.TYPE, EchoViewPayload.CODEC, (payload, context) ->
+                context.queue(() -> EnvExecutor.runInEnv(Env.CLIENT, () -> () -> EchoClient.onView(payload))));
         NetworkManager.registerS2C(EchoRosterPayload.TYPE, EchoRosterPayload.CODEC, (payload, context) ->
                 context.queue(() -> EnvExecutor.runInEnv(Env.CLIENT, () -> () -> EchoClient.onRoster(payload))));
     }

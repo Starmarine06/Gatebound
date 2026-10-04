@@ -111,6 +111,7 @@ public final class EchoManager {
             }
         });
         EchoNetwork.init();
+        EchoView.init();
         EchoCommands.init();
         EnvExecutor.runInEnv(Env.CLIENT, () -> EchoClient::init);
     }
@@ -132,6 +133,12 @@ public final class EchoManager {
             return EchoRoster.FOLLOW;
         }
         return roster.groupModes[Math.max(0, Math.min(EchoRoster.GROUPS - 1, roster.entries.get(slot).group()))];
+    }
+
+    /** The order an echo follows right now: its Scout's Eye order if the owner is viewing it, else its group's order. */
+    public static int effectiveMode(ServerPlayer owner, java.util.UUID echoId, int slot) {
+        int override = EchoView.orderFor(echoId);
+        return override >= 0 ? override : modeOf(owner, slot);
     }
 
     /** Gives every echo of one group an order (group -1 = all groups). */
@@ -233,7 +240,7 @@ public final class EchoManager {
                     ? (int) Math.sqrt(owner.distanceToSqr(f.pos().getX() + 0.5, f.pos().getY(), f.pos().getZ() + 0.5)) : -1;
             gates.add(new EchoRosterPayload.GateRow(f.label(), f.by(), dist, f.equals(selected)));
         }
-        NetworkManager.sendToPlayer(owner, new EchoRosterPayload(open, isSummoner(data), rows, modes, gates));
+        NetworkManager.sendToPlayer(owner, new EchoRosterPayload(open, isSummoner(data), rows, modes, gates, EchoView.viewingName(owner)));
     }
 
     public static boolean isSummoner(PlayerData data) {
@@ -241,7 +248,7 @@ public final class EchoManager {
     }
 
     public static int slots(PlayerData data) {
-        return EchoConfig.slots(data.get(Stat.INTELLECT));
+        return EchoConfig.slots(data.get(Stat.INTELLECT), data.echo.bonusSlots);
     }
 
     public static int activeCount(UUID owner) {
@@ -615,7 +622,8 @@ public final class EchoManager {
             if (mob.getRemainingFireTicks() > 0 && !mob.isInLava()) {
                 mob.clearFire();
             }
-            boolean seeker = modeOf(owner, info.slot) == EchoRoster.SEEK;
+            int curMode = effectiveMode(owner, e.getKey(), info.slot);
+            boolean seeker = curMode == EchoRoster.SEEK || curMode == EchoRoster.GOTO;
             double leash = seeker ? 110 : EchoConfig.teleportDistance;
             if (mob.level() != owner.level() || mob.distanceToSqr(owner) > leash * leash) {
                 teleportTo(mob, owner);

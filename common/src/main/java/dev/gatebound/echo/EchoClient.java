@@ -27,6 +27,16 @@ final class EchoClient {
         }
     }
 
+    /** Moves the camera into an echo's eyes, or back to the player when the id is -1. */
+    static void onView(EchoViewPayload payload) {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) {
+            return;
+        }
+        net.minecraft.world.entity.Entity target = payload.entityId() >= 0 ? mc.level.getEntity(payload.entityId()) : null;
+        mc.setCameraEntity(target != null ? target : mc.player);
+    }
+
     static void init() {
         KeyMappingRegistry.register(TOGGLE);
         KeyMappingRegistry.register(MENU);

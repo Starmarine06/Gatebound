@@ -15,6 +15,8 @@ public final class EchoRoster {
     public static final int GUARD = 1;
     public static final int SEEK = 2;
     public static final int GUIDE = 3;
+    /** Eye-only order: fly straight to the selected gate. Never stored on a group. */
+    public static final int GOTO = 4;
 
     /** One bound mob: its entity type id (e.g. minecraft:zombie), the display name captured at binding, and its group. */
     public record Entry(String type, String name, int group) {
@@ -41,12 +43,15 @@ public final class EchoRoster {
                     l.add(m);
                 }
                 return l;
-            })
+            }),
+            Codec.INT.optionalFieldOf("bonus_slots", 0).forGetter(r -> r.bonusSlots)
     ).apply(i, EchoRoster::new));
 
     public final List<Entry> entries = new ArrayList<>();
     /** Current order of each group. */
     public final int[] groupModes = new int[GROUPS];
+    /** Extra echo slots from Echo Shards. */
+    public int bonusSlots;
 
     public EchoRoster() {
     }
@@ -56,11 +61,13 @@ public final class EchoRoster {
         EchoRoster r = new EchoRoster();
         r.entries.addAll(entries);
         System.arraycopy(groupModes, 0, r.groupModes, 0, GROUPS);
+        r.bonusSlots = bonusSlots;
         return r;
     }
 
-    private EchoRoster(List<Entry> saved, List<Integer> modes) {
+    private EchoRoster(List<Entry> saved, List<Integer> modes, int bonus) {
         this.entries.addAll(saved);
+        this.bonusSlots = Math.max(0, bonus);
         for (int i = 0; i < GROUPS && i < modes.size(); i++) {
             this.groupModes[i] = Math.max(FOLLOW, Math.min(GUIDE, modes.get(i)));
         }

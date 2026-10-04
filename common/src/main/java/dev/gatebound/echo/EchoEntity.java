@@ -29,6 +29,10 @@ public class EchoEntity extends PathfinderMob {
     /** Height of the registered echo hitbox; the SCALE attribute stretches it to the bound mob's size. */
     private static final double BASE_HEIGHT = 1.95;
 
+    /** Mobs that fly in the wild; their echoes fly too. */
+    private static final java.util.Set<String> FLIERS = java.util.Set.of(
+            "phantom", "bat", "blaze", "ghast", "vex", "allay", "bee", "parrot", "breeze", "happy_ghast");
+
     private double attackDamage = 3;
     // Brain state (server side only), used by EchoBrain.
     int attackCooldown;
@@ -47,7 +51,8 @@ public class EchoEntity extends PathfinderMob {
                 .add(Attributes.MAX_HEALTH, 20)
                 .add(Attributes.MOVEMENT_SPEED, 0.28)
                 .add(Attributes.ATTACK_DAMAGE, 3)
-                .add(Attributes.FOLLOW_RANGE, 32);
+                .add(Attributes.FLYING_SPEED, 0.6)
+                .add(Attributes.FOLLOW_RANGE, 64);
     }
 
     @Override
@@ -73,6 +78,10 @@ public class EchoEntity extends PathfinderMob {
         set(Attributes.SCALE, scale);
         this.refreshDimensions();
         this.setHealth(this.getMaxHealth());
+        String path = typeId.contains(":") ? typeId.substring(typeId.indexOf(':') + 1) : typeId;
+        if (FLIERS.contains(path)) {
+            makeFlier();
+        }
     }
 
     private void set(net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attribute, double value) {
@@ -85,6 +94,16 @@ public class EchoEntity extends PathfinderMob {
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));
+    }
+
+    private void makeFlier() {
+        this.setNoGravity(true);
+        this.moveControl = new net.minecraft.world.entity.ai.control.FlyingMoveControl(this, 20, true);
+        net.minecraft.world.entity.ai.navigation.FlyingPathNavigation nav =
+                new net.minecraft.world.entity.ai.navigation.FlyingPathNavigation(this, this.level());
+        nav.setCanOpenDoors(false);
+        nav.setCanFloat(true);
+        this.navigation = nav;
     }
 
     public double attackDamage() {

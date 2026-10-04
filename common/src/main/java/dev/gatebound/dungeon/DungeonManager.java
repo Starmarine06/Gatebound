@@ -498,7 +498,8 @@ public final class DungeonManager {
                 Progression.giveXp(p, xp);
                 int shards = fin ? 25 : 3 + f / 5;
                 giveItem(p, new ItemStack(TradeItems.GATE_SHARD.get(), shards));
-                p.sendSystemMessage(Component.literal(PREFIX + "First clear reward: " + xp + " XP and " + shards + " Gate Shards.")
+                giveItem(p, new ItemStack(TradeItems.ECHO_SHARD.get(), fin ? 3 : 1));
+                p.sendSystemMessage(Component.literal(PREFIX + "First clear reward: " + xp + " XP, " + shards + " Gate Shards and " + (fin ? 3 : 1) + " Echo Shard" + (fin ? "s" : "") + ".")
                         .withStyle(ChatFormatting.GOLD));
             }
         }

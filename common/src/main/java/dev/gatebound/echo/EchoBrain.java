@@ -45,7 +45,7 @@ final class EchoBrain {
             e.setTarget(null);
             return;
         }
-        int mode = EchoManager.modeOf(owner, info.slot);
+        int mode = EchoManager.effectiveMode(owner, e.getUUID(), info.slot);
         EchoKits.Kit kit = EchoKits.of(e.mobType());
         if (e.attackCooldown > 0) {
             e.attackCooldown--;
@@ -53,7 +53,7 @@ final class EchoBrain {
         if (e.abilityCooldown > 0) {
             e.abilityCooldown--;
         }
-        if (mode != EchoRoster.SEEK) {
+        if (mode != EchoRoster.SEEK && mode != EchoRoster.GOTO) {
             e.seekFound = null;
         }
         if (mode != EchoRoster.GUIDE) {
@@ -80,11 +80,17 @@ final class EchoBrain {
             case EchoRoster.GUARD -> follow(e, owner, 4.5, 2.5);
             case EchoRoster.SEEK -> seek(e, owner, level);
             case EchoRoster.GUIDE -> guide(e, owner, level);
+            case EchoRoster.GOTO -> goTo(e, owner, level);
             default -> follow(e, owner, 7, 4);
         }
     }
 
     // ---------------------------------------------------------------- targeting
+
+    /** Scouts and gate-runners avoid fights unless something is right on top of them. */
+    private static boolean passive(int mode) {
+        return mode == EchoRoster.SEEK || mode == EchoRoster.GOTO;
+    }
 
     private static boolean validTarget(EchoEntity e, LivingEntity t, ServerPlayer owner) {
         return t.isAlive() && t.level() == e.level() && !(t instanceof Player) && !(t instanceof EchoEntity)
@@ -107,12 +113,12 @@ final class EchoBrain {
         LivingEntity pick = null;
         LivingEntity hit = owner.getLastHurtMob();
         if (hit != null && owner.tickCount - owner.getLastHurtMobTimestamp() < 100 && validTarget(e, hit, owner)
-                && mode != EchoRoster.SEEK) {
+                && !passive(mode)) {
             pick = hit;
         }
         LivingEntity hurtBy = owner.getLastHurtByMob();
         if (pick == null && hurtBy != null && owner.tickCount - owner.getLastHurtByMobTimestamp() < 100
-                && validTarget(e, hurtBy, owner) && mode != EchoRoster.SEEK) {
+                && validTarget(e, hurtBy, owner) && !passive(mode)) {
             pick = hurtBy;
         }
         if (pick == null) {
@@ -130,7 +136,7 @@ final class EchoBrain {
                 }
             }
             // Anything hunting the owner, even from outside the box.
-            if (pick == null && mode != EchoRoster.SEEK) {
+            if (pick == null && !passive(mode)) {
                 for (Mob m : level.getEntitiesOfClass(Mob.class, owner.getBoundingBox().inflate(22, 8, 22),
                         m -> m.getTarget() == owner && validTarget(e, m, owner))) {
                     double d = e.distanceToSqr(m);
@@ -390,6 +396,39 @@ final class EchoBrain {
         owner.sendSystemMessage(msg);
         owner.sendOverlayMessage(msg);
         EchoManager.sendRoster(owner, false);
+    }
+
+    /** Eye order: fly or run straight to the selected gate and hold there, without waiting for the owner. */
+    private static void goTo(EchoEntity e, ServerPlayer owner, ServerLevel level) {
+        EchoManager.Found gate = EchoManager.selectedGate(owner);
+        if (gate == null || !gate.dim().equals(level.dimension())) {
+            if (!e.guideWarned) {
+                e.guideWarned = true;
+                owner.sendOverlayMessage(Component.literal(gate == null
+                        ? "No gate selected. Find one first, then pick it on the H screen."
+                        : "The selected gate is in another dimension.").withStyle(ChatFormatting.GRAY));
+            }
+            seek(e, owner, level);
+            return;
+        }
+        e.guideWarned = false;
+        double gx = gate.pos().getX() + 0.5;
+        double gz = gate.pos().getZ() + 0.5;
+        double toGate = Math.sqrt(e.distanceToSqr(gx, e.getY(), gz));
+        if (toGate < 3) {
+            e.getNavigation().stop();
+            if (e.seekFound == null) {
+                e.seekFound = gate.pos();
+                owner.sendOverlayMessage(Component.literal(e.mobName() + " reached " + gate.label() + ".")
+                        .withStyle(ChatFormatting.LIGHT_PURPLE));
+            }
+        } else if (--e.repath <= 0) {
+            e.repath = 15;
+            double step = Math.min(24, toGate);
+            double dx = (gx - e.getX()) / toGate * step;
+            double dz = (gz - e.getZ()) / toGate * step;
+            e.getNavigation().moveTo(e.getX() + dx, gate.pos().getY() + 1, e.getZ() + dz, 1.2);
+        }
     }
 
     /** Guide: lead the owner to the selected gate, waiting whenever the owner falls behind. */

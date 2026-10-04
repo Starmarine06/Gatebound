@@ -17,6 +17,9 @@ public final class EchoConfig {
     public static int baseSlots = 2;
     public static int intellectPerSlot = 10;
     public static int hardSlotCap = 12;
+    /** Echo Shards can add this many slots on top, and the total never exceeds maxTotalSlots. */
+    public static int maxBonusSlots = 18;
+    public static int maxTotalSlots = 30;
 
     /** Mana spent per echo summoned. Never refunded on dismiss. */
     public static int summonMana = 8;
@@ -38,7 +41,8 @@ public final class EchoConfig {
         return Math.min(maxChance, baseChance + chancePerIntellect * intellect + chancePerLevel * level);
     }
 
-    public static int slots(int intellect) {
-        return Math.min(hardSlotCap, baseSlots + Math.max(0, intellect) / Math.max(1, intellectPerSlot));
+    public static int slots(int intellect, int bonus) {
+        int fromStats = Math.min(hardSlotCap, baseSlots + Math.max(0, intellect) / Math.max(1, intellectPerSlot));
+        return Math.min(maxTotalSlots, fromStats + Math.max(0, bonus));
     }
 }

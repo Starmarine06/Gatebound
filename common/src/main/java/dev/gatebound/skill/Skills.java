@@ -38,6 +38,7 @@ public final class Skills {
     public static final Skill PIERCING_SHOT = add(new Skill("piercing_shot", GateboundClass.RANGER, null, 5, 16, 120, Skills::piercingShot));
     // Summoner
     public static final Skill SPIRIT_WARD = add(new Skill("spirit_ward", GateboundClass.SUMMONER, null, 1, 14, 240, Skills::spiritWard));
+    public static final Skill SCOUTS_EYE = add(new Skill("scouts_eye", GateboundClass.SUMMONER, null, 3, 12, 0, dev.gatebound.echo.EchoView::cast));
     public static final Skill SOUL_DRAIN = add(new Skill("soul_drain", GateboundClass.SUMMONER, null, 5, 16, 140, Skills::soulDrain));
 
     // Mage: Fire

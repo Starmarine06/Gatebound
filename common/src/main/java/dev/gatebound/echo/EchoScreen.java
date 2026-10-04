@@ -25,6 +25,7 @@ final class EchoScreen extends Screen {
             "Leads you to the selected gate."};
 
     private EchoRosterPayload data;
+    private int viewY = -1;
     private int groupsY;
     private int echoesY;
     private int gatesY;
@@ -58,6 +59,20 @@ final class EchoScreen extends Screen {
     protected void init() {
         int left = this.width / 2 - 160;
         int y = 34;
+        if (!data.viewing().isEmpty()) {
+            viewY = y;
+            addRenderableWidget(Button.builder(Component.literal("Eye: Scout"), b -> NetworkManager.sendToServer(new EchoOrderPayload(3, 0, 0)))
+                    .bounds(left, y + 12, 100, 20).tooltip(Tooltip.create(Component.literal("The echo you are watching through searches for gates."))).build());
+            addRenderableWidget(Button.builder(Component.literal("Eye: Go to gate"), b -> NetworkManager.sendToServer(new EchoOrderPayload(3, 1, 0)))
+                    .bounds(left + 106, y + 12, 108, 20).tooltip(Tooltip.create(Component.literal("It flies or runs to the selected gate."))).build());
+            addRenderableWidget(Button.builder(Component.literal("Stop viewing"), b -> {
+                NetworkManager.sendToServer(new EchoOrderPayload(3, 2, 0));
+                onClose();
+            }).bounds(left + 220, y + 12, 100, 20).build());
+            y += 40;
+        } else {
+            viewY = -1;
+        }
         groupsY = y;
         for (int g = 0; g < EchoRoster.GROUPS; g++) {
             int group = g;
@@ -113,6 +128,9 @@ final class EchoScreen extends Screen {
         int left = this.width / 2 - 160;
         graphics.text(this.font, Component.literal("Echoes").withStyle(ChatFormatting.BOLD), left, 14, 0xFFFFFFFF);
         graphics.text(this.font, "Give each group an order. Echoes in a group obey together.", left + 50, 14, 0xFF999999);
+        if (viewY >= 0) {
+            graphics.text(this.font, "Viewing through " + data.viewing(), left, viewY, 0xFFFFD27C);
+        }
         for (int g = 0; g < EchoRoster.GROUPS; g++) {
             graphics.text(this.font, "Group " + (g + 1) + " (" + countIn(g) + ")", left, groupsY + g * ROW + 6, 0xFFFFFFFF);
         }

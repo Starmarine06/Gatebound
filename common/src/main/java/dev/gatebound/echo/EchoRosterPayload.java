@@ -14,7 +14,7 @@ import java.util.List;
  * open = true also opens the Echoes screen.
  */
 public record EchoRosterPayload(boolean open, boolean summoner, List<Row> rows, List<Integer> groupModes,
-                                List<GateRow> gates) implements CustomPacketPayload {
+                                List<GateRow> gates, String viewing) implements CustomPacketPayload {
     public record Row(String name, String type, int group, boolean active, boolean unlocked) {
     }
 
@@ -44,7 +44,8 @@ public record EchoRosterPayload(boolean open, boolean summoner, List<Row> rows, 
             for (int i = 0; i < g; i++) {
                 gates.add(new GateRow(buf.readUtf(), buf.readUtf(), buf.readVarInt() - 1, buf.readBoolean()));
             }
-            return new EchoRosterPayload(open, summoner, rows, modes, gates);
+            String viewing = buf.readUtf();
+            return new EchoRosterPayload(open, summoner, rows, modes, gates, viewing);
         }
 
         @Override
@@ -70,6 +71,7 @@ public record EchoRosterPayload(boolean open, boolean summoner, List<Row> rows, 
                 buf.writeVarInt(g.distance + 1);
                 buf.writeBoolean(g.selected);
             }
+            buf.writeUtf(p.viewing);
         }
     };
 
