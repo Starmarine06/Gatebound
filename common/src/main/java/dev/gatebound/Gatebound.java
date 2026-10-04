@@ -22,6 +22,8 @@ public final class Gatebound {
     public static void init() {
         dev.gatebound.config.GateboundConfig.load();
         GateboundRegistries.init();
+        // Entity types must be registered before ClientHooks registers their renderers.
+        dev.gatebound.trade.NpcEntities.init();
         GateboundNetwork.init();
         EnvExecutor.runInEnv(Env.CLIENT, () -> ClientHooks::init);
         Progression.init();

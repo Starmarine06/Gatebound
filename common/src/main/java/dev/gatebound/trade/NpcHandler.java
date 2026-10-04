@@ -32,7 +32,6 @@ public final class NpcHandler {
 
     public static void init() {
         TradeItems.init();
-        NpcEntities.init();
         NpcTrades.init();
 
         EntityEvent.LIVING_DEATH.register((entity, source) -> {
