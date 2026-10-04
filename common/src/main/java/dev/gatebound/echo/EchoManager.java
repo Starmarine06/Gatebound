@@ -162,6 +162,38 @@ public final class EchoManager {
         }
     }
 
+    /** Spreads all echoes evenly over the groups, in roster order. */
+    public static void evenSplit(ServerPlayer owner) {
+        List<EchoRoster.Entry> entries = PlayerDataStore.of(owner).echo.entries;
+        for (int i = 0; i < entries.size(); i++) {
+            entries.set(i, entries.get(i).withGroup(i % EchoRoster.GROUPS));
+        }
+        PlayerDataStore.markDirty(owner);
+    }
+
+    /** Puts every echo into one group. */
+    public static void allToGroup(ServerPlayer owner, int group) {
+        List<EchoRoster.Entry> entries = PlayerDataStore.of(owner).echo.entries;
+        for (int i = 0; i < entries.size(); i++) {
+            entries.set(i, entries.get(i).withGroup(group));
+        }
+        PlayerDataStore.markDirty(owner);
+    }
+
+    /** Echoes of the same mob type share a group; types are dealt out to the groups in order of first appearance. */
+    public static void groupByType(ServerPlayer owner) {
+        List<EchoRoster.Entry> entries = PlayerDataStore.of(owner).echo.entries;
+        List<String> types = new ArrayList<>();
+        for (int i = 0; i < entries.size(); i++) {
+            String t = entries.get(i).type();
+            if (!types.contains(t)) {
+                types.add(t);
+            }
+            entries.set(i, entries.get(i).withGroup(types.indexOf(t) % EchoRoster.GROUPS));
+        }
+        PlayerDataStore.markDirty(owner);
+    }
+
     // ---------------------------------------------------------------- gates found by echoes
 
     /** A gate an echo has found: where it is and what it leads to. Kept in memory for the session. */

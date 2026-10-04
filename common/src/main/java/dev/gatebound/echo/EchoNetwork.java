@@ -31,6 +31,9 @@ final class EchoNetwork {
                             case 1 -> EchoManager.setEchoGroup(player, payload.a(), payload.b());
                             case 2 -> EchoManager.selectGate(player, payload.a());
                             case 3 -> EchoView.order(player, payload.a());
+                            case 4 -> EchoManager.evenSplit(player);
+                            case 5 -> EchoManager.allToGroup(player, payload.a());
+                            case 6 -> EchoManager.groupByType(player);
                             default -> {
                             }
                         }

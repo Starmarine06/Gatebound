@@ -8,25 +8,29 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-import java.util.List;
-
 /**
- * The Echoes command screen. Echoes belong to four groups; each group has one order (Follow, Guard, Seek Gate, Guide).
- * Below that: which group each echo is in, and the gates your echoes have found, so you can pick the one guides lead to.
- * Every click is sent to the server, which answers with the new state.
+ * The Echoes command screen. Echoes belong to four colour-coded groups; each group has one order
+ * (Follow, Guard, Seek, Guide). Echoes are put into groups with one click on a group button on their row, or in bulk
+ * (even split, group by mob type, everyone into one group). Found gates are listed below for Guides to lead to.
  */
 final class EchoScreen extends Screen {
     private static final int ROW = 22;
+    private static final int PER_PAGE = 8;
     private static final String[] ORDERS = {"Follow", "Guard", "Seek", "Guide"};
     private static final String[] HINTS = {
             "Trails behind you and fights whatever attacks you.",
             "Stays close and attacks any threat near you.",
             "Scouts for a gate and reports it to you.",
             "Leads you to the selected gate."};
+    private static final ChatFormatting[] GROUP_COLORS = {
+            ChatFormatting.GOLD, ChatFormatting.AQUA, ChatFormatting.GREEN, ChatFormatting.LIGHT_PURPLE};
+    private static final int[] GROUP_RGB = {0xFFFFAA00, 0xFF55FFFF, 0xFF55FF55, 0xFFFF55FF};
 
     private EchoRosterPayload data;
+    private int page;
     private int viewY = -1;
     private int groupsY;
+    private int bulkY;
     private int echoesY;
     private int gatesY;
 
@@ -50,6 +54,14 @@ final class EchoScreen extends Screen {
         return n;
     }
 
+    private int pages() {
+        return Math.max(1, (data.rows().size() + PER_PAGE - 1) / PER_PAGE);
+    }
+
+    private void send(int kind, int a, int b) {
+        NetworkManager.sendToServer(new EchoOrderPayload(kind, a, b));
+    }
+
     private Component orderLabel(int mode, int selected) {
         Component base = Component.literal(ORDERS[mode]);
         return mode == selected ? Component.literal("> ").append(base).withStyle(ChatFormatting.GOLD) : base;
@@ -61,46 +73,86 @@ final class EchoScreen extends Screen {
         int y = 34;
         if (!data.viewing().isEmpty()) {
             viewY = y;
-            addRenderableWidget(Button.builder(Component.literal("Eye: Scout"), b -> NetworkManager.sendToServer(new EchoOrderPayload(3, 0, 0)))
+            addRenderableWidget(Button.builder(Component.literal("Eye: Scout"), b -> send(3, 0, 0))
                     .bounds(left, y + 12, 100, 20).tooltip(Tooltip.create(Component.literal("The echo you are watching through searches for gates."))).build());
-            addRenderableWidget(Button.builder(Component.literal("Eye: Go to gate"), b -> NetworkManager.sendToServer(new EchoOrderPayload(3, 1, 0)))
+            addRenderableWidget(Button.builder(Component.literal("Eye: Go to gate"), b -> send(3, 1, 0))
                     .bounds(left + 106, y + 12, 108, 20).tooltip(Tooltip.create(Component.literal("It flies or runs to the selected gate."))).build());
             addRenderableWidget(Button.builder(Component.literal("Stop viewing"), b -> {
-                NetworkManager.sendToServer(new EchoOrderPayload(3, 2, 0));
+                send(3, 2, 0);
                 onClose();
             }).bounds(left + 220, y + 12, 100, 20).build());
             y += 40;
         } else {
             viewY = -1;
         }
+
+        // Group orders.
         groupsY = y;
         for (int g = 0; g < EchoRoster.GROUPS; g++) {
             int group = g;
             int selected = g < data.groupModes().size() ? data.groupModes().get(g) : 0;
             for (int m = 0; m < 4; m++) {
                 int mode = m;
-                addRenderableWidget(Button.builder(orderLabel(m, selected),
-                                b -> NetworkManager.sendToServer(new EchoOrderPayload(0, group, mode)))
+                addRenderableWidget(Button.builder(orderLabel(m, selected), b -> send(0, group, mode))
                         .bounds(left + 104 + m * 54, y + g * ROW, 52, 20)
                         .tooltip(Tooltip.create(Component.literal(HINTS[m])))
                         .build());
             }
         }
-        y += EchoRoster.GROUPS * ROW + 18;
-        echoesY = y;
-        int shown = Math.min(data.rows().size(), 12);
-        for (int i = 0; i < shown; i++) {
-            EchoRosterPayload.Row row = data.rows().get(i);
-            int slot = i;
-            Button b = Button.builder(Component.literal("Group " + (row.group() + 1)),
-                            btn -> NetworkManager.sendToServer(new EchoOrderPayload(1, slot, (row.group() + 1) % EchoRoster.GROUPS)))
-                    .bounds(left + 104, y + i * ROW, 60, 20)
-                    .tooltip(Tooltip.create(Component.literal("Click to move this echo to the next group.")))
-                    .build();
-            b.active = row.unlocked();
-            addRenderableWidget(b);
+        y += EchoRoster.GROUPS * ROW + 16;
+
+        // Bulk assignment.
+        bulkY = y;
+        addRenderableWidget(Button.builder(Component.literal("Even split"), b -> send(4, 0, 0))
+                .bounds(left, y, 76, 20)
+                .tooltip(Tooltip.create(Component.literal("Spread all echoes evenly over the four groups."))).build());
+        addRenderableWidget(Button.builder(Component.literal("By type"), b -> send(6, 0, 0))
+                .bounds(left + 80, y, 64, 20)
+                .tooltip(Tooltip.create(Component.literal("Put echoes of the same mob type in the same group."))).build());
+        for (int g = 0; g < EchoRoster.GROUPS; g++) {
+            int group = g;
+            addRenderableWidget(Button.builder(Component.literal("" + (g + 1)).withStyle(GROUP_COLORS[g]), b -> send(5, group, 0))
+                    .bounds(left + 200 + g * 30, y, 28, 20)
+                    .tooltip(Tooltip.create(Component.literal("Move every echo into group " + (g + 1) + ".")))
+                    .build());
         }
-        y += Math.max(shown, 1) * ROW + 18;
+        y += 28;
+
+        // Echo rows for the current page, each with a direct button per group.
+        echoesY = y;
+        page = Math.max(0, Math.min(page, pages() - 1));
+        int first = page * PER_PAGE;
+        int shown = Math.max(0, Math.min(PER_PAGE, data.rows().size() - first));
+        for (int i = 0; i < shown; i++) {
+            EchoRosterPayload.Row row = data.rows().get(first + i);
+            int slot = first + i;
+            for (int g = 0; g < EchoRoster.GROUPS; g++) {
+                int group = g;
+                boolean current = row.group() == g;
+                Button b = Button.builder(Component.literal("G" + (g + 1)).withStyle(current ? GROUP_COLORS[g] : ChatFormatting.GRAY),
+                                btn -> send(1, slot, group))
+                        .bounds(left + 150 + g * 43, y + i * ROW, 41, 20)
+                        .tooltip(Tooltip.create(Component.literal("Put this echo in group " + (g + 1) + ".")))
+                        .build();
+                b.active = row.unlocked() && !current;
+                addRenderableWidget(b);
+            }
+        }
+        y += Math.max(shown, 1) * ROW;
+        if (pages() > 1) {
+            addRenderableWidget(Button.builder(Component.literal("<"), b -> {
+                page--;
+                rebuildWidgets();
+            }).bounds(left + 100, y, 24, 20).build()).active = page > 0;
+            addRenderableWidget(Button.builder(Component.literal(">"), b -> {
+                page++;
+                rebuildWidgets();
+            }).bounds(left + 196, y, 24, 20).build()).active = page < pages() - 1;
+            y += ROW;
+        }
+        y += 16;
+
+        // Found gates.
         gatesY = y;
         int gateShown = Math.min(data.gates().size(), 5);
         for (int i = 0; i < gateShown; i++) {
@@ -108,15 +160,13 @@ final class EchoScreen extends Screen {
             int index = i;
             String dist = gate.distance() < 0 ? "other dimension" : gate.distance() + " blocks";
             Component text = Component.literal((gate.selected() ? "> " : "") + gate.label() + " - " + dist + " (found by " + gate.by() + ")");
-            addRenderableWidget(Button.builder(gate.selected() ? text.copy().withStyle(ChatFormatting.GOLD) : text,
-                            b -> NetworkManager.sendToServer(new EchoOrderPayload(2, index, 0)))
+            addRenderableWidget(Button.builder(gate.selected() ? text.copy().withStyle(ChatFormatting.GOLD) : text, b -> send(2, index, 0))
                     .bounds(left, y + i * ROW, 320, 20)
                     .tooltip(Tooltip.create(Component.literal("Select this gate. Groups on Guide will lead you to it.")))
                     .build());
         }
         y += Math.max(gateShown, 1) * ROW + 8;
-        addRenderableWidget(Button.builder(Component.literal("Summon / Dismiss all"),
-                        b -> NetworkManager.sendToServer(new EchoTogglePayload()))
+        addRenderableWidget(Button.builder(Component.literal("Summon / Dismiss all"), b -> NetworkManager.sendToServer(new EchoTogglePayload()))
                 .bounds(left, y, 158, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose())
                 .bounds(left + 162, y, 158, 20).build());
@@ -127,25 +177,35 @@ final class EchoScreen extends Screen {
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         int left = this.width / 2 - 160;
         graphics.text(this.font, Component.literal("Echoes").withStyle(ChatFormatting.BOLD), left, 14, 0xFFFFFFFF);
-        graphics.text(this.font, "Give each group an order. Echoes in a group obey together.", left + 50, 14, 0xFF999999);
+        graphics.text(this.font, "Each group follows one order. Echoes in a group obey together.", left + 50, 14, 0xFF999999);
         if (viewY >= 0) {
             graphics.text(this.font, "Viewing through " + data.viewing(), left, viewY, 0xFFFFD27C);
         }
         for (int g = 0; g < EchoRoster.GROUPS; g++) {
-            graphics.text(this.font, "Group " + (g + 1) + " (" + countIn(g) + ")", left, groupsY + g * ROW + 6, 0xFFFFFFFF);
+            graphics.text(this.font, Component.literal("Group " + (g + 1) + " (" + countIn(g) + ")").withStyle(GROUP_COLORS[g]),
+                    left, groupsY + g * ROW + 6, 0xFFFFFFFF);
         }
-        graphics.text(this.font, "Your echoes", left, echoesY - 14, 0xFFFFD27C);
+        graphics.text(this.font, "Assign:", left + 148, bulkY - 12, 0xFFFFD27C);
+        graphics.text(this.font, "All to group:", left + 200, bulkY - 12, 0xFF999999);
+        graphics.text(this.font, "Your echoes (click a group on each row)", left, echoesY - 12, 0xFFFFD27C);
         if (data.rows().isEmpty()) {
             graphics.text(this.font, "None yet. Defeat monsters as a Summoner to bind them.", left, echoesY + 6, 0xFFAAAAAA);
         }
-        for (int i = 0; i < Math.min(data.rows().size(), 12); i++) {
-            EchoRosterPayload.Row row = data.rows().get(i);
+        int first = page * PER_PAGE;
+        int shown = Math.max(0, Math.min(PER_PAGE, data.rows().size() - first));
+        for (int i = 0; i < shown; i++) {
+            EchoRosterPayload.Row row = data.rows().get(first + i);
+            int rowY = echoesY + i * ROW + 6;
+            graphics.fill(left - 4, rowY - 6, left - 1, rowY + 14, GROUP_RGB[Math.max(0, Math.min(3, row.group()))]);
+            String name = this.font.plainSubstrByWidth((first + i + 1) + ". " + row.name() + (row.active() ? "" : " (away)"), 138);
             int color = row.unlocked() ? (row.active() ? 0xFF7CFF7C : 0xFFFFFFFF) : 0xFF777777;
-            String label = (i + 1) + ". " + row.name();
-            graphics.text(this.font, label, left, echoesY + i * ROW + 6, color);
-            graphics.text(this.font, row.active() ? "out" : "away", left + 170, echoesY + i * ROW + 6, 0xFF999999);
+            graphics.text(this.font, name, left, rowY, color);
         }
-        graphics.text(this.font, "Found gates (pick one for Guides to lead you to)", left, gatesY - 14, 0xFFFFD27C);
+        if (pages() > 1) {
+            int y = echoesY + Math.max(shown, 1) * ROW + 6;
+            graphics.centeredText(this.font, "Page " + (page + 1) + "/" + pages(), this.width / 2, y, 0xFFAAAAAA);
+        }
+        graphics.text(this.font, "Found gates (pick one for Guides to lead you to)", left, gatesY - 12, 0xFFFFD27C);
         if (data.gates().isEmpty()) {
             graphics.text(this.font, "None yet. Send a group to Seek and wait for a report.", left, gatesY + 6, 0xFFAAAAAA);
         }
