@@ -30,8 +30,6 @@ import java.util.List;
  * SEEK (scout for a gate and report it). Mob-specific abilities come from EchoKits.
  */
 final class EchoBrain {
-    private static final double SEEK_SIGHT = 40;
-
     private EchoBrain() {
     }
 
@@ -312,13 +310,14 @@ final class EchoBrain {
         }
     }
 
-    /** Scout for a gate: wander around the owner, and once a gate is within sight walk to it and report it. */
+    /** Gate search: sweep the area around the owner, away from ground already covered, and report any gate in sight. */
     private static void seek(EchoEntity e, ServerPlayer owner, ServerLevel level) {
         if (e.seekFound != null) {
             if (e.distanceToSqr(e.seekFound.getX() + 0.5, e.seekFound.getY(), e.seekFound.getZ() + 0.5) > 9) {
                 if (--e.repath <= 0) {
                     e.repath = 15;
-                    e.getNavigation().moveTo(e.seekFound.getX() + 0.5, e.seekFound.getY(), e.seekFound.getZ() + 0.5, 1.1);
+                    e.getNavigation().moveTo(e.seekFound.getX() + 0.5, e.seekFound.getY() + (e.isFlier() ? 2 : 0),
+                            e.seekFound.getZ() + 0.5, 1.2);
                 }
             } else {
                 e.getNavigation().stop();
@@ -328,29 +327,138 @@ final class EchoBrain {
             }
             return;
         }
-        if (e.tickCount % 20 == 0) {
-            BlockPos found = findGate(e, level);
+        markExplored(e, owner, level);
+        if (e.tickCount % 10 == 0) {
+            BlockPos found = findGate(e, level, e.isFlier() ? 80 : 56);
             if (found != null) {
                 e.seekFound = found;
+                e.exploreTarget = null;
                 announce(e, owner, level, found);
                 return;
             }
         }
-        double fromOwner = e.distanceToSqr(owner);
-        if (--e.wanderCooldown <= 0 || fromOwner > 64 * 64 || !e.getNavigation().isInProgress()) {
-            e.wanderCooldown = 120 + e.getRandom().nextInt(80);
-            double angle = e.getRandom().nextDouble() * Math.PI * 2;
-            double dist = 18 + e.getRandom().nextDouble() * 28;
-            double cx = fromOwner > 64 * 64 ? owner.getX() : e.getX();
-            double cz = fromOwner > 64 * 64 ? owner.getZ() : e.getZ();
-            e.getNavigation().moveTo(cx + Math.cos(angle) * dist, e.getY(), cz + Math.sin(angle) * dist, 1.0);
+        // Detect getting stuck: not having moved for a while means the target is unreachable.
+        if (e.tickCount % 20 == 0) {
+            double moved = (e.getX() - e.lastX) * (e.getX() - e.lastX) + (e.getZ() - e.lastZ) * (e.getZ() - e.lastZ);
+            e.stuckChecks = moved < 2.0 ? e.stuckChecks + 1 : 0;
+            e.lastX = e.getX();
+            e.lastZ = e.getZ();
+        }
+        boolean arrived = e.exploreTarget != null && e.distanceToSqr(e.exploreTarget.x, e.getY(), e.exploreTarget.z) < 25;
+        if (e.exploreTarget == null || arrived || e.stuckChecks >= 3 || (!e.getNavigation().isInProgress() && e.tickCount % 20 == 0)) {
+            if (arrived) {
+                e.exploreRound++;
+                if (e.exploreRound == 14) {
+                    Component msg = Component.literal("[Echo] " + e.mobName() + " has searched the area around you and found no gate. "
+                            + "It keeps looking; walk somewhere new to widen the search.").withStyle(ChatFormatting.GRAY);
+                    owner.sendSystemMessage(msg);
+                    e.exploreRound = 6;
+                }
+            }
+            e.stuckChecks = 0;
+            pickExploreTarget(e, owner, level);
         }
     }
 
-    private static BlockPos findGate(EchoEntity e, ServerLevel level) {
+    private static final java.util.Map<String, java.util.Set<Long>> EXPLORED = new java.util.HashMap<>();
+
+    private static String exploredKey(ServerPlayer owner, ServerLevel level) {
+        return owner.getUUID() + "@" + level.dimension().toString();
+    }
+
+    private static long cell(double x, double z) {
+        return (((long) Math.floor(x / 16.0)) << 32) ^ (((long) Math.floor(z / 16.0)) & 0xFFFFFFFFL);
+    }
+
+    private static void markExplored(EchoEntity e, ServerPlayer owner, ServerLevel level) {
+        if (e.tickCount % 10 != 0) {
+            return;
+        }
+        java.util.Set<Long> set = EXPLORED.computeIfAbsent(exploredKey(owner, level), k -> new java.util.HashSet<>());
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                set.add(cell(e.getX() + dx * 16, e.getZ() + dz * 16));
+            }
+        }
+        if (set.size() > 20000) {
+            set.clear();
+        }
+    }
+
+    private static int visitedAround(java.util.Set<Long> set, double x, double z) {
+        int n = 0;
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                if (set.contains(cell(x + dx * 16, z + dz * 16))) {
+                    n++;
+                }
+            }
+        }
+        return n;
+    }
+
+    /** Picks the reachable point around the owner whose surroundings have been explored the least. */
+    private static void pickExploreTarget(EchoEntity e, ServerPlayer owner, ServerLevel level) {
+        java.util.Set<Long> seen = EXPLORED.computeIfAbsent(exploredKey(owner, level), k -> new java.util.HashSet<>());
+        boolean flier = e.isFlier();
+        double maxRadius = flier ? 110 : 90;
+        double radius = Math.min(maxRadius, 24 + e.exploreRound * 9);
+        // Each echo starts on its own bearing so a group fans out instead of searching the same spot.
+        EchoManager.Info info = EchoManager.info(e);
+        double baseAngle = (info == null ? 0 : info.slot) * 2.399963;
+        net.minecraft.world.phys.Vec3 best = null;
+        net.minecraft.world.level.pathfinder.Path bestPath = null;
+        int bestScore = Integer.MAX_VALUE;
+        for (int attempt = 0; attempt < 10; attempt++) {
+            double angle = baseAngle + e.exploreRound * 0.9 + e.getRandom().nextDouble() * Math.PI * 2 * (attempt / 10.0 + 0.1);
+            double dist = radius * (0.6 + e.getRandom().nextDouble() * 0.5);
+            double x = owner.getX() + Math.cos(angle) * dist;
+            double z = owner.getZ() + Math.sin(angle) * dist;
+            if (!level.hasChunkAt(net.minecraft.core.BlockPos.containing(x, owner.getY(), z))) {
+                continue;
+            }
+            double y;
+            if (flier) {
+                y = owner.getY() + 10 + e.getRandom().nextInt(10);
+            } else if (level.dimension().equals(net.minecraft.world.level.Level.OVERWORLD)) {
+                y = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                        (int) Math.floor(x), (int) Math.floor(z));
+            } else {
+                y = e.getY();
+            }
+            net.minecraft.world.level.pathfinder.Path path = e.getNavigation().createPath(x, y, z, 2);
+            if (path == null && !flier) {
+                continue;
+            }
+            int score = visitedAround(seen, x, z) * 4 + e.getRandom().nextInt(3);
+            if (score < bestScore) {
+                bestScore = score;
+                best = new net.minecraft.world.phys.Vec3(x, y, z);
+                bestPath = path;
+            }
+        }
+        if (best == null) {
+            // Nothing reachable in that ring: try close to the owner so the echo never just stands still.
+            e.exploreRound = Math.max(0, e.exploreRound - 3);
+            e.exploreTarget = null;
+            if (e.distanceToSqr(owner) > 12 * 12) {
+                e.getNavigation().moveTo(owner, 1.2);
+            }
+            return;
+        }
+        e.exploreTarget = best;
+        double speed = flier ? 1.5 : 1.3;
+        if (bestPath != null) {
+            e.getNavigation().moveTo(bestPath, speed);
+        } else {
+            e.getNavigation().moveTo(best.x, best.y, best.z, speed);
+        }
+    }
+
+    private static BlockPos findGate(EchoEntity e, ServerLevel level, double sight) {
         DungeonStore store = DungeonStore.get(level.getServer());
         BlockPos best = null;
-        double bestD = SEEK_SIGHT * SEEK_SIGHT;
+        double bestD = sight * sight;
         for (DungeonStore.GateRef g : store.gates) {
             if (!g.dim.equals(level.dimension())) {
                 continue;

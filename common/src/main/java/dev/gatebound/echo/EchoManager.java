@@ -627,7 +627,7 @@ public final class EchoManager {
             }
             int curMode = effectiveMode(owner, e.getKey(), info.slot);
             boolean seeker = curMode == EchoRoster.SEEK || curMode == EchoRoster.GOTO;
-            double leash = seeker ? 110 : EchoConfig.teleportDistance;
+            double leash = seeker ? 150 : EchoConfig.teleportDistance;
             if (mob.level() != owner.level() || mob.distanceToSqr(owner) > leash * leash) {
                 teleportTo(mob, owner);
             }

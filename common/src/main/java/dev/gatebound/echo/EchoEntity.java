@@ -43,6 +43,11 @@ public class EchoEntity extends PathfinderMob {
     int wanderCooldown;
     net.minecraft.core.BlockPos seekFound;
     boolean guideWarned;
+    net.minecraft.world.phys.Vec3 exploreTarget;
+    int exploreRound;
+    int stuckChecks;
+    double lastX;
+    double lastZ;
 
     public EchoEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
