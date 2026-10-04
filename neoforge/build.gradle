@@ -43,3 +43,12 @@ shadowJar {
 }
 
 assemble.dependsOn shadowJar
+
+loom {
+    runs {
+        client {
+            // Fixed dev username: offline UUIDs come from the name, so a stable name keeps the same player data.
+            programArgs "--username", "Player989"
+        }
+    }
+}

@@ -51,6 +51,11 @@ public final class GateLabels {
         int py = player.blockPosition().getY();
         int pz = player.blockPosition().getZ();
 
+        AABB entrance = null;
+        if (level.dimension().equals(net.minecraft.world.level.Level.OVERWORLD) && !store.entranceMin.equals(BlockPos.ZERO)) {
+            entrance = new AABB(store.entranceMin.getX(), store.entranceMin.getY(), store.entranceMin.getZ(),
+                    store.entranceMax.getX() + 1, store.entranceMax.getY() + 1, store.entranceMax.getZ() + 1).inflate(1.5);
+        }
         List<Label> labels = new ArrayList<>();
         for (BlockPos pos : BlockPos.betweenClosed(px - SCAN_RADIUS, py - 5, pz - SCAN_RADIUS,
                 px + SCAN_RADIUS, py + 6, pz + SCAN_RADIUS)) {
@@ -59,6 +64,9 @@ public final class GateLabels {
             }
             BlockState state = level.getBlockState(pos);
             if (state.getBlock() instanceof GateBlock) {
+                if (entrance != null && entrance.contains(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5)) {
+                    continue; // the tower's own entrance gate stays unlabeled
+                }
                 labels.add(gateLabel(store, level, pos.immutable(), total));
             } else if (state.getBlock() instanceof GateExitBlock) {
                 labels.add(exitLabel(level, pos.immutable(), state.getValue(GateExitBlock.KIND), inSpire, total));
