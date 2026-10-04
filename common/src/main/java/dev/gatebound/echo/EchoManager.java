@@ -622,6 +622,9 @@ public final class EchoManager {
             if (mob.getRemainingFireTicks() > 0 && !mob.isInLava()) {
                 mob.clearFire();
             }
+            if (mob.isVehicle()) {
+                continue;
+            }
             int curMode = effectiveMode(owner, e.getKey(), info.slot);
             boolean seeker = curMode == EchoRoster.SEEK || curMode == EchoRoster.GOTO;
             double leash = seeker ? 110 : EchoConfig.teleportDistance;

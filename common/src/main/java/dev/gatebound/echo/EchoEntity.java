@@ -24,6 +24,8 @@ import java.util.EnumSet;
  * draws the vanilla model of that mob. Never saved to disk, so no echo can survive a restart as a broken leftover.
  */
 public class EchoEntity extends PathfinderMob {
+    private static final EntityDataAccessor<Boolean> FLIER =
+            SynchedEntityData.defineId(EchoEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<String> MOB_TYPE =
             SynchedEntityData.defineId(EchoEntity.class, EntityDataSerializers.STRING);
     /** Height of the registered echo hitbox; the SCALE attribute stretches it to the bound mob's size. */
@@ -59,6 +61,7 @@ public class EchoEntity extends PathfinderMob {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(MOB_TYPE, "minecraft:zombie");
+        builder.define(FLIER, false);
     }
 
     public String mobType() {
@@ -74,7 +77,12 @@ public class EchoEntity extends PathfinderMob {
         set(Attributes.ATTACK_DAMAGE, this.attackDamage);
         double speed = proto.getAttributeValue(Attributes.MOVEMENT_SPEED);
         set(Attributes.MOVEMENT_SPEED, Math.max(0.2, Math.min(0.38, speed)));
+        String typePath = typeId.contains(":") ? typeId.substring(typeId.indexOf(':') + 1) : typeId;
+        boolean flies = FLIERS.contains(typePath);
         double scale = Math.max(0.25, Math.min(8, proto.getBbHeight() / BASE_HEIGHT));
+        if (flies) {
+            scale = Math.max(scale, 0.6); // big enough to carry a rider
+        }
         set(Attributes.SCALE, scale);
         this.refreshDimensions();
         this.setHealth(this.getMaxHealth());
@@ -98,12 +106,61 @@ public class EchoEntity extends PathfinderMob {
 
     private void makeFlier() {
         this.setNoGravity(true);
+        this.entityData.set(FLIER, true);
         this.moveControl = new net.minecraft.world.entity.ai.control.FlyingMoveControl(this, 20, true);
         net.minecraft.world.entity.ai.navigation.FlyingPathNavigation nav =
                 new net.minecraft.world.entity.ai.navigation.FlyingPathNavigation(this, this.level());
         nav.setCanOpenDoors(false);
         nav.setCanFloat(true);
         this.navigation = nav;
+    }
+
+    public boolean isFlier() {
+        return this.entityData.get(FLIER);
+    }
+
+    @Override
+    public net.minecraft.world.entity.LivingEntity getControllingPassenger() {
+        return getFirstPassenger() instanceof net.minecraft.world.entity.player.Player p ? p : null;
+    }
+
+    /** The owner mounts a flying echo with an empty-handed right click. */
+    @Override
+    protected net.minecraft.world.InteractionResult mobInteract(net.minecraft.world.entity.player.Player player, InteractionHand hand) {
+        if (hand == InteractionHand.MAIN_HAND && isFlier() && !isVehicle() && !player.isShiftKeyDown()) {
+            if (level().isClientSide()) {
+                return net.minecraft.world.InteractionResult.SUCCESS;
+            }
+            EchoManager.Info info = EchoManager.info(this);
+            if (info != null && info.owner.equals(player.getUUID())) {
+                player.startRiding(this);
+                return net.minecraft.world.InteractionResult.SUCCESS_SERVER;
+            }
+        }
+        return super.mobInteract(player, hand);
+    }
+
+    /** Ridden: fly where the rider looks (W/S forward and back, A/D sideways); with no input it hovers. */
+    @Override
+    public void travel(net.minecraft.world.phys.Vec3 input) {
+        if (isFlier() && getControllingPassenger() instanceof net.minecraft.world.entity.player.Player rider) {
+            setYRot(rider.getYRot());
+            yRotO = getYRot();
+            setXRot(rider.getXRot() * 0.5f);
+            setRot(getYRot(), getXRot());
+            this.yBodyRot = getYRot();
+            this.yHeadRot = getYRot();
+            net.minecraft.world.phys.Vec3 look = rider.getLookAngle();
+            double yaw = Math.toRadians(rider.getYRot());
+            net.minecraft.world.phys.Vec3 left = new net.minecraft.world.phys.Vec3(Math.cos(yaw), 0, Math.sin(yaw));
+            net.minecraft.world.phys.Vec3 wanted = look.scale(rider.zza).add(left.scale(rider.xxa));
+            net.minecraft.world.phys.Vec3 motion = getDeltaMovement().lerp(wanted.scale(0.6), 0.2);
+            setDeltaMovement(motion);
+            move(net.minecraft.world.entity.MoverType.SELF, motion);
+            calculateEntityAnimation(false);
+            return;
+        }
+        super.travel(input);
     }
 
     public double attackDamage() {

@@ -45,6 +45,10 @@ final class EchoBrain {
             e.setTarget(null);
             return;
         }
+        if (e.isVehicle()) {
+            e.setTarget(null);
+            return;
+        }
         int mode = EchoManager.effectiveMode(owner, e.getUUID(), info.slot);
         EchoKits.Kit kit = EchoKits.of(e.mobType());
         if (e.attackCooldown > 0) {

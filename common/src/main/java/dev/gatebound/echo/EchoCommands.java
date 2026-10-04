@@ -43,6 +43,11 @@ final class EchoCommands {
                 ctx.getSource().sendSuccess(() -> report, false);
                 return 1;
             }));
+            echo.then(Commands.literal("add").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                    .then(Commands.argument("entity", net.minecraft.commands.arguments.ResourceArgument.resource(
+                                    registry, net.minecraft.core.registries.Registries.ENTITY_TYPE))
+                            .executes(ctx -> add(ctx.getSource(), net.minecraft.commands.arguments.ResourceArgument
+                                    .getSummonableEntityType(ctx, "entity").value()))));
             echo.then(Commands.literal("dismiss").executes(ctx -> {
                 EchoManager.dismissAll(ctx.getSource().getPlayerOrException(), true);
                 return 1;
@@ -77,6 +82,33 @@ final class EchoCommands {
 
             dispatcher.register(Commands.literal("gatebound").then(echo));
         });
+    }
+
+    /** Op command: adds a mob straight to the roster, raising the slot count if the roster is full. */
+    private static int add(CommandSourceStack source, net.minecraft.world.entity.EntityType<?> type) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        net.minecraft.world.entity.Entity probe = type.create(player.level(), net.minecraft.world.entity.EntitySpawnReason.COMMAND);
+        boolean ok = probe instanceof net.minecraft.world.entity.LivingEntity living && EchoManager.eligible(living);
+        if (probe != null) {
+            probe.discard();
+        }
+        if (!ok) {
+            source.sendFailure(Component.literal("That entity cannot be an echo."));
+            return 0;
+        }
+        PlayerData data = PlayerDataStore.of(player);
+        String id = net.minecraft.world.entity.EntityType.getKey(type).toString();
+        String name = type.getDescription().getString();
+        data.echo.entries.add(new EchoRoster.Entry(id, name));
+        int need = data.echo.entries.size();
+        if (EchoManager.slots(data) < need) {
+            data.echo.bonusSlots += need - EchoManager.slots(data);
+        }
+        PlayerDataStore.markDirty(player);
+        EchoManager.sendRoster(player, false);
+        source.sendSuccess(() -> Component.literal("Added " + name + " to your echoes (" + need + " in roster, "
+                + EchoManager.slots(data) + " slots). Press R to summon."), true);
+        return 1;
     }
 
     private static int setMode(ServerPlayer player, boolean guard) {

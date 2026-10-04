@@ -27,6 +27,7 @@ import java.util.Map;
 public final class EchoRenderer extends EntityRenderer<EchoEntity, EchoRenderer.State> {
     public static final class State extends EntityRenderState {
         EntityRenderState delegate;
+        float visualScale = 1f;
     }
 
     private final EntityRenderDispatcher dispatcher;
@@ -101,6 +102,8 @@ public final class EchoRenderer extends EntityRenderer<EchoEntity, EchoRenderer.
                 armed.swingAnimation = echo.getSwingAnimation(partialTick);
             }
         }
+        float natural = Math.max(0.1f, dummy.getBbHeight() / 1.95f);
+        state.visualScale = Math.max(0.5f, Math.min(4f, echo.getScale() / natural));
         state.delegate = d;
     }
 
@@ -108,7 +111,10 @@ public final class EchoRenderer extends EntityRenderer<EchoEntity, EchoRenderer.
     public void submit(State state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera) {
         if (state.delegate != null) {
             // The pose is already at the Echo's position, so no extra translation is wanted.
+            poseStack.pushPose();
+            poseStack.scale(state.visualScale, state.visualScale, state.visualScale);
             dispatcher.submit(state.delegate, camera, 0.0, 0.0, 0.0, poseStack, collector);
+            poseStack.popPose();
         }
         super.submit(state, poseStack, collector, camera);
     }
