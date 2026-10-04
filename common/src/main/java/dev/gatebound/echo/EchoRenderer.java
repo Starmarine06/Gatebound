@@ -74,6 +74,7 @@ public final class EchoRenderer extends EntityRenderer<EchoEntity, EchoRenderer.
             return;
         }
         dummy.snapTo(echo.getX(), echo.getY(), echo.getZ(), echo.getYRot(), echo.getXRot());
+        dummy.setId(echo.getId());
         dummy.tickCount = echo.tickCount;
         EntityRenderState d = dispatcher.extractEntity(dummy, partialTick);
         d.x = state.x;
