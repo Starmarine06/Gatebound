@@ -273,6 +273,7 @@ public final class TowerJob extends WorkQueue.Job {
         store.entranceMax = new BlockPos(cx + 4, y0 + 11, gz);
         store.towerExit = new BlockPos(cx, y0, cz + radius + 3);
         store.setDirty();
+        TowerHall.ensure(server, store);
         Gatebound.LOGGER.info("The tower stands at {} {} {} ({} blocks placed)", cx, y0, cz, placed);
     }
 

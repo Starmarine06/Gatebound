@@ -53,8 +53,11 @@ final class EchoBrain {
         if (e.abilityCooldown > 0) {
             e.abilityCooldown--;
         }
-        if (mode != EchoRoster.Entry.SEEK) {
+        if (mode != EchoRoster.SEEK) {
             e.seekFound = null;
+        }
+        if (mode != EchoRoster.GUIDE) {
+            e.guideWarned = false;
         }
 
         if (kit.special() == EchoKits.Special.HEALER) {
@@ -74,8 +77,9 @@ final class EchoBrain {
         }
         e.setAggressive(false);
         switch (mode) {
-            case EchoRoster.Entry.GUARD -> follow(e, owner, 4.5, 2.5);
-            case EchoRoster.Entry.SEEK -> seek(e, owner, level);
+            case EchoRoster.GUARD -> follow(e, owner, 4.5, 2.5);
+            case EchoRoster.SEEK -> seek(e, owner, level);
+            case EchoRoster.GUIDE -> guide(e, owner, level);
             default -> follow(e, owner, 7, 4);
         }
     }
@@ -103,18 +107,18 @@ final class EchoBrain {
         LivingEntity pick = null;
         LivingEntity hit = owner.getLastHurtMob();
         if (hit != null && owner.tickCount - owner.getLastHurtMobTimestamp() < 100 && validTarget(e, hit, owner)
-                && mode != EchoRoster.Entry.SEEK) {
+                && mode != EchoRoster.SEEK) {
             pick = hit;
         }
         LivingEntity hurtBy = owner.getLastHurtByMob();
         if (pick == null && hurtBy != null && owner.tickCount - owner.getLastHurtByMobTimestamp() < 100
-                && validTarget(e, hurtBy, owner) && mode != EchoRoster.Entry.SEEK) {
+                && validTarget(e, hurtBy, owner) && mode != EchoRoster.SEEK) {
             pick = hurtBy;
         }
         if (pick == null) {
             // Guards watch the area around the owner; the others only what comes near themselves.
-            boolean guard = mode == EchoRoster.Entry.GUARD;
-            double radius = guard ? 16 : (mode == EchoRoster.Entry.FOLLOW ? 9 : 4);
+            boolean guard = mode == EchoRoster.GUARD;
+            double radius = guard ? 16 : (mode == EchoRoster.FOLLOW ? 9 : 4);
             AABB box = (guard ? owner.getBoundingBox() : e.getBoundingBox()).inflate(radius, 6, radius);
             double best = Double.MAX_VALUE;
             for (LivingEntity m : level.getEntitiesOfClass(LivingEntity.class, box,
@@ -126,7 +130,7 @@ final class EchoBrain {
                 }
             }
             // Anything hunting the owner, even from outside the box.
-            if (pick == null && mode != EchoRoster.Entry.SEEK) {
+            if (pick == null && mode != EchoRoster.SEEK) {
                 for (Mob m : level.getEntitiesOfClass(Mob.class, owner.getBoundingBox().inflate(22, 8, 22),
                         m -> m.getTarget() == owner && validTarget(e, m, owner))) {
                     double d = e.distanceToSqr(m);
@@ -362,23 +366,72 @@ final class EchoBrain {
         return best;
     }
 
-    private static void announce(EchoEntity e, ServerPlayer owner, ServerLevel level, BlockPos pos) {
-        String what = "a gate";
+    private static String describe(ServerLevel level, BlockPos pos) {
         DungeonStore store = DungeonStore.get(level.getServer());
         int total = store.ensureTower(level.getServer());
         if (level.getBlockState(pos).getBlock() instanceof GateExitBlock) {
             int floor = Spire.floorAt(pos.getX() + 0.5, pos.getZ() + 0.5, total);
-            what = "the way up to Floor " + (floor + 1);
-        } else {
-            for (DungeonStore.GateRef g : store.gates) {
-                if (g.dim.equals(level.dimension()) && g.pos.equals(pos) && g.floor > 0) {
-                    what = "a gate to Floor " + g.floor;
-                }
+            return "Way up to Floor " + (floor + 1);
+        }
+        for (DungeonStore.GateRef g : store.gates) {
+            if (g.dim.equals(level.dimension()) && g.pos.equals(pos) && g.floor > 0) {
+                return "Gate to Floor " + g.floor;
             }
         }
-        Component msg = Component.literal("[Echo] " + e.mobName() + " found " + what + " at "
-                + pos.getX() + ", " + pos.getY() + ", " + pos.getZ()).withStyle(ChatFormatting.LIGHT_PURPLE);
+        return "Gate";
+    }
+
+    private static void announce(EchoEntity e, ServerPlayer owner, ServerLevel level, BlockPos pos) {
+        String what = describe(level, pos);
+        EchoManager.addFound(owner, new EchoManager.Found(level.dimension(), pos, what, e.mobName()));
+        Component msg = Component.literal("[Echo] " + e.mobName() + " found: " + what + " at "
+                + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + " (open the Echoes screen with H to send guides)")
+                .withStyle(ChatFormatting.LIGHT_PURPLE);
         owner.sendSystemMessage(msg);
         owner.sendOverlayMessage(msg);
+        EchoManager.sendRoster(owner, false);
+    }
+
+    /** Guide: lead the owner to the selected gate, waiting whenever the owner falls behind. */
+    private static void guide(EchoEntity e, ServerPlayer owner, ServerLevel level) {
+        EchoManager.Found gate = EchoManager.selectedGate(owner);
+        if (gate == null || !gate.dim().equals(level.dimension())) {
+            if (!e.guideWarned) {
+                e.guideWarned = true;
+                Component msg = Component.literal(gate == null
+                        ? "[Echo] " + e.mobName() + ": no gate has been found yet. Send a group to Seek Gate first."
+                        : "[Echo] " + e.mobName() + ": the selected gate is in another dimension.")
+                        .withStyle(ChatFormatting.GRAY);
+                owner.sendSystemMessage(msg);
+            }
+            follow(e, owner, 7, 4);
+            return;
+        }
+        e.guideWarned = false;
+        double gx = gate.pos().getX() + 0.5;
+        double gz = gate.pos().getZ() + 0.5;
+        double toGate = Math.sqrt(e.distanceToSqr(gx, e.getY(), gz));
+        double ownerBehind = e.distanceToSqr(owner);
+        if (toGate < 3) {
+            e.getNavigation().stop();
+        } else if (ownerBehind > 14 * 14) {
+            // The owner is lagging: wait for them.
+            e.getNavigation().stop();
+            e.getLookControl().setLookAt(owner);
+        } else if (--e.repath <= 0) {
+            e.repath = 15;
+            double step = Math.min(24, toGate);
+            double dx = (gx - e.getX()) / toGate * step;
+            double dz = (gz - e.getZ()) / toGate * step;
+            e.getNavigation().moveTo(e.getX() + dx, gate.pos().getY(), e.getZ() + dz, 1.0);
+        }
+        if (e.tickCount % 10 == 0) {
+            level.sendParticles(ParticleTypes.END_ROD, e.getX(), e.getY() + e.getBbHeight() + 0.3, e.getZ(), 2, 0.1, 0.1, 0.1, 0.01);
+        }
+        if (e.tickCount % 100 == 0) {
+            int meters = (int) Math.sqrt(owner.distanceToSqr(gx, gate.pos().getY(), gz));
+            owner.sendOverlayMessage(Component.literal("Following " + e.mobName() + ": " + gate.label() + ", " + meters + " blocks")
+                    .withStyle(ChatFormatting.AQUA));
+        }
     }
 }

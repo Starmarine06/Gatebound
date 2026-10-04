@@ -9,9 +9,17 @@ import net.minecraft.resources.Identifier;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Server to client: the owner's echo roster with each echo's order, and whether to open the Echoes screen. */
-public record EchoRosterPayload(boolean open, boolean summoner, List<Row> rows) implements CustomPacketPayload {
-    public record Row(String name, String type, int mode, boolean active, boolean unlocked) {
+/**
+ * Server to client: the owner's echoes with their groups, each group's order, and the gates echoes have found.
+ * open = true also opens the Echoes screen.
+ */
+public record EchoRosterPayload(boolean open, boolean summoner, List<Row> rows, List<Integer> groupModes,
+                                List<GateRow> gates) implements CustomPacketPayload {
+    public record Row(String name, String type, int group, boolean active, boolean unlocked) {
+    }
+
+    /** distance is in blocks, or -1 when the gate is in another dimension. */
+    public record GateRow(String label, String by, int distance, boolean selected) {
     }
 
     public static final Type<EchoRosterPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, "echo_roster"));
@@ -26,7 +34,17 @@ public record EchoRosterPayload(boolean open, boolean summoner, List<Row> rows) 
             for (int i = 0; i < n; i++) {
                 rows.add(new Row(buf.readUtf(), buf.readUtf(), buf.readVarInt(), buf.readBoolean(), buf.readBoolean()));
             }
-            return new EchoRosterPayload(open, summoner, rows);
+            int m = buf.readVarInt();
+            List<Integer> modes = new ArrayList<>(m);
+            for (int i = 0; i < m; i++) {
+                modes.add(buf.readVarInt());
+            }
+            int g = buf.readVarInt();
+            List<GateRow> gates = new ArrayList<>(g);
+            for (int i = 0; i < g; i++) {
+                gates.add(new GateRow(buf.readUtf(), buf.readUtf(), buf.readVarInt() - 1, buf.readBoolean()));
+            }
+            return new EchoRosterPayload(open, summoner, rows, modes, gates);
         }
 
         @Override
@@ -37,9 +55,20 @@ public record EchoRosterPayload(boolean open, boolean summoner, List<Row> rows) 
             for (Row r : p.rows) {
                 buf.writeUtf(r.name);
                 buf.writeUtf(r.type);
-                buf.writeVarInt(r.mode);
+                buf.writeVarInt(r.group);
                 buf.writeBoolean(r.active);
                 buf.writeBoolean(r.unlocked);
+            }
+            buf.writeVarInt(p.groupModes.size());
+            for (int m : p.groupModes) {
+                buf.writeVarInt(m);
+            }
+            buf.writeVarInt(p.gates.size());
+            for (GateRow g : p.gates) {
+                buf.writeUtf(g.label);
+                buf.writeUtf(g.by);
+                buf.writeVarInt(g.distance + 1);
+                buf.writeBoolean(g.selected);
             }
         }
     };

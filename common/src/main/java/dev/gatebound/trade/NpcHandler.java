@@ -68,19 +68,28 @@ public final class NpcHandler {
         return entity instanceof GateboundNpc;
     }
 
-    private static int spawn(CommandSourceStack source, boolean broker) {
-        ServerLevel level = source.getLevel();
-        BlockPos pos = BlockPos.containing(source.getPosition());
+    /** Spawns a Skill Broker (true) or Scholar (false) at the position, or returns null if it could not be placed. */
+    public static GateboundNpc spawnNpc(ServerLevel level, BlockPos pos, boolean broker) {
         GateboundNpc npc = NpcEntities.NPC.get().spawn(level, pos, EntitySpawnReason.COMMAND);
         if (npc == null) {
-            source.sendFailure(Component.literal("Could not spawn the NPC here."));
-            return 0;
+            return null;
         }
         ResourceKey<VillagerProfession> prof = broker ? VillagerProfession.ARMORER : VillagerProfession.LIBRARIAN;
         npc.setVillagerData(npc.getVillagerData().withProfession(level.registryAccess(), prof).withLevel(2));
         npc.addTag(broker ? BROKER_TAG : SCHOLAR_TAG);
         npc.setCustomName(Component.translatable(broker ? "npc.gatebound.broker" : "npc.gatebound.scholar"));
         npc.setCustomNameVisible(true);
+        return npc;
+    }
+
+    private static int spawn(CommandSourceStack source, boolean broker) {
+        ServerLevel level = source.getLevel();
+        BlockPos pos = BlockPos.containing(source.getPosition());
+        GateboundNpc npc = spawnNpc(level, pos, broker);
+        if (npc == null) {
+            source.sendFailure(Component.literal("Could not spawn the NPC here."));
+            return 0;
+        }
         if (source.getEntity() != null) {
             npc.lookAt(source.getEntity(), 360f, 360f);
             npc.setYHeadRot(npc.getYRot());

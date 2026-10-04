@@ -80,7 +80,7 @@ final class EchoCommands {
     }
 
     private static int setMode(ServerPlayer player, boolean guard) {
-        EchoManager.setMode(player, -1, guard ? EchoRoster.Entry.GUARD : EchoRoster.Entry.FOLLOW);
+        EchoManager.setGroupMode(player, -1, guard ? EchoRoster.GUARD : EchoRoster.FOLLOW);
         player.sendSystemMessage(Component.literal("All echoes will now " + (guard ? "guard you." : "follow you.")));
         return 1;
     }

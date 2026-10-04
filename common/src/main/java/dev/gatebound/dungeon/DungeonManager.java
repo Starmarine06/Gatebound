@@ -115,13 +115,13 @@ public final class DungeonManager {
         });
         // Spire walls belong to the Spire, and the overworld tower to the landscape: survival players cannot edit them.
         BlockEvent.BREAK.register((level, pos, state, player) -> {
-            if (player != null && !player.isCreative() && protectedBlock(level, pos)) {
+            if (player != null && (DungeonConfig.protectFromCreative || !player.isCreative()) && protectedBlock(level, pos)) {
                 return EventResult.interruptFalse();
             }
             return EventResult.pass();
         });
         BlockEvent.PLACE.register((level, pos, state, entity) -> {
-            if (entity instanceof Player p && !p.isCreative() && protectedBlock(level, pos)) {
+            if (entity instanceof Player p && (DungeonConfig.protectFromCreative || !p.isCreative()) && protectedBlock(level, pos)) {
                 return EventResult.interruptFalse();
             }
             return EventResult.pass();
@@ -517,6 +517,9 @@ public final class DungeonManager {
         int tc = server.getTickCount();
         DungeonStore store = DungeonStore.get(server);
         GatePull.tick(server, store);
+        if (tc % 100 == 3) {
+            TowerHall.ensure(server, store);
+        }
         if (DungeonConfig.selfTest && DungeonConfig.selfTestBot && selfTestStage >= 3) {
             SelfTestBot.tick(server, store);
         }

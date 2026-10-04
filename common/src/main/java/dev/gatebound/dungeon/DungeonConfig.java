@@ -79,6 +79,8 @@ public final class DungeonConfig {
     public static int towerOffsetZ = 0;
     /** Survival players cannot break or place blocks inside the tower footprint. */
     public static boolean towerProtect = true;
+    /** Also stop creative players from editing the tower and the Spire (set false to build freely while testing). */
+    public static boolean protectFromCreative = true;
 
     // ------------------------------------------------------------- progression
     public static int bossXpBase = 400;

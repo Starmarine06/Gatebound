@@ -26,7 +26,13 @@ final class EchoNetwork {
         NetworkManager.registerC2S(EchoOrderPayload.TYPE, EchoOrderPayload.CODEC, (payload, context) ->
                 context.queue(() -> {
                     if (context.getPlayer() instanceof ServerPlayer player) {
-                        EchoManager.setMode(player, payload.slot(), payload.mode());
+                        switch (payload.kind()) {
+                            case 0 -> EchoManager.setGroupMode(player, payload.a(), payload.b());
+                            case 1 -> EchoManager.setEchoGroup(player, payload.a(), payload.b());
+                            case 2 -> EchoManager.selectGate(player, payload.a());
+                            default -> {
+                            }
+                        }
                         EchoManager.sendRoster(player, false);
                     }
                 }));

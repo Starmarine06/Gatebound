@@ -93,7 +93,11 @@ public final class EchoManager {
         EntityEvent.LIVING_HURT.register(EchoManager::onHurt);
         EntityEvent.LIVING_DEATH.register(EchoManager::onDeath);
         TickEvent.SERVER_POST.register(server -> tick(server.getTickCount(), server));
-        PlayerEvent.PLAYER_QUIT.register(player -> dismissAll(player, false));
+        PlayerEvent.PLAYER_QUIT.register(player -> {
+            dismissAll(player, false);
+            FOUND.remove(player.getUUID());
+            SELECTED.remove(player.getUUID());
+        });
         PlayerEvent.PLAYER_RESPAWN.register((player, end, reason) -> {
             dismissAll(player, false);
             List<Integer> slots = DIED_WITH.remove(player.getUUID());
@@ -121,21 +125,93 @@ public final class EchoManager {
         return ACTIVE.containsKey(entity.getUUID());
     }
 
-    /** The order of the echo in the given roster slot (follow, guard or seek). */
+    /** The order the echo in the given roster slot currently follows (its group's order). */
     public static int modeOf(ServerPlayer owner, int slot) {
-        List<EchoRoster.Entry> entries = PlayerDataStore.of(owner).echo.entries;
-        return slot >= 0 && slot < entries.size() ? entries.get(slot).mode() : EchoRoster.Entry.FOLLOW;
+        EchoRoster roster = PlayerDataStore.of(owner).echo;
+        if (slot < 0 || slot >= roster.entries.size()) {
+            return EchoRoster.FOLLOW;
+        }
+        return roster.groupModes[Math.max(0, Math.min(EchoRoster.GROUPS - 1, roster.entries.get(slot).group()))];
     }
 
-    /** Sets the order of one echo (slot >= 0) or all of them (slot -1). */
-    public static void setMode(ServerPlayer owner, int slot, int mode) {
-        List<EchoRoster.Entry> entries = PlayerDataStore.of(owner).echo.entries;
-        for (int i = 0; i < entries.size(); i++) {
-            if (slot < 0 || slot == i) {
-                entries.set(i, entries.get(i).withMode(mode));
+    /** Gives every echo of one group an order (group -1 = all groups). */
+    public static void setGroupMode(ServerPlayer owner, int group, int mode) {
+        EchoRoster roster = PlayerDataStore.of(owner).echo;
+        int m = Math.max(EchoRoster.FOLLOW, Math.min(EchoRoster.GUIDE, mode));
+        for (int g = 0; g < EchoRoster.GROUPS; g++) {
+            if (group < 0 || group == g) {
+                roster.groupModes[g] = m;
             }
         }
         PlayerDataStore.markDirty(owner);
+    }
+
+    /** Moves one echo into a group. */
+    public static void setEchoGroup(ServerPlayer owner, int slot, int group) {
+        List<EchoRoster.Entry> entries = PlayerDataStore.of(owner).echo.entries;
+        if (slot >= 0 && slot < entries.size()) {
+            entries.set(slot, entries.get(slot).withGroup(group));
+            PlayerDataStore.markDirty(owner);
+        }
+    }
+
+    // ---------------------------------------------------------------- gates found by echoes
+
+    /** A gate an echo has found: where it is and what it leads to. Kept in memory for the session. */
+    public record Found(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dim,
+                        net.minecraft.core.BlockPos pos, String label, String by) {
+    }
+
+    private static final Map<UUID, List<Found>> FOUND = new HashMap<>();
+    private static final Map<UUID, Found> SELECTED = new HashMap<>();
+
+    public static void addFound(ServerPlayer owner, Found gate) {
+        List<Found> list = FOUND.computeIfAbsent(owner.getUUID(), id -> new ArrayList<>());
+        boolean known = list.stream().anyMatch(f -> f.dim().equals(gate.dim()) && f.pos().equals(gate.pos()));
+        if (!known) {
+            list.add(gate);
+            if (!SELECTED.containsKey(owner.getUUID())) {
+                SELECTED.put(owner.getUUID(), gate);
+            }
+        }
+    }
+
+    /** Found gates that still exist. */
+    public static List<Found> foundGates(ServerPlayer owner) {
+        List<Found> list = FOUND.getOrDefault(owner.getUUID(), List.of());
+        List<Found> alive = new ArrayList<>();
+        for (Found f : list) {
+            ServerLevel level = owner.level().getServer().getLevel(f.dim());
+            if (level != null && (!level.hasChunkAt(f.pos())
+                    || level.getBlockState(f.pos()).getBlock() instanceof dev.gatebound.dungeon.GateBlock
+                    || level.getBlockState(f.pos()).getBlock() instanceof dev.gatebound.dungeon.GateExitBlock)) {
+                alive.add(f);
+            }
+        }
+        FOUND.put(owner.getUUID(), new ArrayList<>(alive));
+        return alive;
+    }
+
+    public static Found selectedGate(ServerPlayer owner) {
+        Found sel = SELECTED.get(owner.getUUID());
+        List<Found> alive = foundGates(owner);
+        if (sel != null && alive.contains(sel)) {
+            return sel;
+        }
+        Found fallback = alive.isEmpty() ? null : alive.get(0);
+        if (fallback == null) {
+            SELECTED.remove(owner.getUUID());
+        } else {
+            SELECTED.put(owner.getUUID(), fallback);
+        }
+        return fallback;
+    }
+
+    public static void selectGate(ServerPlayer owner, int index) {
+        List<Found> alive = foundGates(owner);
+        if (index >= 0 && index < alive.size()) {
+            SELECTED.put(owner.getUUID(), alive.get(index));
+        }
     }
 
     /** Sends the roster to the client; open = true also opens the Echoes screen. */
@@ -144,19 +220,20 @@ public final class EchoManager {
         List<EchoRosterPayload.Row> rows = new ArrayList<>();
         for (int i = 0; i < data.echo.entries.size(); i++) {
             EchoRoster.Entry en = data.echo.entries.get(i);
-            rows.add(new EchoRosterPayload.Row(en.name(), en.type(), en.mode(), isActive(owner.getUUID(), i), i < slots(data)));
+            rows.add(new EchoRosterPayload.Row(en.name(), en.type(), en.group(), isActive(owner.getUUID(), i), i < slots(data)));
         }
-        NetworkManager.sendToPlayer(owner, new EchoRosterPayload(open, isSummoner(data), rows));
-    }
-
-    public static void setGuardPost(ServerPlayer owner) {
-        for (Info i : ACTIVE.values()) {
-            if (i.owner.equals(owner.getUUID())) {
-                i.gx = owner.getX();
-                i.gy = owner.getY();
-                i.gz = owner.getZ();
-            }
+        List<Integer> modes = new ArrayList<>();
+        for (int m : data.echo.groupModes) {
+            modes.add(m);
         }
+        Found selected = selectedGate(owner);
+        List<EchoRosterPayload.GateRow> gates = new ArrayList<>();
+        for (Found f : foundGates(owner)) {
+            int dist = f.dim().equals(owner.level().dimension())
+                    ? (int) Math.sqrt(owner.distanceToSqr(f.pos().getX() + 0.5, f.pos().getY(), f.pos().getZ() + 0.5)) : -1;
+            gates.add(new EchoRosterPayload.GateRow(f.label(), f.by(), dist, f.equals(selected)));
+        }
+        NetworkManager.sendToPlayer(owner, new EchoRosterPayload(open, isSummoner(data), rows, modes, gates));
     }
 
     public static boolean isSummoner(PlayerData data) {
@@ -538,7 +615,7 @@ public final class EchoManager {
             if (mob.getRemainingFireTicks() > 0 && !mob.isInLava()) {
                 mob.clearFire();
             }
-            boolean seeker = modeOf(owner, info.slot) == EchoRoster.Entry.SEEK;
+            boolean seeker = modeOf(owner, info.slot) == EchoRoster.SEEK;
             double leash = seeker ? 110 : EchoConfig.teleportDistance;
             if (mob.level() != owner.level() || mob.distanceToSqr(owner) > leash * leash) {
                 teleportTo(mob, owner);

@@ -21,9 +21,9 @@ final class EchoClient {
     static void onRoster(EchoRosterPayload payload) {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
         if (mc.gui.screen() instanceof EchoScreen screen) {
-            screen.update(payload.rows());
+            screen.update(payload);
         } else if (payload.open()) {
-            mc.setScreenAndShow(new EchoScreen(payload.rows()));
+            mc.setScreenAndShow(new EchoScreen(payload));
         }
     }
 

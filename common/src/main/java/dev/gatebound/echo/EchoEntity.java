@@ -36,6 +36,7 @@ public class EchoEntity extends PathfinderMob {
     int repath;
     int wanderCooldown;
     net.minecraft.core.BlockPos seekFound;
+    boolean guideWarned;
 
     public EchoEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
