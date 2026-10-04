@@ -26,7 +26,7 @@ final class EchoCommands {
                 PlayerData d = PlayerDataStore.of(player);
                 int slots = EchoManager.slots(d);
                 StringBuilder sb = new StringBuilder("Echoes " + d.echo.entries.size() + "/" + slots + " (mode: "
-                        + (d.echo.guard ? "guard" : "follow") + ", bind chance "
+                        + "per-echo orders (press H)" + ", bind chance "
                         + String.format("%.1f", EchoConfig.chancePercent(d.get(Stat.INTELLECT), d.level)) + "%)");
                 for (int i = 0; i < d.echo.entries.size(); i++) {
                     sb.append("\n  ").append(i + 1).append(". ").append(d.echo.entries.get(i).name());
@@ -80,14 +80,8 @@ final class EchoCommands {
     }
 
     private static int setMode(ServerPlayer player, boolean guard) {
-        PlayerData d = PlayerDataStore.of(player);
-        d.echo.guard = guard;
-        PlayerDataStore.markDirty(player);
-        if (guard) {
-            // Guard post = where the owner stands now.
-            EchoManager.setGuardPost(player);
-        }
-        player.sendSystemMessage(Component.literal("Echoes will now " + (guard ? "guard this position." : "follow you.")));
+        EchoManager.setMode(player, -1, guard ? EchoRoster.Entry.GUARD : EchoRoster.Entry.FOLLOW);
+        player.sendSystemMessage(Component.literal("All echoes will now " + (guard ? "guard you." : "follow you.")));
         return 1;
     }
 }

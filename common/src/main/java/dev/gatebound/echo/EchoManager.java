@@ -121,8 +121,32 @@ public final class EchoManager {
         return ACTIVE.containsKey(entity.getUUID());
     }
 
-    public static boolean isGuard(ServerPlayer owner) {
-        return PlayerDataStore.of(owner).echo.guard;
+    /** The order of the echo in the given roster slot (follow, guard or seek). */
+    public static int modeOf(ServerPlayer owner, int slot) {
+        List<EchoRoster.Entry> entries = PlayerDataStore.of(owner).echo.entries;
+        return slot >= 0 && slot < entries.size() ? entries.get(slot).mode() : EchoRoster.Entry.FOLLOW;
+    }
+
+    /** Sets the order of one echo (slot >= 0) or all of them (slot -1). */
+    public static void setMode(ServerPlayer owner, int slot, int mode) {
+        List<EchoRoster.Entry> entries = PlayerDataStore.of(owner).echo.entries;
+        for (int i = 0; i < entries.size(); i++) {
+            if (slot < 0 || slot == i) {
+                entries.set(i, entries.get(i).withMode(mode));
+            }
+        }
+        PlayerDataStore.markDirty(owner);
+    }
+
+    /** Sends the roster to the client; open = true also opens the Echoes screen. */
+    public static void sendRoster(ServerPlayer owner, boolean open) {
+        PlayerData data = PlayerDataStore.of(owner);
+        List<EchoRosterPayload.Row> rows = new ArrayList<>();
+        for (int i = 0; i < data.echo.entries.size(); i++) {
+            EchoRoster.Entry en = data.echo.entries.get(i);
+            rows.add(new EchoRosterPayload.Row(en.name(), en.type(), en.mode(), isActive(owner.getUUID(), i), i < slots(data)));
+        }
+        NetworkManager.sendToPlayer(owner, new EchoRosterPayload(open, isSummoner(data), rows));
     }
 
     public static void setGuardPost(ServerPlayer owner) {
@@ -514,22 +538,10 @@ public final class EchoManager {
             if (mob.getRemainingFireTicks() > 0 && !mob.isInLava()) {
                 mob.clearFire();
             }
-            boolean guard = isGuard(owner);
-            if (mob.level() != owner.level()) {
+            boolean seeker = modeOf(owner, info.slot) == EchoRoster.Entry.SEEK;
+            double leash = seeker ? 110 : EchoConfig.teleportDistance;
+            if (mob.level() != owner.level() || mob.distanceToSqr(owner) > leash * leash) {
                 teleportTo(mob, owner);
-                info.gx = owner.getX();
-                info.gy = owner.getY();
-                info.gz = owner.getZ();
-            } else if (!guard && mob.distanceToSqr(owner) > EchoConfig.teleportDistance * EchoConfig.teleportDistance) {
-                teleportTo(mob, owner);
-            } else if (guard && mob.distanceToSqr(owner) > 64 * 64) {
-                teleportTo(mob, owner);
-                info.gx = owner.getX();
-                info.gy = owner.getY();
-                info.gz = owner.getZ();
-            }
-            if ((tick + info.slot) % 5 == 0) {
-                retarget(mob, owner, info, guard);
             }
             if ((tick + info.slot) % 20 == 0 && mob.level() instanceof ServerLevel level) {
                 level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, mob.getX(), mob.getY() + mob.getBbHeight() * 0.5,
@@ -554,53 +566,5 @@ public final class EchoManager {
         mob.getNavigation().stop();
         mob.teleportTo(owner.level(), owner.getX() + Math.cos(angle) * 2, owner.getY(), owner.getZ() + Math.sin(angle) * 2,
                 Set.of(), owner.getYRot(), 0, false);
-    }
-
-    private static boolean validTarget(Mob mob, LivingEntity target) {
-        return target.isAlive() && !(target instanceof Player) && !isEcho(target) && target instanceof Enemy
-                && target.level() == mob.level();
-    }
-
-    private static void retarget(Mob mob, ServerPlayer owner, Info info, boolean guard) {
-        LivingEntity current = mob.getTarget();
-        if (current != null && !validTarget(mob, current)) {
-            mob.setTarget(null);
-            current = null;
-        }
-        if (current != null) {
-            return;
-        }
-        LivingEntity pick = null;
-        LivingEntity hit = owner.getLastHurtMob();
-        if (hit != null && owner.tickCount - owner.getLastHurtMobTimestamp() < 100 && validTarget(mob, hit)) {
-            pick = hit;
-        }
-        LivingEntity hurtBy = owner.getLastHurtByMob();
-        if (pick == null && hurtBy != null && owner.tickCount - owner.getLastHurtByMobTimestamp() < 100
-                && validTarget(mob, hurtBy)) {
-            pick = hurtBy;
-        }
-        if (pick == null && mob.level() instanceof ServerLevel level) {
-            double cx = guard ? info.gx : mob.getX();
-            double cz = guard ? info.gz : mob.getZ();
-            double best = Double.MAX_VALUE;
-            for (Monster m : level.getEntitiesOfClass(Monster.class, mob.getBoundingBox().inflate(12, 4, 12),
-                    m -> validTarget(mob, m))) {
-                if (guard && m.distanceToSqr(cx, m.getY(), cz) > 14 * 14) {
-                    continue;
-                }
-                double d = mob.distanceToSqr(m);
-                if (d < best) {
-                    best = d;
-                    pick = m;
-                }
-            }
-        }
-        if (pick != null && guard && pick.distanceToSqr(info.gx, pick.getY(), info.gz) > 20 * 20) {
-            pick = null;
-        }
-        if (pick != null) {
-            mob.setTarget(pick);
-        }
     }
 }

@@ -1,5 +1,6 @@
 package dev.gatebound.echo;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -29,7 +30,12 @@ public class EchoEntity extends PathfinderMob {
     private static final double BASE_HEIGHT = 1.95;
 
     private double attackDamage = 3;
-    private int attackCooldown;
+    // Brain state (server side only), used by EchoBrain.
+    int attackCooldown;
+    int abilityCooldown;
+    int repath;
+    int wanderCooldown;
+    net.minecraft.core.BlockPos seekFound;
 
     public EchoEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
@@ -78,8 +84,23 @@ public class EchoEntity extends PathfinderMob {
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));
-        this.goalSelector.addGoal(1, new FightGoal());
-        this.goalSelector.addGoal(6, new EchoFollowGoal(this));
+    }
+
+    public double attackDamage() {
+        return attackDamage;
+    }
+
+    /** Display name of the bound mob, from the custom name "Echo: Zombie". */
+    public String mobName() {
+        Component name = getCustomName();
+        String text = name == null ? mobType() : name.getString();
+        return text.startsWith("Echo: ") ? text.substring(6) : text;
+    }
+
+    @Override
+    protected void customServerAiStep(ServerLevel level) {
+        super.customServerAiStep(level);
+        EchoBrain.tick(this, level);
     }
 
     @Override
@@ -99,59 +120,5 @@ public class EchoEntity extends PathfinderMob {
     @Override
     public boolean removeWhenFarAway(double distanceSqr) {
         return false;
-    }
-
-    /** Own melee: damage is computed here, so mobs without an attack attribute (animals, flyers) still fight. */
-    private final class FightGoal extends Goal {
-        private int repath;
-
-        FightGoal() {
-            setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
-        }
-
-        @Override
-        public boolean canUse() {
-            LivingEntity t = getTarget();
-            return t != null && t.isAlive();
-        }
-
-        @Override
-        public boolean canContinueToUse() {
-            return canUse();
-        }
-
-        @Override
-        public void stop() {
-            getNavigation().stop();
-            setAggressive(false);
-        }
-
-        @Override
-        public void tick() {
-            LivingEntity target = getTarget();
-            if (target == null || !(level() instanceof ServerLevel server)) {
-                return;
-            }
-            setAggressive(true);
-            getLookControl().setLookAt(target, 30, 30);
-            if (attackCooldown > 0) {
-                attackCooldown--;
-            }
-            double reach = getBbWidth() * 1.2 + target.getBbWidth() + 0.6;
-            double dist = distanceToSqr(target.getX(), target.getY(), target.getZ());
-            if (dist > reach * reach) {
-                if (--repath <= 0) {
-                    repath = 8;
-                    getNavigation().moveTo(target, 1.25);
-                }
-            } else {
-                getNavigation().stop();
-                if (attackCooldown <= 0) {
-                    attackCooldown = 20;
-                    swing(InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, false);
-                    target.hurtServer(server, server.damageSources().mobAttack(EchoEntity.this), (float) attackDamage);
-                }
-            }
-        }
     }
 }

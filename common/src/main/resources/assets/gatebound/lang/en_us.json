@@ -128,5 +128,6 @@
   "gatebound.tower.record": "New highest floor reached!",
   "gatebound.tower.rest": "A safe haven. Rest by the fire; you will wake here if you fall.",
   "gatebound.tower.boss": "A guardian lairs on this floor. The way up is sealed until it falls.",
-  "entity.gatebound.echo": "Echo"
+  "entity.gatebound.echo": "Echo",
+  "key.gatebound.echo_menu": "Open Echo Orders"
 }

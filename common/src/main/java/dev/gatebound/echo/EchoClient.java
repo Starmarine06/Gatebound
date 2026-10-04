@@ -10,15 +10,33 @@ import net.minecraft.client.KeyMapping;
 final class EchoClient {
     /** GLFW_KEY_R. Not G: vanilla 26.x binds G to Quick Actions, which swallowed the key press. */
     private static final int KEY_G = 82;
+    /** GLFW_KEY_H: opens the Echoes command screen. */
+    private static final KeyMapping MENU = new KeyMapping("key.gatebound.echo_menu", 72, ClientHooks.CATEGORY);
     private static final KeyMapping TOGGLE = new KeyMapping("key.gatebound.echo_toggle", KEY_G, ClientHooks.CATEGORY);
 
     private EchoClient() {
     }
 
+    /** Opens the Echoes screen, or refreshes it when it is already showing. */
+    static void onRoster(EchoRosterPayload payload) {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc.gui.screen() instanceof EchoScreen screen) {
+            screen.update(payload.rows());
+        } else if (payload.open()) {
+            mc.setScreenAndShow(new EchoScreen(payload.rows()));
+        }
+    }
+
     static void init() {
         KeyMappingRegistry.register(TOGGLE);
+        KeyMappingRegistry.register(MENU);
         dev.architectury.registry.client.level.entity.EntityRendererRegistry.register(EchoEntities.ECHO, EchoRenderer::new);
         ClientTickEvent.CLIENT_POST.register(mc -> {
+            while (MENU.consumeClick()) {
+                if (mc.gui.screen() == null && mc.player != null && NetworkManager.canServerReceive(EchoMenuPayload.TYPE)) {
+                    NetworkManager.sendToServer(new EchoMenuPayload());
+                }
+            }
             while (TOGGLE.consumeClick()) {
                 if (mc.gui.screen() == null && mc.player != null) {
                     if (!NetworkManager.canServerReceive(EchoTogglePayload.TYPE)) {
