@@ -388,7 +388,7 @@ public final class EchoManager {
         }
         int count = 0;
         for (UUID id : ids) {
-            Entity entity = player.level().getEntityInAnyDimension(id);
+            Entity entity = findAnywhere(player.level().getServer(), id);
             if (entity instanceof Mob mob) {
                 if (mob.level() instanceof ServerLevel level) {
                     level.sendParticles(ParticleTypes.SOUL, mob.getX(), mob.getY() + 0.8, mob.getZ(), 10, 0.3, 0.5, 0.3, 0.03);
@@ -488,14 +488,14 @@ public final class EchoManager {
             Info info = e.getValue();
             ServerPlayer owner = server.getPlayerList().getPlayer(info.owner);
             if (owner == null) {
-                Entity stray = server.overworld().getEntityInAnyDimension(e.getKey());
+                Entity stray = findAnywhere(server, e.getKey());
                 if (stray instanceof Mob m) {
                     remove(m);
                 }
                 ACTIVE.remove(e.getKey());
                 continue;
             }
-            Entity entity = owner.level().getEntityInAnyDimension(e.getKey());
+            Entity entity = findAnywhere(server, e.getKey());
             if (!(entity instanceof Mob mob) || mob.isRemoved() || !mob.isAlive() || mob.level() != owner.level()) {
                 // Lost: left behind in an unloaded chunk or another dimension. Drop the stale one and bring a fresh
                 // copy to the owner for free. (Defeated echoes leave ACTIVE through defeat() and never reach here.)
@@ -536,6 +536,17 @@ public final class EchoManager {
                         mob.getZ(), 2, 0.3, 0.4, 0.3, 0.01);
             }
         }
+    }
+
+    /** Looks for the entity in every loaded dimension, so a stale echo is always found and removed. */
+    private static Entity findAnywhere(net.minecraft.server.MinecraftServer server, UUID id) {
+        for (ServerLevel level : server.getAllLevels()) {
+            Entity found = level.getEntity(id);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
     }
 
     private static void teleportTo(Mob mob, ServerPlayer owner) {

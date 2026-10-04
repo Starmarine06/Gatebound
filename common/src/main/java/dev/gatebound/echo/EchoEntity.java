@@ -83,6 +83,15 @@ public class EchoEntity extends PathfinderMob {
     }
 
     @Override
+    public void tick() {
+        super.tick();
+        // An echo the manager no longer tracks is a stale copy (left in another dimension, say): remove it.
+        if (!level().isClientSide() && tickCount > 10 && !EchoManager.isEcho(this)) {
+            discard();
+        }
+    }
+
+    @Override
     public boolean shouldBeSaved() {
         return false;
     }
