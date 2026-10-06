@@ -59,6 +59,13 @@ final class EchoKits {
         melee("husk", MobEffects.HUNGER, 100, false);
         melee("cave_spider", MobEffects.POISON, 80, false);
         melee("bee", MobEffects.POISON, 80, false);
+        melee("spider", MobEffects.SLOWNESS, 40, false);
+        melee("zombified_piglin", null, 0, false);
+        melee("vindicator", null, 0, true);
+        melee("magma_cube", null, 0, true);
+        melee("slime", MobEffects.SLOWNESS, 30, true);
+        melee("silverfish", MobEffects.POISON, 40, false);
+        melee("phantom", MobEffects.WEAKNESS, 60, false);
         melee("iron_golem", null, 0, true);
         melee("ravager", null, 0, true);
         melee("hoglin", null, 0, true);

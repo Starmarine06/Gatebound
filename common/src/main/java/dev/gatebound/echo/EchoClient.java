@@ -42,6 +42,7 @@ final class EchoClient {
     }
 
     static void init() {
+        dev.architectury.event.events.client.ClientGuiEvent.RENDER_HUD.register(EchoHud::render);
         KeyMappingRegistry.register(TOGGLE);
         KeyMappingRegistry.register(MENU);
         dev.architectury.registry.client.level.entity.EntityRendererRegistry.register(EchoEntities.ECHO, EchoRenderer::new);

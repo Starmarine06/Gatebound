@@ -15,13 +15,26 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 
+import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+
 import java.util.List;
+import java.util.Set;
 
 /** Summoner skills that act on the caster's echoes: Rally, Command Strike and Empower. */
 public final class EchoSkills {
     public static final int RALLY_COST = 10;
     public static final int COMMAND_COST = 14;
     public static final int EMPOWER_COST = 20;
+    public static final int LINK_COST = 18;
+    public static final int SACRIFICE_COST = 10;
+    public static final int SWAP_COST = 10;
+    public static final int CHAINS_COST = 16;
+    public static final int LEGION_COST = 40;
+    public static final int STORM_COST = 36;
+    public static final int ASCENSION_COST = 55;
+    public static final int DOMAIN_COST = 80;
 
     /** Echoes farther than this from the caster are not affected by Command Strike and Empower. */
     private static final double RANGE = 40;
@@ -109,7 +122,7 @@ public final class EchoSkills {
         if (none(player, EMPOWER_COST, echoes)) {
             return true;
         }
-        double mult = 1 + Math.min(0.8, 0.3 + 0.01 * data.get(Stat.INTELLECT));
+        double mult = 1 + Math.min(1.0, 0.3 + 0.004 * data.level + 0.006 * data.get(Stat.INTELLECT));
         long until = level.getGameTime() + EMPOWER_TICKS;
         int boosted = 0;
         for (EchoEntity e : echoes) {
@@ -125,6 +138,222 @@ public final class EchoSkills {
         level.playSound(null, player.blockPosition(), SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.0f, 1.2f);
         player.sendOverlayMessage(Component.literal("Empowered " + boosted + " echoes: +" + Math.round((mult - 1) * 100)
                 + "% damage, extra toughness for 20 s.").withStyle(ChatFormatting.LIGHT_PURPLE));
+        return true;
+    }
+
+    // ---------------------------------------------------------------- higher skills
+
+    /** The caster's own echo under the crosshair, or null. */
+    private static EchoEntity lookedAtEcho(ServerPlayer player, ServerLevel level) {
+        for (LivingEntity hit : SkillTargeting.ray(player, level, 40, 6, ParticleTypes.WITCH)) {
+            if (hit instanceof EchoEntity echo && EchoManager.isEcho(echo)) {
+                EchoManager.Info info = EchoManager.info(echo);
+                if (info != null && info.owner.equals(player.getUUID())) {
+                    return echo;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean needEcho(ServerPlayer player, int cost, String hint) {
+        ManaState.add(player, cost);
+        player.sendOverlayMessage(Component.literal(hint).withStyle(ChatFormatting.GRAY));
+        return true; // the hint replaces the generic no-target message
+    }
+
+    /** Echoes in range heal themselves (and slightly you) for part of the damage they deal for 15 s. */
+    public static boolean soulLink(ServerPlayer player, ServerLevel level, PlayerData data) {
+        List<EchoEntity> echoes = EchoManager.echoesOf(player);
+        if (none(player, LINK_COST, echoes)) {
+            return true;
+        }
+        double fraction = Math.min(0.6, 0.2 + 0.003 * data.level + 0.002 * data.get(Stat.INTELLECT));
+        long until = level.getGameTime() + 20 * 15;
+        int linked = 0;
+        for (EchoEntity e : echoes) {
+            if (e.distanceToSqr(player) > RANGE * RANGE) {
+                continue;
+            }
+            e.linkUntil = until;
+            e.linkFraction = fraction;
+            level.sendParticles(ParticleTypes.SOUL, e.getX(), e.getY() + 1, e.getZ(), 15, 0.4, 0.6, 0.4, 0.03);
+            linked++;
+        }
+        level.playSound(null, player.blockPosition(), SoundEvents.SOUL_ESCAPE.value(), SoundSource.PLAYERS, 1.0f, 0.8f);
+        player.sendOverlayMessage(Component.literal("Soul Link: " + linked + " echoes drain " + Math.round(fraction * 100)
+                + "% of the damage they deal as health for 15 s.").withStyle(ChatFormatting.LIGHT_PURPLE));
+        return true;
+    }
+
+    /** Consumes the echo you look at for a burst of health and mana. It returns the next time you summon. */
+    public static boolean sacrifice(ServerPlayer player, ServerLevel level, PlayerData data) {
+        EchoEntity echo = lookedAtEcho(player, level);
+        if (echo == null || echo.isVehicle()) {
+            return needEcho(player, SACRIFICE_COST, "Look at one of your echoes to sacrifice it.");
+        }
+        float heal = Math.min(player.getMaxHealth() * 0.6f, echo.getMaxHealth() * 0.5f + 4);
+        double mana = 20 + 0.5 * data.level + 0.3 * data.get(Stat.INTELLECT);
+        player.heal(heal);
+        ManaState.add(player, mana);
+        level.sendParticles(ParticleTypes.SOUL, player.getX(), player.getY() + 1, player.getZ(), 30, 0.5, 0.8, 0.5, 0.1);
+        level.playSound(null, player.blockPosition(), SoundEvents.SOUL_ESCAPE.value(), SoundSource.PLAYERS, 1.2f, 0.6f);
+        player.sendOverlayMessage(Component.literal("You consume " + echo.mobName() + ": +" + Math.round(heal) + " health, +"
+                + Math.round(mana) + " mana. It returns when you summon again.").withStyle(ChatFormatting.LIGHT_PURPLE));
+        EchoManager.consume(echo);
+        return true;
+    }
+
+    /** Swap places with the echo you look at. */
+    public static boolean soulSwap(ServerPlayer player, ServerLevel level, PlayerData data) {
+        EchoEntity echo = lookedAtEcho(player, level);
+        if (echo == null || echo.isVehicle() || echo.level() != level) {
+            return needEcho(player, SWAP_COST, "Look at one of your echoes to swap places with it.");
+        }
+        Vec3 mine = player.position();
+        Vec3 theirs = echo.position();
+        level.sendParticles(ParticleTypes.PORTAL, mine.x, mine.y + 1, mine.z, 20, 0.3, 0.6, 0.3, 0.2);
+        level.sendParticles(ParticleTypes.PORTAL, theirs.x, theirs.y + 1, theirs.z, 20, 0.3, 0.6, 0.3, 0.2);
+        echo.getNavigation().stop();
+        echo.teleportTo(level, mine.x, mine.y, mine.z, Set.of(), echo.getYRot(), 0, false);
+        player.teleportTo(level, theirs.x, theirs.y, theirs.z, Set.of(), player.getYRot(), player.getXRot(), false);
+        level.playSound(null, player.blockPosition(), SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 1.0f, 1.2f);
+        return true;
+    }
+
+    /** Roots the enemy you look at, and the enemies around it, with spectral chains. Lasts longer with level. */
+    public static boolean bindChains(ServerPlayer player, ServerLevel level, PlayerData data) {
+        LivingEntity mark = null;
+        for (LivingEntity h : SkillTargeting.ray(player, level, 30, 4, ParticleTypes.SOUL_FIRE_FLAME)) {
+            if (!EchoManager.isEcho(h) && !(h instanceof dev.gatebound.trade.GateboundNpc)) {
+                mark = h;
+                break;
+            }
+        }
+        if (mark == null) {
+            ManaState.add(player, CHAINS_COST);
+            player.sendOverlayMessage(Component.literal("Look at an enemy to bind it.").withStyle(ChatFormatting.GRAY));
+            return true;
+        }
+        final LivingEntity center = mark;
+        int ticks = (int) ((3 + data.level / 20.0) * 20);
+        int bound = 0;
+        AABB area = mark.getBoundingBox().inflate(4);
+        for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, area,
+                x -> x.isAlive() && (x == center || x instanceof Enemy) && !EchoManager.isEcho(x))) {
+            e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, ticks, 6));
+            e.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, ticks, 1));
+            level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, e.getX(), e.getY() + 0.2, e.getZ(), 18, 0.4, 0.1, 0.4, 0.02);
+            bound++;
+        }
+        level.playSound(null, mark.blockPosition(), SoundEvents.CHAIN_PLACE, SoundSource.PLAYERS, 1.2f, 0.7f);
+        player.sendOverlayMessage(Component.literal("Bound " + bound + " enemies for " + ticks / 20 + " s.")
+                .withStyle(ChatFormatting.LIGHT_PURPLE));
+        return true;
+    }
+
+    /** Spectral copies of every echo on your roster fight beside you for a while. They use no slots. */
+    public static boolean legionCall(ServerPlayer player, ServerLevel level, PlayerData data) {
+        if (data.echo.entries.isEmpty()) {
+            ManaState.add(player, LEGION_COST);
+            player.sendOverlayMessage(Component.literal("Your roster is empty: bind some echoes first.").withStyle(ChatFormatting.GRAY));
+            return true;
+        }
+        int seconds = 15 + data.level / 5;
+        int n = EchoManager.spawnLegion(player, data, seconds * 20);
+        level.playSound(null, player.blockPosition(), SoundEvents.EVOKER_PREPARE_SUMMON, SoundSource.PLAYERS, 1.2f, 0.7f);
+        player.sendOverlayMessage(Component.literal("Legion Call: " + n + " spectral echoes fight for " + seconds + " s.")
+                .withStyle(ChatFormatting.LIGHT_PURPLE));
+        return true;
+    }
+
+    /** Every echo unleashes a heavy burst on its nearest enemy. Scales with each echo's own strength and your level. */
+    public static boolean soulStorm(ServerPlayer player, ServerLevel level, PlayerData data) {
+        List<EchoEntity> echoes = EchoManager.echoesOf(player);
+        if (none(player, STORM_COST, echoes)) {
+            return true;
+        }
+        double power = 2 + data.level * 0.04 + data.get(Stat.INTELLECT) * 0.02;
+        int hitsDone = 0;
+        for (EchoEntity e : echoes) {
+            LivingEntity best = null;
+            double bestDist = 18 * 18;
+            for (LivingEntity m : level.getEntitiesOfClass(LivingEntity.class, e.getBoundingBox().inflate(18),
+                    m -> EchoBrain.validTarget(e, m, player) && m instanceof Enemy)) {
+                double d = e.distanceToSqr(m);
+                if (d < bestDist) {
+                    bestDist = d;
+                    best = m;
+                }
+            }
+            if (best == null) {
+                continue;
+            }
+            EchoBrain.trail(level, e.getEyePosition(), best.getEyePosition(), ParticleTypes.SOUL_FIRE_FLAME);
+            float dealt = (float) (e.attackDamage() * power);
+            best.hurtServer(level, level.damageSources().mobAttack(e), dealt);
+            EchoBrain.soulLink(e, level, dealt);
+            level.sendParticles(ParticleTypes.SOUL, best.getX(), best.getY(0.5), best.getZ(), 12, 0.3, 0.4, 0.3, 0.05);
+            hitsDone++;
+        }
+        level.playSound(null, player.blockPosition(), SoundEvents.WITHER_SHOOT, SoundSource.PLAYERS, 0.9f, 1.4f);
+        player.sendOverlayMessage(Component.literal("Soul Storm: " + hitsDone + " echoes strike.").withStyle(ChatFormatting.LIGHT_PURPLE));
+        return true;
+    }
+
+    /** A strong, short transformation: echoes in range hit much harder, regenerate and gain an absorption shield. */
+    public static boolean ascension(ServerPlayer player, ServerLevel level, PlayerData data) {
+        List<EchoEntity> echoes = EchoManager.echoesOf(player);
+        if (none(player, ASCENSION_COST, echoes)) {
+            return true;
+        }
+        double mult = Math.min(2.8, 1.8 + 0.01 * data.level);
+        int ticks = 20 * 30;
+        long until = level.getGameTime() + ticks;
+        int n = 0;
+        for (EchoEntity e : echoes) {
+            if (e.distanceToSqr(player) > RANGE * RANGE) {
+                continue;
+            }
+            e.empowerUntil = until;
+            e.empowerMult = Math.max(e.empowerMult, mult);
+            e.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, ticks, 1));
+            e.addEffect(new MobEffectInstance(MobEffects.REGENERATION, ticks, 1));
+            e.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 0));
+            e.setAbsorptionAmount(e.getMaxHealth() * 0.5f);
+            level.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, e.getX(), e.getY() + 1, e.getZ(), 30, 0.4, 0.8, 0.4, 0.3);
+            n++;
+        }
+        level.playSound(null, player.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.2f, 1.0f);
+        player.sendOverlayMessage(Component.literal("Ascension: " + n + " echoes surge with power (x" + String.format("%.1f", mult)
+                + " damage) for 30 s.").withStyle(ChatFormatting.GOLD));
+        return true;
+    }
+
+    /** The ultimate. For 15 s your echoes cannot be hurt and strike with triple force; enemies near you are slowed and weakened. */
+    public static boolean sovereignsDomain(ServerPlayer player, ServerLevel level, PlayerData data) {
+        List<EchoEntity> echoes = EchoManager.echoesOf(player);
+        int ticks = 20 * 15;
+        long until = level.getGameTime() + ticks;
+        for (EchoEntity e : echoes) {
+            e.invulnUntil = until;
+            e.empowerUntil = until;
+            e.empowerMult = Math.max(e.empowerMult, 3.0);
+            e.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 1));
+            level.sendParticles(ParticleTypes.END_ROD, e.getX(), e.getY() + 1, e.getZ(), 25, 0.4, 0.8, 0.4, 0.15);
+        }
+        for (LivingEntity m : SkillTargeting.enemiesAround(player, level, 20)) {
+            if (!EchoManager.isEcho(m)) {
+                m.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, ticks, 2));
+                m.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, ticks, 1));
+            }
+        }
+        player.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, ticks, 1));
+        player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, ticks, 1));
+        level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, player.getX(), player.getY() + 0.2, player.getZ(), 120, 6, 0.2, 6, 0.05);
+        level.playSound(null, player.blockPosition(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.PLAYERS, 0.8f, 1.5f);
+        player.sendOverlayMessage(Component.literal("SOVEREIGN'S DOMAIN: your echoes are untouchable for 15 s.")
+                .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
         return true;
     }
 }

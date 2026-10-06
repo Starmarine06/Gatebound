@@ -26,6 +26,8 @@ import java.util.EnumSet;
 public class EchoEntity extends PathfinderMob {
     private static final EntityDataAccessor<Boolean> FLIER =
             SynchedEntityData.defineId(EchoEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<String> OWNER_ID =
+            SynchedEntityData.defineId(EchoEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<String> MOB_TYPE =
             SynchedEntityData.defineId(EchoEntity.class, EntityDataSerializers.STRING);
     /** Height of the registered echo hitbox; the SCALE attribute stretches it to the bound mob's size. */
@@ -53,6 +55,11 @@ public class EchoEntity extends PathfinderMob {
     double empowerMult = 1;
     long commandUntil;
     java.util.UUID commandTarget;
+    long linkUntil;
+    double linkFraction;
+    long invulnUntil;
+    /** Game time at which a spectral copy (Legion Call) fades; 0 for a normal echo. */
+    long tempUntil;
 
     /** Damage multiplier from the owner's Empower and Command Strike while they last. */
     double damageMultiplier(LivingEntity target) {
@@ -82,6 +89,16 @@ public class EchoEntity extends PathfinderMob {
         super.defineSynchedData(builder);
         builder.define(MOB_TYPE, "minecraft:zombie");
         builder.define(FLIER, false);
+        builder.define(OWNER_ID, "");
+    }
+
+    /** The owner's UUID as text (synced so the client HUD can list its own echoes); empty for a corpse. */
+    public String ownerId() {
+        return this.entityData.get(OWNER_ID);
+    }
+
+    void setOwnerId(java.util.UUID id) {
+        this.entityData.set(OWNER_ID, id.toString());
     }
 
     public String mobType() {

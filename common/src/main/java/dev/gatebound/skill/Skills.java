@@ -43,6 +43,14 @@ public final class Skills {
     public static final Skill RALLY = add(new Skill("rally", GateboundClass.SUMMONER, null, 7, dev.gatebound.echo.EchoSkills.RALLY_COST, 100, dev.gatebound.echo.EchoSkills::rally));
     public static final Skill COMMAND_STRIKE = add(new Skill("command_strike", GateboundClass.SUMMONER, null, 10, dev.gatebound.echo.EchoSkills.COMMAND_COST, 120, dev.gatebound.echo.EchoSkills::commandStrike));
     public static final Skill EMPOWER = add(new Skill("empower", GateboundClass.SUMMONER, null, 13, dev.gatebound.echo.EchoSkills.EMPOWER_COST, 400, dev.gatebound.echo.EchoSkills::empower));
+    public static final Skill SOUL_LINK = add(new Skill("soul_link", GateboundClass.SUMMONER, null, 16, dev.gatebound.echo.EchoSkills.LINK_COST, 0, dev.gatebound.echo.EchoSkills::soulLink));
+    public static final Skill SACRIFICE = add(new Skill("sacrifice", GateboundClass.SUMMONER, null, 20, dev.gatebound.echo.EchoSkills.SACRIFICE_COST, 0, dev.gatebound.echo.EchoSkills::sacrifice));
+    public static final Skill SOUL_SWAP = add(new Skill("soul_swap", GateboundClass.SUMMONER, null, 28, dev.gatebound.echo.EchoSkills.SWAP_COST, 0, dev.gatebound.echo.EchoSkills::soulSwap));
+    public static final Skill BIND_CHAINS = add(new Skill("bind_chains", GateboundClass.SUMMONER, null, 35, dev.gatebound.echo.EchoSkills.CHAINS_COST, 0, dev.gatebound.echo.EchoSkills::bindChains));
+    public static final Skill LEGION_CALL = add(new Skill("legion_call", GateboundClass.SUMMONER, null, 45, dev.gatebound.echo.EchoSkills.LEGION_COST, 0, dev.gatebound.echo.EchoSkills::legionCall));
+    public static final Skill SOUL_STORM = add(new Skill("soul_storm", GateboundClass.SUMMONER, null, 60, dev.gatebound.echo.EchoSkills.STORM_COST, 0, dev.gatebound.echo.EchoSkills::soulStorm));
+    public static final Skill ASCENSION = add(new Skill("ascension", GateboundClass.SUMMONER, null, 80, dev.gatebound.echo.EchoSkills.ASCENSION_COST, 0, dev.gatebound.echo.EchoSkills::ascension));
+    public static final Skill SOVEREIGNS_DOMAIN = add(new Skill("sovereigns_domain", GateboundClass.SUMMONER, null, 100, dev.gatebound.echo.EchoSkills.DOMAIN_COST, 0, dev.gatebound.echo.EchoSkills::sovereignsDomain));
 
     // Mage: Fire
     public static final Skill FIREBALL = add(new Skill("fireball", GateboundClass.MAGE, Element.FIRE, 1, 10, 60, Skills::fireball));

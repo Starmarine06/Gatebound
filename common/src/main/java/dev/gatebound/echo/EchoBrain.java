@@ -218,7 +218,9 @@ final class EchoBrain {
     }
 
     private static void strike(EchoEntity e, LivingEntity target, EchoKits.Kit kit, ServerLevel level) {
-        target.hurtServer(level, level.damageSources().mobAttack(e), (float) (e.attackDamage() * kit.damageMult() * e.damageMultiplier(target)));
+        float dealt = (float) (e.attackDamage() * kit.damageMult() * e.damageMultiplier(target));
+        target.hurtServer(level, level.damageSources().mobAttack(e), dealt);
+        soulLink(e, level, dealt);
         if (kit.effect() != null) {
             target.addEffect(new MobEffectInstance(kit.effect(), kit.effectTicks(), kit.amplifier()));
         }
@@ -239,7 +241,7 @@ final class EchoBrain {
         strike(e, target, kit, level);
     }
 
-    private static void trail(ServerLevel level, Vec3 from, Vec3 to, net.minecraft.core.particles.ParticleOptions particle) {
+    static void trail(ServerLevel level, Vec3 from, Vec3 to, net.minecraft.core.particles.ParticleOptions particle) {
         if (particle == null) {
             return;
         }
@@ -259,12 +261,28 @@ final class EchoBrain {
         ServerPlayer owner = info == null ? null : level.getServer().getPlayerList().getPlayer(info.owner);
         for (LivingEntity m : level.getEntitiesOfClass(LivingEntity.class, e.getBoundingBox().inflate(4))) {
             if (owner != null && validTarget(e, m, owner) && threat(m, e, owner)) {
-                m.hurtServer(level, level.damageSources().mobAttack(e), (float) (e.attackDamage() * 2.5 * e.damageMultiplier(m)));
+                float dealt = (float) (e.attackDamage() * 2.5 * e.damageMultiplier(m));
+                m.hurtServer(level, level.damageSources().mobAttack(e), dealt);
+                soulLink(e, level, dealt);
                 Vec3 dir = m.position().subtract(e.position()).normalize();
                 m.push(dir.x * 1.1, 0.5, dir.z * 1.1);
                 m.needsSync = true;
             }
         }
+    }
+
+    /** Soul Link: while it lasts, an echo heals itself (and, a little, its owner) for part of the damage it deals. */
+    static void soulLink(EchoEntity e, ServerLevel level, float dealt) {
+        if (level.getGameTime() >= e.linkUntil || dealt <= 0) {
+            return;
+        }
+        e.heal((float) (dealt * e.linkFraction));
+        EchoManager.Info info = EchoManager.info(e);
+        ServerPlayer owner = info == null ? null : level.getServer().getPlayerList().getPlayer(info.owner);
+        if (owner != null && owner.isAlive()) {
+            owner.heal((float) (dealt * e.linkFraction * 0.4));
+        }
+        level.sendParticles(ParticleTypes.SOUL, e.getX(), e.getY() + e.getBbHeight() * 0.6, e.getZ(), 1, 0.2, 0.2, 0.2, 0.02);
     }
 
     // ---------------------------------------------------------------- healing (witch, allay)

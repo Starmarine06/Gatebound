@@ -33,7 +33,8 @@ dungeon / leak change.
 | Status window (stats, spend points) | Tab |
 | Parry | Mouse button 5 |
 | Dodge | Left Alt |
-| Skill slots 1 to 6 | Z X C V B N |
+| Skill wheel (hold, point, release to select) | ` (grave) |
+| Cast the selected skill | Z |
 | Summon / dismiss Echoes | R (not G: vanilla 26.x uses G for Quick Actions) |
 | Echoes screen (orders, groups, gates) | H |
 
@@ -98,13 +99,22 @@ Ops: `level set`, `xp add`, `class reset`, `mana set`, `element grant`, `magic o
   (about 30 Gate Shards plus half your level, 2/day), dropped by gate dungeon guardians of rank C+, and given by Spire guardian first clears (1; final boss 3). `/give @s gatebound:echo_shard`.
 - Files: `echo/` (EchoManager, EchoEntity, EchoCorpse, EchoBrain, EchoKits, EchoRenderer, EchoScreen, EchoBindScreen, EchoView, EchoRoster, payloads, EchoNetwork, EchoClient, EchoCommands, EchoConfig, EchoEntities).
 
-## Summoner refinement (in progress, untested)
-- New skills in `echo/EchoSkills`: **Rally** (L7, 10 mana: echoes teleport to you, drop fights, Speed II 5 s), **Command Strike** (L10, 14: mark the looked-at enemy,
-  echoes in 40 blocks attack it 6 s with x1.5 damage, Glowing on target), **Empower** (L13, 20: echoes x(1.3 + 0.01*Int, max 1.8) damage and Resistance I for 20 s).
-  Echo state lives in `EchoEntity` (`empowerUntil/empowerMult/commandUntil/commandTarget`, `damageMultiplier`). Mana is refunded when there is nothing to act on.
-- **Open design point:** skill slots are only 6 (Z X C V B N), and the Summoner now has exactly 6 skills at level 13. More skills need a bigger bar or a page switch.
-- **Level 100 goal:** all classes need skills and scaling that last to level 100, with the top end (up to 100) the priority. Currently skills stop at level 5 (13 for Summoner).
-- Planned next: Soul Link (L16), Sacrifice (L20), Legion Call (L25) moved/rescaled to the 100 range; echo tier scaling; real projectiles; binding UX (body timer, shift-click quick bind, echo HUD).
+## Summoner (feature-complete pass, untested in play)
+This is the template for the other classes. Skills live in `Skills.java`; Summoner logic is in `echo/EchoSkills.java`.
+- **Skill wheel** (`client/SkillWheelScreen`): hold the wheel key, point, release to select; Z (`CAST`) casts the selection (`UseSkillPayload(slot)`, slot = index in `Skills.available`).
+  The HUD shows only the selected skill. No slot limit any more. Wheel layout is a ring of boxes, untested visually.
+- **Ladder** (level: skill, mana): 1 Spirit Ward 14, 3 Scout's Eye 12, 5 Soul Drain 16, 7 Rally 10, 10 Command Strike 14, 13 Empower 20, 16 Soul Link 18,
+  20 Sacrifice 10, 28 Soul Swap 10, 35 Bind Chains 16, 45 Legion Call 40, 60 Soul Storm 36, 80 Ascension 55, 100 Sovereign's Domain 80.
+  Mana pool is 20 + 4*Intellect, so the ultimate needs Intellect 15+.
+- **Scaling pattern used:** effect strength = base + level coefficient + Intellect coefficient, capped (Empower x1.3 to x2.0, Soul Link 20% to 60% lifesteal, Ascension x1.8 to x2.8,
+  Bind Chains 3 s + level/20, Legion Call 15 s + level/5, Soul Storm damage = echo attack * (2 + 0.04*level + 0.02*Int)). Duration/cooldown-free: mana is the only limit.
+- **Echo state** on `EchoEntity`: `empowerUntil/empowerMult`, `commandUntil/commandTarget`, `linkUntil/linkFraction`, `invulnUntil`, `tempUntil` (game-time deadlines), synced `ownerId` (for the HUD).
+  Spectral copies (Legion Call) use roster slot `EchoManager.TEMP_SLOT = -1`, are not on the roster, fade by `tempUntil`, never respawn.
+- **Binding UX:** soul body shows a countdown in its name and a light column; shift-right-click binds straight into group 1. Slot-full already shows a red message in the menu.
+  **Echo HUD** (`echo/EchoHud`): your echoes with health bars, top right.
+- **Echo kits:** added melee twists (spider slow, slime knockback, silverfish poison, phantom weakness, vindicator/magma cube knockback).
+- **Not done:** real projectiles, non-humanoid attack animations, echo tier scaling (stats already copy the bound mob, so a Warden is strong by itself), swap-prompt when slots are full.
+- **Decision for the other classes:** every class needs a ladder like this out to level 100 (about 14 skills), with the same scaling pattern, plus its own signature system.
 
 ## Test checklist for next session (nothing from the last several changes has been played yet)
 1. Launch Fabric then NeoForge clients. Controls list, Awakening, Tab status, spending points.

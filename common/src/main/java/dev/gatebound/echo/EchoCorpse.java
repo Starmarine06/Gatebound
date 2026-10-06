@@ -4,6 +4,7 @@ import dev.architectury.networking.NetworkManager;
 import dev.gatebound.data.PlayerData;
 import dev.gatebound.data.PlayerDataStore;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -76,6 +77,14 @@ public class EchoCorpse extends EchoEntity {
             if (age % 12 == 0) {
                 server.sendParticles(ParticleTypes.SOUL, getX(), getY() + 0.3, getZ(), 1, 0.3, 0.2, 0.3, 0.01);
             }
+            if (age % 4 == 0) {
+                // A thin column of light so bodies can be spotted from afar, in caves and dungeons too.
+                server.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, getX(), getY() + 1.2 + (age % 40) * 0.1, getZ(), 1, 0.05, 0.0, 0.05, 0.0);
+            }
+            if (age % 20 == 0) {
+                int left = Math.max(0, (EchoConfig.corpseTicks - age) / 20);
+                setCustomName(Component.literal("Soul of " + bodyName + " (" + left / 60 + ":" + String.format("%02d", left % 60) + ")"));
+            }
             if (age > EchoConfig.corpseTicks) {
                 server.sendParticles(ParticleTypes.POOF, getX(), getY() + 0.3, getZ(), 12, 0.3, 0.2, 0.3, 0.02);
                 discard();
@@ -92,6 +101,11 @@ public class EchoCorpse extends EchoEntity {
             return InteractionResult.SUCCESS;
         }
         if (player instanceof ServerPlayer sp && sp.getUUID().equals(owner)) {
+            if (sp.isShiftKeyDown()) {
+                // Quick bind: straight into group 1, no menu.
+                EchoManager.bindCorpse(sp, getId(), 0);
+                return InteractionResult.SUCCESS_SERVER;
+            }
             sendMenu(sp);
             return InteractionResult.SUCCESS_SERVER;
         }

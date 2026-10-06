@@ -79,6 +79,9 @@ public final class EchoManager {
     /** Live echo entity UUID -> info. */
     private static final Map<UUID, Info> ACTIVE = new HashMap<>();
 
+    /** Roster slot of spectral copies (Legion Call): they are not on the roster and never come back. */
+    static final int TEMP_SLOT = -1;
+
     private EchoManager() {
     }
 
@@ -334,7 +337,7 @@ public final class EchoManager {
             // Echoes are dismissed when their owner falls and come back for free when the owner respawns.
             List<Integer> slots = new ArrayList<>();
             for (Info i : ACTIVE.values()) {
-                if (i.owner.equals(dead.getUUID())) {
+                if (i.owner.equals(dead.getUUID()) && i.slot >= 0) {
                     slots.add(i.slot);
                 }
             }
@@ -427,6 +430,9 @@ public final class EchoManager {
             return EventResult.interruptFalse();
         }
         if (isEcho(victim)) {
+            if (victim instanceof EchoEntity echo && victim.level().getGameTime() < echo.invulnUntil) {
+                return EventResult.interruptFalse();
+            }
             // Players cannot hurt echoes (no looting your own allies).
             if (attacker instanceof Player) {
                 return EventResult.interruptFalse();
@@ -600,7 +606,29 @@ public final class EchoManager {
     }
 
     private static Mob spawn(ServerPlayer owner, PlayerData data, int slot) {
-        EchoRoster.Entry entry = data.echo.entries.get(slot);
+        return spawnEntry(owner, data, data.echo.entries.get(slot), slot, 0);
+    }
+
+    /** Legion Call: a spectral copy of every echo on the roster (up to the slot count) that fades after the given ticks. */
+    static int spawnLegion(ServerPlayer owner, PlayerData data, int lifetimeTicks) {
+        int n = 0;
+        for (int i = 0; i < data.echo.entries.size() && i < slots(data); i++) {
+            if (spawnEntry(owner, data, data.echo.entries.get(i), TEMP_SLOT, lifetimeTicks) != null) {
+                n++;
+            }
+        }
+        return n;
+    }
+
+    /** Removes an echo from the world without losing it: it stays on the roster (or, for a spectral copy, is simply gone). */
+    static void consume(Mob mob) {
+        if (mob.level() instanceof ServerLevel level) {
+            level.sendParticles(ParticleTypes.SOUL, mob.getX(), mob.getY() + 0.8, mob.getZ(), 20, 0.3, 0.5, 0.3, 0.05);
+        }
+        remove(mob);
+    }
+
+    private static Mob spawnEntry(ServerPlayer owner, PlayerData data, EchoRoster.Entry entry, int slot, int lifetimeTicks) {
         Optional<EntityType<?>> type = BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.parse(entry.type()));
         ServerLevel level = owner.level();
         if (type.isEmpty()) {
@@ -618,8 +646,12 @@ public final class EchoManager {
             return null;
         }
         double bonus = data.level * EchoConfig.healthPerLevel + data.get(Stat.INTELLECT) * EchoConfig.healthPerIntellect;
-        mob.configure(entry.type(), proto, 1 + bonus, 1 + bonus / 2);
+        mob.configure(entry.type(), proto, (1 + bonus) * (lifetimeTicks > 0 ? 0.6 : 1), 1 + bonus / 2);
         proto.discard();
+        mob.setOwnerId(owner.getUUID());
+        if (lifetimeTicks > 0) {
+            mob.tempUntil = level.getGameTime() + lifetimeTicks;
+        }
         double angle = owner.getRandom().nextDouble() * Math.PI * 2;
         double x = owner.getX() + Math.cos(angle) * 2;
         double z = owner.getZ() + Math.sin(angle) * 2;
@@ -629,7 +661,7 @@ public final class EchoManager {
         mob.setPersistenceRequired();
         mob.setCanPickUpLoot(false);
 
-        mob.setCustomName(Component.literal("Echo: " + entry.name()));
+        mob.setCustomName(Component.literal((lifetimeTicks > 0 ? "Spectral " : "Echo: ") + entry.name()));
         mob.setCustomNameVisible(true);
         mob.setGlowingTag(true);
         joinTeam(level, mob);
@@ -688,9 +720,13 @@ public final class EchoManager {
                 }
                 ACTIVE.remove(e.getKey());
                 PlayerData data = PlayerDataStore.of(owner);
-                if (lost && info.slot < data.echo.entries.size() && info.slot < slots(data)) {
+                if (lost && info.slot >= 0 && info.slot < data.echo.entries.size() && info.slot < slots(data)) {
                     spawn(owner, data, info.slot);
                 }
+                continue;
+            }
+            if (mob instanceof EchoEntity temp && temp.tempUntil > 0 && mob.level().getGameTime() >= temp.tempUntil) {
+                consume(mob);
                 continue;
             }
             // Never burn from daylight (lava still hurts).
