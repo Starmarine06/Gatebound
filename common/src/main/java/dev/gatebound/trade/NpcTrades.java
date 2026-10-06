@@ -69,9 +69,11 @@ public final class NpcTrades {
                 o.add(new Def(TradeItems.TOMES.get(s)::get, 1, TradeItems.GATE_SHARD::get, tomePrice(level), TradeConfig.offerStock));
             }
             o.add(new Def(TradeItems.ECHO_SHARD::get, 1, TradeItems.GATE_SHARD::get, 30 + level / 2, 2));
+            o.add(new Def(TradeItems.MANA_POTION::get, 1, TradeItems.GATE_SHARD::get, 6 + level / 10, 8));
             o.add(new Def(TradeItems.GATE_SHARD::get, 5, () -> Items.DIAMOND, 1, 8));
         } else {
             o.add(new Def(TradeItems.INFO_SCROLL::get, 1, TradeItems.GATE_SHARD::get, 2 + level / 20, 10));
+            o.add(new Def(TradeItems.MANA_POTION::get, 1, TradeItems.GATE_SHARD::get, 6 + level / 10, 8));
             for (Stat s : new Stat[]{Stat.INTELLECT, Stat.LUCK}) {
                 o.add(new Def(TradeItems.TOMES.get(s)::get, 1, TradeItems.GATE_SHARD::get, tomePrice(level), TradeConfig.offerStock));
             }

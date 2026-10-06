@@ -22,7 +22,7 @@ public final class EchoConfig {
     public static int maxTotalSlots = 30;
 
     /** Ticks a soul body waits to be bound before it fades. */
-    public static int corpseTicks = 2400;
+    public static int corpseTicks = 600;
 
     /** Mana spent per echo summoned. Never refunded on dismiss. */
     public static int summonMana = 8;

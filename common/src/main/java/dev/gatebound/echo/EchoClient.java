@@ -8,11 +8,12 @@ import net.minecraft.client.KeyMapping;
 
 /** Client-only. Reached only through EnvExecutor from EchoManager.init(). */
 final class EchoClient {
-    /** GLFW_KEY_R. Not G: vanilla 26.x binds G to Quick Actions, which swallowed the key press. */
-    private static final int KEY_G = 82;
-    /** GLFW_KEY_H: opens the Echoes command screen. */
-    private static final KeyMapping MENU = new KeyMapping("key.gatebound.echo_menu", 72, ClientHooks.CATEGORY);
-    private static final KeyMapping TOGGLE = new KeyMapping("key.gatebound.echo_toggle", KEY_G, ClientHooks.CATEGORY);
+    /** H opens the Echoes command screen. */
+    private static final KeyMapping MENU = new KeyMapping("key.gatebound.echo_menu",
+            com.mojang.blaze3d.platform.InputConstants.KEY_H, ClientHooks.CATEGORY);
+    /** R summons and dismisses echoes. Not G: vanilla 26.x binds G to Quick Actions, which swallowed the key press. */
+    private static final KeyMapping TOGGLE = new KeyMapping("key.gatebound.echo_toggle",
+            com.mojang.blaze3d.platform.InputConstants.KEY_R, ClientHooks.CATEGORY);
 
     private EchoClient() {
     }

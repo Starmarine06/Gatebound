@@ -23,8 +23,11 @@ public final class ManaState {
         return 20 + 4 * data.get(Stat.INTELLECT);
     }
 
+    /** Ticks for the pool to refill on its own: half a Minecraft day. Sleeping or a mana potion refills it much faster. */
+    public static final int FULL_REGEN_TICKS = 12000;
+
     public static double regenPerTick(PlayerData data) {
-        return (1.0 + 0.1 * data.get(Stat.INTELLECT)) / 20.0;
+        return max(data) / (double) FULL_REGEN_TICKS;
     }
 
     public static double get(ServerPlayer player) {

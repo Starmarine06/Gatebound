@@ -23,6 +23,9 @@ dungeon / leak change.
   `Identifier` not `ResourceLocation`, `extractRenderState` screens, `hurtServer`, `EntityTypes`, `Blocks.CARPET.red()` colour collections, etc.).
 
 ## Gotchas for whoever edits this (including me)
+- **Minecraft 26.x reads the keyboard through SDL.** `InputConstants.KEY_Z` is 29 (a scancode), not GLFW's 90. Never hard-code raw GLFW numbers for key defaults;
+  use `InputConstants.KEY_*`. Held-key state: `InputConstants.isKeyDown(key.getValue())` (see `ClientHooks.wheelHeld`). Key events repeat while held, so do not open/close screens from them.
+- `PoseStack` has `rotateDegrees(Axis, float)` (no `mulPose(Quaternion)`).
 - In the Bash tool, long heredocs containing quotes tend to break ("unexpected EOF"). Write scripts with the Write tool into the scratchpad
   and run them with `python`, or use Edit.
 - The python edit scripts used `str.replace` with exact old text; when a file changes, re-read it first.
@@ -109,7 +112,10 @@ Ops: `level set`, `xp add`, `class reset`, `mana set`, `element grant`, `magic o
 ## Summoner (feature-complete pass, untested in play)
 This is the template for the other classes. Skills live in `Skills.java`; Summoner logic is in `echo/EchoSkills.java`.
 - **Skill wheel** (`client/SkillWheelScreen`): tap Z casts the selected skill; hold Z opens the wheel (after 150 ms), point, release to select and cast. Esc cancels.
-  The old flicker came from key-repeat presses closing and reopening the screen; the screen no longer handles presses. The HUD shows only the selected skill. No slot limit.
+  The wheel closes by **polling** the real key state in `tick()` (not by key events, which repeat while held and made it flicker). HUD shows only the selected skill.
+- **Mana:** no quick regen. The pool refills over half a day (12000 ticks, `ManaState.FULL_REGEN_TICKS`), fully on waking from a night's sleep (`isSleepingLongEnough`),
+  or with a **Mana Potion** (restores 60% of max, at least 30; sold by both NPCs for about 6 Gate Shards; every gate clear gives 1 + rank/2). Echo summon still costs 8 mana each.
+- **Soul body:** lies on its back (renderer, not the vanilla sideways death pose), lasts **30 s** (`EchoConfig.corpseTicks = 600`).
 - **Ladder** (level: skill, mana): 1 Spirit Ward 14, 3 Scout's Eye 12, 5 Soul Drain 16, 7 Rally 10, 10 Command Strike 14, 13 Empower 20, 16 Soul Link 18,
   20 Sacrifice 10, 28 Soul Swap 10, 35 Bind Chains 16, 45 Legion Call 40, 60 Soul Storm 36, 80 Ascension 55, 100 Sovereign's Domain 80.
   Mana pool is 20 + 4*Intellect, so the ultimate needs Intellect 15+.

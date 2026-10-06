@@ -542,12 +542,13 @@ public final class DungeonManager {
         int shards = 3 + rank.ordinal() * 3;
         Progression.giveXp(p, xp);
         giveItem(p, new ItemStack(TradeItems.GATE_SHARD.get(), shards));
+        giveItem(p, new ItemStack(TradeItems.MANA_POTION.get(), 1 + rank.ordinal() / 2));
         String extra = "";
         if (rank.ordinal() >= 2) {
             giveItem(p, new ItemStack(TradeItems.ECHO_SHARD.get(), 1));
             extra = " and an Echo Shard";
         }
-        p.sendSystemMessage(Component.literal(PREFIX + "Clear reward: " + xp + " XP, " + shards + " Gate Shards" + extra + ".")
+        p.sendSystemMessage(Component.literal(PREFIX + "Clear reward: " + xp + " XP, " + shards + " Gate Shards" + extra + " and mana potions.")
                 .withStyle(ChatFormatting.GOLD));
     }
 

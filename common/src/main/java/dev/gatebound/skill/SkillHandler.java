@@ -31,6 +31,12 @@ public final class SkillHandler {
                 }
                 PlayerData data = PlayerDataStore.of(player);
                 ManaState.add(player, ManaState.regenPerTick(data));
+                if (player.isSleepingLongEnough() && ManaState.get(player) < ManaState.max(data)) {
+                    // A night's sleep restores the whole pool.
+                    ManaState.set(player, ManaState.max(data));
+                    sendMana(player, true);
+                    player.sendOverlayMessage(Component.literal("You wake with your mana restored."));
+                }
                 if (tick % 5 == 0) {
                     sendMana(player, false);
                 }

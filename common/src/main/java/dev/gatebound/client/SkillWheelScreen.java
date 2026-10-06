@@ -8,7 +8,6 @@ import dev.gatebound.skill.Skill;
 import dev.gatebound.skill.Skills;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
@@ -134,13 +133,13 @@ public final class SkillWheelScreen extends Screen {
         g.centeredText(this.font, "Release to cast. Esc cancels.", cx, cy + 14, 0xFF888894);
     }
 
+    /** Closes and casts when the key is physically let go. Polled, so repeated key events cannot make the wheel flicker. */
     @Override
-    public boolean keyReleased(KeyEvent event) {
-        if (ClientHooks.WHEEL.matches(event)) {
+    public void tick() {
+        super.tick();
+        if (!ClientHooks.wheelHeld()) {
             choose();
-            return true;
         }
-        return super.keyReleased(event);
     }
 
     @Override

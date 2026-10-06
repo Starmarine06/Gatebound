@@ -11,9 +11,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /** Client side of dodge, stamina and player posture. Client-only; reach it from ClientHooks.init(). */
 public final class Combat4bClient {
-    /** GLFW_KEY_LEFT_ALT. */
-    private static final int KEY_LEFT_ALT = 342;
-    public static final KeyMapping DODGE = new KeyMapping("key.gatebound.dodge", KEY_LEFT_ALT, ClientHooks.CATEGORY);
+    public static final KeyMapping DODGE = new KeyMapping("key.gatebound.dodge", com.mojang.blaze3d.platform.InputConstants.KEY_LALT, ClientHooks.CATEGORY);
 
     private Combat4bClient() {
     }

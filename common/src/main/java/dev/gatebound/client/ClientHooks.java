@@ -16,20 +16,22 @@ import net.minecraft.resources.Identifier;
 public final class ClientHooks {
     // Defaults match the keybinds saved in the Fabric dev instance, so both loaders start identical:
     // status = Tab, parry = mouse button 5 (the side button), skills = Z X C then V B N.
-    /** GLFW_KEY_TAB. */
-    private static final int KEY_TAB = 258;
-    /** Mouse button index 4 is shown in the options file as key.mouse.5. */
-    private static final int MOUSE_BUTTON_5 = 4;
 
     public static final KeyMapping.Category CATEGORY =
             KeyMapping.Category.register(Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, "main"));
-    public static final KeyMapping OPEN_STATUS = new KeyMapping("key.gatebound.status", KEY_TAB, CATEGORY);
-    public static final KeyMapping PARRY = new KeyMapping("key.gatebound.parry", InputConstants.Type.MOUSE, MOUSE_BUTTON_5, CATEGORY);
+    public static final KeyMapping OPEN_STATUS = new KeyMapping("key.gatebound.status", InputConstants.KEY_TAB, CATEGORY);
+    public static final KeyMapping PARRY = new KeyMapping("key.gatebound.parry", InputConstants.Type.MOUSE, InputConstants.MOUSE_BUTTON_5, CATEGORY);
 
-    /** GLFW_KEY_Z. Tap to cast the selected skill; hold to open the wheel, point, and release to cast that skill. */
-    public static final KeyMapping WHEEL = new KeyMapping("key.gatebound.skill_wheel", 90, CATEGORY);
+    /** Z. Tap to cast the selected skill; hold to open the wheel, point, and release to cast that skill. */
+    public static final KeyMapping WHEEL = new KeyMapping("key.gatebound.skill_wheel", InputConstants.KEY_Z, CATEGORY);
 
     private ClientHooks() {
+    }
+
+    /** True while the wheel key is physically held. Read straight from the keyboard, not from key events (which repeat). */
+    public static boolean wheelHeld() {
+        InputConstants.Key key = InputConstants.getKey(WHEEL.saveString());
+        return key.getType() == InputConstants.Type.KEYBOARD ? InputConstants.isKeyDown(key.getValue()) : WHEEL.isDown();
     }
 
     public static void init() {
@@ -44,7 +46,7 @@ public final class ClientHooks {
                 if (mc.gui.screen() != null || mc.player == null || SkillWheelScreen.selectedSkill() == null) {
                     continue;
                 }
-                if (WHEEL.isDown()) {
+                if (wheelHeld()) {
                     mc.setScreenAndShow(new SkillWheelScreen()); // still held: the wheel, until the key is released
                 } else {
                     NetworkManager.sendToServer(new UseSkillPayload(SkillWheelScreen.selectedSlot())); // a quick tap

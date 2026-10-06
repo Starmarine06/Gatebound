@@ -126,6 +126,8 @@
   "entity.gatebound.echo": "Echo",
   "key.gatebound.echo_menu": "Open Echo Orders",
   "item.gatebound.echo_shard": "Echo Shard",
+  "item.gatebound.mana_potion": "Mana Potion",
+  "npc.gatebound.desc.mana_potion": "Restores 60% of your mana",
   "skill.gatebound.scouts_eye": "Scout's Eye",
   "skill.gatebound.rally": "Rally",
   "skill.gatebound.rally.desc": "All your echoes return to your side, drop their fights and run faster for 5 s.",

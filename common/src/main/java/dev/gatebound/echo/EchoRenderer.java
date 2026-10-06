@@ -28,6 +28,10 @@ public final class EchoRenderer extends EntityRenderer<EchoEntity, EchoRenderer.
     public static final class State extends EntityRenderState {
         EntityRenderState delegate;
         float visualScale = 1f;
+        /** A soul body: drawn flat on its back instead of the vanilla death pose, which tips a mob onto its side. */
+        boolean lying;
+        float bodyYaw;
+        float lift;
     }
 
     private final EntityRenderDispatcher dispatcher;
@@ -96,7 +100,8 @@ public final class EchoRenderer extends EntityRenderer<EchoEntity, EchoRenderer.
             living.walkAnimationPos = echo.walkAnimation.position(partialTick);
             living.walkAnimationSpeed = echo.walkAnimation.speed(partialTick);
             living.hasRedOverlay = echo.hurtTime > 0;
-            living.deathTime = echo.isCorpse() ? 20f : echo.deathTime;
+            living.deathTime = echo.isCorpse() ? 0f : echo.deathTime;
+            state.bodyYaw = body;
             if (echo.isCorpse()) {
                 living.walkAnimationSpeed = 0f;
                 living.hasRedOverlay = false;
@@ -108,6 +113,8 @@ public final class EchoRenderer extends EntityRenderer<EchoEntity, EchoRenderer.
         }
         float natural = Math.max(0.1f, dummy.getBbHeight() / 1.95f);
         state.visualScale = Math.max(0.5f, Math.min(4f, echo.getScale() / natural));
+        state.lying = echo.isCorpse();
+        state.lift = dummy.getBbWidth() * 0.5f;
         state.delegate = d;
     }
 
@@ -117,6 +124,15 @@ public final class EchoRenderer extends EntityRenderer<EchoEntity, EchoRenderer.
             // The pose is already at the Echo's position, so no extra translation is wanted.
             poseStack.pushPose();
             poseStack.scale(state.visualScale, state.visualScale, state.visualScale);
+            if (state.lying) {
+                // Lay the model on its back (face up) in its own frame, then keep its facing: the vanilla renderer applies
+                // the yaw turn itself, so the same turn is wrapped around the tilt.
+                float turn = 180f - state.bodyYaw;
+                poseStack.translate(0.0, state.lift, 0.0);
+                poseStack.rotateDegrees(com.mojang.math.Axis.YP, turn);
+                poseStack.rotateDegrees(com.mojang.math.Axis.XP, -90f);
+                poseStack.rotateDegrees(com.mojang.math.Axis.YP, -turn);
+            }
             dispatcher.submit(state.delegate, camera, 0.0, 0.0, 0.0, poseStack, collector);
             poseStack.popPose();
         }
