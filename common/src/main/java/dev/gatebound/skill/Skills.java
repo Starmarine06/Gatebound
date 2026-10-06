@@ -40,6 +40,9 @@ public final class Skills {
     public static final Skill SPIRIT_WARD = add(new Skill("spirit_ward", GateboundClass.SUMMONER, null, 1, 14, 240, Skills::spiritWard));
     public static final Skill SCOUTS_EYE = add(new Skill("scouts_eye", GateboundClass.SUMMONER, null, 3, 12, 0, dev.gatebound.echo.EchoView::cast));
     public static final Skill SOUL_DRAIN = add(new Skill("soul_drain", GateboundClass.SUMMONER, null, 5, 16, 140, Skills::soulDrain));
+    public static final Skill RALLY = add(new Skill("rally", GateboundClass.SUMMONER, null, 7, dev.gatebound.echo.EchoSkills.RALLY_COST, 100, dev.gatebound.echo.EchoSkills::rally));
+    public static final Skill COMMAND_STRIKE = add(new Skill("command_strike", GateboundClass.SUMMONER, null, 10, dev.gatebound.echo.EchoSkills.COMMAND_COST, 120, dev.gatebound.echo.EchoSkills::commandStrike));
+    public static final Skill EMPOWER = add(new Skill("empower", GateboundClass.SUMMONER, null, 13, dev.gatebound.echo.EchoSkills.EMPOWER_COST, 400, dev.gatebound.echo.EchoSkills::empower));
 
     // Mage: Fire
     public static final Skill FIREBALL = add(new Skill("fireball", GateboundClass.MAGE, Element.FIRE, 1, 10, 60, Skills::fireball));

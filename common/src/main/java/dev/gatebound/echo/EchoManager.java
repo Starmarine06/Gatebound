@@ -293,6 +293,19 @@ public final class EchoManager {
         return n;
     }
 
+    /** The owner's echoes that are currently out in the owner's dimension. */
+    static List<EchoEntity> echoesOf(ServerPlayer owner) {
+        List<EchoEntity> out = new java.util.ArrayList<>();
+        for (Map.Entry<UUID, Info> en : ACTIVE.entrySet()) {
+            if (en.getValue().owner.equals(owner.getUUID())
+                    && owner.level() instanceof ServerLevel level
+                    && level.getEntity(en.getKey()) instanceof EchoEntity echo && echo.isAlive()) {
+                out.add(echo);
+            }
+        }
+        return out;
+    }
+
     private static boolean isActive(UUID owner, int slot) {
         for (Info i : ACTIVE.values()) {
             if (i.owner.equals(owner) && i.slot == slot) {
@@ -711,7 +724,7 @@ public final class EchoManager {
         return null;
     }
 
-    private static void teleportTo(Mob mob, ServerPlayer owner) {
+    static void teleportTo(Mob mob, ServerPlayer owner) {
         double angle = owner.getRandom().nextDouble() * Math.PI * 2;
         mob.getNavigation().stop();
         mob.teleportTo(owner.level(), owner.getX() + Math.cos(angle) * 2, owner.getY(), owner.getZ() + Math.sin(angle) * 2,

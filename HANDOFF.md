@@ -98,6 +98,14 @@ Ops: `level set`, `xp add`, `class reset`, `mana set`, `element grant`, `magic o
   (about 30 Gate Shards plus half your level, 2/day), dropped by gate dungeon guardians of rank C+, and given by Spire guardian first clears (1; final boss 3). `/give @s gatebound:echo_shard`.
 - Files: `echo/` (EchoManager, EchoEntity, EchoCorpse, EchoBrain, EchoKits, EchoRenderer, EchoScreen, EchoBindScreen, EchoView, EchoRoster, payloads, EchoNetwork, EchoClient, EchoCommands, EchoConfig, EchoEntities).
 
+## Summoner refinement (in progress, untested)
+- New skills in `echo/EchoSkills`: **Rally** (L7, 10 mana: echoes teleport to you, drop fights, Speed II 5 s), **Command Strike** (L10, 14: mark the looked-at enemy,
+  echoes in 40 blocks attack it 6 s with x1.5 damage, Glowing on target), **Empower** (L13, 20: echoes x(1.3 + 0.01*Int, max 1.8) damage and Resistance I for 20 s).
+  Echo state lives in `EchoEntity` (`empowerUntil/empowerMult/commandUntil/commandTarget`, `damageMultiplier`). Mana is refunded when there is nothing to act on.
+- **Open design point:** skill slots are only 6 (Z X C V B N), and the Summoner now has exactly 6 skills at level 13. More skills need a bigger bar or a page switch.
+- **Level 100 goal:** all classes need skills and scaling that last to level 100, with the top end (up to 100) the priority. Currently skills stop at level 5 (13 for Summoner).
+- Planned next: Soul Link (L16), Sacrifice (L20), Legion Call (L25) moved/rescaled to the 100 range; echo tier scaling; real projectiles; binding UX (body timer, shift-click quick bind, echo HUD).
+
 ## Test checklist for next session (nothing from the last several changes has been played yet)
 1. Launch Fabric then NeoForge clients. Controls list, Awakening, Tab status, spending points.
 2. **Persistence:** pick a class, wait 2 s, stop the client from the IDE, relaunch: you should keep your class.

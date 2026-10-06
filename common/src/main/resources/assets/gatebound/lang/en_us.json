@@ -132,6 +132,12 @@
   "key.gatebound.echo_menu": "Open Echo Orders",
   "item.gatebound.echo_shard": "Echo Shard",
   "skill.gatebound.scouts_eye": "Scout's Eye",
+  "skill.gatebound.rally": "Rally",
+  "skill.gatebound.rally.desc": "All your echoes return to your side, drop their fights and run faster for 5 s.",
+  "skill.gatebound.command_strike": "Command Strike",
+  "skill.gatebound.command_strike.desc": "Mark the enemy you look at: all echoes in range attack it for 6 s with +50% damage.",
+  "skill.gatebound.empower": "Empower",
+  "skill.gatebound.empower.desc": "Echoes in range deal more damage (grows with Intellect) and take less for 20 s.",
   "npc.gatebound.desc.echo_shard": "Permanently adds one Echo slot",
   "entity.gatebound.soul_body": "Soul Body"
 }

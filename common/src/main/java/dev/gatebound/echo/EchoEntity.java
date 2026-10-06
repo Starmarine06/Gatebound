@@ -48,6 +48,21 @@ public class EchoEntity extends PathfinderMob {
     int stuckChecks;
     double lastX;
     double lastZ;
+    // Summoner skill state (EchoSkills): game-time deadlines.
+    long empowerUntil;
+    double empowerMult = 1;
+    long commandUntil;
+    java.util.UUID commandTarget;
+
+    /** Damage multiplier from the owner's Empower and Command Strike while they last. */
+    double damageMultiplier(LivingEntity target) {
+        long now = level().getGameTime();
+        double m = now < empowerUntil ? empowerMult : 1;
+        if (now < commandUntil && target.getUUID().equals(commandTarget)) {
+            m *= 1.5;
+        }
+        return m;
+    }
 
     public EchoEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);

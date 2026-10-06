@@ -94,7 +94,7 @@ final class EchoBrain {
         return mode == EchoRoster.SEEK || mode == EchoRoster.GOTO;
     }
 
-    private static boolean validTarget(EchoEntity e, LivingEntity t, ServerPlayer owner) {
+    static boolean validTarget(EchoEntity e, LivingEntity t, ServerPlayer owner) {
         return t.isAlive() && t.level() == e.level() && !(t instanceof Player) && !(t instanceof EchoEntity)
                 && !(t instanceof dev.gatebound.trade.GateboundNpc) && !EchoManager.isEcho(t)
                 && t.distanceToSqr(owner) < 40 * 40;
@@ -218,7 +218,7 @@ final class EchoBrain {
     }
 
     private static void strike(EchoEntity e, LivingEntity target, EchoKits.Kit kit, ServerLevel level) {
-        target.hurtServer(level, level.damageSources().mobAttack(e), (float) (e.attackDamage() * kit.damageMult()));
+        target.hurtServer(level, level.damageSources().mobAttack(e), (float) (e.attackDamage() * kit.damageMult() * e.damageMultiplier(target)));
         if (kit.effect() != null) {
             target.addEffect(new MobEffectInstance(kit.effect(), kit.effectTicks(), kit.amplifier()));
         }
@@ -259,7 +259,7 @@ final class EchoBrain {
         ServerPlayer owner = info == null ? null : level.getServer().getPlayerList().getPlayer(info.owner);
         for (LivingEntity m : level.getEntitiesOfClass(LivingEntity.class, e.getBoundingBox().inflate(4))) {
             if (owner != null && validTarget(e, m, owner) && threat(m, e, owner)) {
-                m.hurtServer(level, level.damageSources().mobAttack(e), (float) (e.attackDamage() * 2.5));
+                m.hurtServer(level, level.damageSources().mobAttack(e), (float) (e.attackDamage() * 2.5 * e.damageMultiplier(m)));
                 Vec3 dir = m.position().subtract(e.position()).normalize();
                 m.push(dir.x * 1.1, 0.5, dir.z * 1.1);
                 m.needsSync = true;
