@@ -10,12 +10,12 @@ import net.minecraft.network.chat.Component;
 
 /** Shown when you right-click a soul body: pick the group (role) the new echo joins, or leave the body. */
 final class EchoBindScreen extends Screen {
-    private static final String[] ORDERS = {"Follow", "Guard", "Seek gates", "Guide to gate"};
+    private static final String[] ORDERS = {"Guard", "Attack", "Seek", "Guide"};
     private static final String[] HINTS = {
-            "Trails behind you and fights whatever attacks you.",
-            "Stays close and attacks any threat near you.",
-            "Scouts for a gate and reports it to you.",
-            "Leads you to the selected gate."};
+            "Stays close and only fights what has just hurt you or it. Never wanders far.",
+            "Hunts the nearest enemies around it and what you fight.",
+            "Scouts for a gate with a wide sweep and reports it to you.",
+            "Waits beside you; once a gate is found, right-click it and it leads you there."};
     private static final ChatFormatting[] COLORS = {
             ChatFormatting.GOLD, ChatFormatting.AQUA, ChatFormatting.GREEN, ChatFormatting.LIGHT_PURPLE};
 

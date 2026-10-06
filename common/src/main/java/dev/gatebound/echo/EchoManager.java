@@ -133,7 +133,7 @@ public final class EchoManager {
     public static int modeOf(ServerPlayer owner, int slot) {
         EchoRoster roster = PlayerDataStore.of(owner).echo;
         if (slot < 0 || slot >= roster.entries.size()) {
-            return EchoRoster.FOLLOW;
+            return EchoRoster.GUARD;
         }
         return roster.groupModes[Math.max(0, Math.min(EchoRoster.GROUPS - 1, roster.entries.get(slot).group()))];
     }
@@ -147,7 +147,7 @@ public final class EchoManager {
     /** Gives every echo of one group an order (group -1 = all groups). */
     public static void setGroupMode(ServerPlayer owner, int group, int mode) {
         EchoRoster roster = PlayerDataStore.of(owner).echo;
-        int m = Math.max(EchoRoster.FOLLOW, Math.min(EchoRoster.GUIDE, mode));
+        int m = Math.max(EchoRoster.GUARD, Math.min(EchoRoster.GUIDE, mode));
         for (int g = 0; g < EchoRoster.GROUPS; g++) {
             if (group < 0 || group == g) {
                 roster.groupModes[g] = m;

@@ -26,10 +26,8 @@ public final class ClientHooks {
     public static final KeyMapping OPEN_STATUS = new KeyMapping("key.gatebound.status", KEY_TAB, CATEGORY);
     public static final KeyMapping PARRY = new KeyMapping("key.gatebound.parry", InputConstants.Type.MOUSE, MOUSE_BUTTON_5, CATEGORY);
 
-    /** Hold to open the skill wheel (GLFW_KEY_GRAVE, the key left of 1; Left Alt is already the dodge). */
-    public static final KeyMapping WHEEL = new KeyMapping("key.gatebound.skill_wheel", 96, CATEGORY);
-    /** Casts the skill picked on the wheel (GLFW_KEY_Z). */
-    public static final KeyMapping CAST = new KeyMapping("key.gatebound.skill_cast", 90, CATEGORY);
+    /** GLFW_KEY_Z. Tap to cast the selected skill; hold to open the wheel, point, and release to cast that skill. */
+    public static final KeyMapping WHEEL = new KeyMapping("key.gatebound.skill_wheel", 90, CATEGORY);
 
     private ClientHooks() {
     }
@@ -41,16 +39,15 @@ public final class ClientHooks {
         NpcClient.init();
         ClientGuiEvent.RENDER_HUD.register(GateboundHud::render);
         KeyMappingRegistry.register(WHEEL);
-        KeyMappingRegistry.register(CAST);
         ClientTickEvent.CLIENT_POST.register(mc -> {
             while (WHEEL.consumeClick()) {
-                if (mc.gui.screen() == null && mc.player != null) {
-                    mc.setScreenAndShow(new SkillWheelScreen());
+                if (mc.gui.screen() != null || mc.player == null || SkillWheelScreen.selectedSkill() == null) {
+                    continue;
                 }
-            }
-            while (CAST.consumeClick()) {
-                if (mc.gui.screen() == null && mc.player != null && SkillWheelScreen.selectedSkill() != null) {
-                    NetworkManager.sendToServer(new UseSkillPayload(SkillWheelScreen.selectedSlot()));
+                if (WHEEL.isDown()) {
+                    mc.setScreenAndShow(new SkillWheelScreen()); // still held: the wheel, until the key is released
+                } else {
+                    NetworkManager.sendToServer(new UseSkillPayload(SkillWheelScreen.selectedSlot())); // a quick tap
                 }
             }
         });

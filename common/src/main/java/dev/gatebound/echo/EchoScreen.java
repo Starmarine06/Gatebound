@@ -10,18 +10,18 @@ import net.minecraft.network.chat.Component;
 
 /**
  * The Echoes command screen. Echoes belong to four colour-coded groups; each group has one order
- * (Follow, Guard, Seek, Guide). Echoes are put into groups with one click on a group button on their row, or in bulk
+ * (Guard, Attack, Seek, Guide). Echoes are put into groups with one click on a group button on their row, or in bulk
  * (even split, group by mob type, everyone into one group). Found gates are listed below for Guides to lead to.
  */
 final class EchoScreen extends Screen {
     private static final int ROW = 22;
     private static final int PER_PAGE = 8;
-    private static final String[] ORDERS = {"Follow", "Guard", "Seek", "Guide"};
+    private static final String[] ORDERS = {"Guard", "Attack", "Seek", "Guide"};
     private static final String[] HINTS = {
-            "Trails behind you and fights whatever attacks you.",
-            "Stays close and attacks any threat near you.",
-            "Scouts for a gate and reports it to you.",
-            "Leads you to the selected gate."};
+            "Stays close and only fights what has just hurt you or it. Never wanders far.",
+            "Hunts the nearest enemies around it and what you fight.",
+            "Scouts for a gate with a wide sweep and reports it to you.",
+            "Waits beside you; once a gate is found, right-click it and it leads you there."};
     private static final ChatFormatting[] GROUP_COLORS = {
             ChatFormatting.GOLD, ChatFormatting.AQUA, ChatFormatting.GREEN, ChatFormatting.LIGHT_PURPLE};
     private static final int[] GROUP_RGB = {0xFFFFAA00, 0xFF55FFFF, 0xFF55FF55, 0xFFFF55FF};

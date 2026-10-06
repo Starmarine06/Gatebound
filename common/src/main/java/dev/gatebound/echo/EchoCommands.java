@@ -12,7 +12,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
-/** /gatebound echo list|summon|dismiss|release <index>|mode follow|guard|chance <percent>. */
+/** /gatebound echo list|summon|dismiss|release <index>|mode guard|attack|chance <percent>. */
 final class EchoCommands {
     private EchoCommands() {
     }
@@ -65,8 +65,8 @@ final class EchoCommands {
                         return 1;
                     })));
             echo.then(Commands.literal("mode")
-                    .then(Commands.literal("follow").executes(ctx -> setMode(ctx.getSource().getPlayerOrException(), false)))
-                    .then(Commands.literal("guard").executes(ctx -> setMode(ctx.getSource().getPlayerOrException(), true))));
+                    .then(Commands.literal("guard").executes(ctx -> setMode(ctx.getSource().getPlayerOrException(), false)))
+                    .then(Commands.literal("attack").executes(ctx -> setMode(ctx.getSource().getPlayerOrException(), true))));
             echo.then(Commands.literal("chance").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                     .then(Commands.argument("percent", DoubleArgumentType.doubleArg(0, 100)).executes(ctx -> {
                         double v = DoubleArgumentType.getDouble(ctx, "percent");
@@ -111,9 +111,9 @@ final class EchoCommands {
         return 1;
     }
 
-    private static int setMode(ServerPlayer player, boolean guard) {
-        EchoManager.setGroupMode(player, -1, guard ? EchoRoster.GUARD : EchoRoster.FOLLOW);
-        player.sendSystemMessage(Component.literal("All echoes will now " + (guard ? "guard you." : "follow you.")));
+    private static int setMode(ServerPlayer player, boolean attack) {
+        EchoManager.setGroupMode(player, -1, attack ? EchoRoster.ATTACK : EchoRoster.GUARD);
+        player.sendSystemMessage(Component.literal("All echoes will now " + (attack ? "attack nearby enemies." : "guard you.")));
         return 1;
     }
 }

@@ -33,8 +33,7 @@ dungeon / leak change.
 | Status window (stats, spend points) | Tab |
 | Parry | Mouse button 5 |
 | Dodge | Left Alt |
-| Skill wheel (hold, point, release to select) | ` (grave) |
-| Cast the selected skill | Z |
+| Skills: tap = cast the selected skill; hold = wheel, point, release = cast that skill | Z |
 | Summon / dismiss Echoes | R (not G: vanilla 26.x uses G for Quick Actions) |
 | Echoes screen (orders, groups, gates) | H |
 
@@ -78,6 +77,14 @@ Ops: `level set`, `xp add`, `class reset`, `mana set`, `element grant`, `magic o
 - Config (dungeon section): `gateLeaks`, `leakInterval`, `leakMinInterval`, `leakCap`, `maxNaturalGates`, `villageGateChance`, `villageSearchChunks`, pull settings.
 - Gravitational pull toward gates (`GatePull`), vortex particles, hum.
 
+## Echo orders (current)
+- **Guard** (0): stays within about 5 blocks, fights only what has just hurt the owner or itself (or is targeting them), and drops any fight beyond 12 blocks of the owner.
+- **Attack** (1): hunts the nearest enemies within 20 blocks of itself, plus whatever the owner is fighting.
+- **Seek** (2): gate search sweep (unchanged, see Gate search).
+- **Guide** (3): waits beside the owner until a gate is found, announces it, then holds until the owner **right-clicks the echo**; it then paths to the gate by the best route
+  (full path if reachable, else best waypoint step with sidesteps; fliers fly straight), waits when the owner is 20+ blocks behind, holds at the gate. Right-click again to stop.
+  A Guide echo's right-click is the signal, so a flying echo is only rideable while it is not in a Guide group. Old saved orders shift (old Follow = Guard, old Guard = Attack).
+
 ## Echoes (minions): current design
 - An Echo is a **custom entity** (`EchoEntity`, type `gatebound:echo`) with fully custom AI (`EchoBrain`). It only borrows the look of the mob it was bound from:
   the mob type is synced data and `EchoRenderer` draws the vanilla model through a hidden client-side template entity (it needs `setId`, zero extra offset, and a visual scale).
@@ -85,8 +92,8 @@ Ops: `level set`, `xp add`, `class reset`, `mana set`, `element grant`, `magic o
 - **Binding (new flow):** a Summoner's kill leaves a **soul body** (`EchoCorpse`, type `gatebound:soul_body`, lasts `corpseTicks`, default 2 minutes).
   Right-click it to open the bind menu (`EchoBindScreen`) and pick a **group**; the group's order is the role. No random bind chance anymore.
 - **Any mob** can be an echo except the Wither and Ender Dragon.
-- **Groups and orders:** four groups, each with one order: Follow, Guard, Seek (search for gates), Guide (lead the owner to the selected gate).
-  Defaults: group 1 follows, 2 guards, 3 seeks, 4 guides. H opens `EchoScreen`: group orders, direct G1 to G4 buttons per echo, bulk buttons (even split, by type, all to group),
+- **Groups and orders:** four groups, each with one order: Guard, Attack, Seek, Guide (see below).
+  Defaults: group 1 guards, 2 attacks, 3 seeks, 4 guides. H opens `EchoScreen`: group orders, direct G1 to G4 buttons per echo, bulk buttons (even split, by type, all to group),
   paging, and the found-gate list (select the gate guides lead to). Per-echo order overrides exist only while using Scout's Eye.
 - **Gate search:** fan-out sweeps with explored-area memory, reachability checks, stuck detection, 56/80 block sight. Found gates are reported in chat and listed on the H screen.
 - **Abilities** (`EchoKits`): archers and casters use instant bolts with particle trails; witch heals the owner below 60% health with potion splashes and heals hurt echoes;
@@ -101,8 +108,8 @@ Ops: `level set`, `xp add`, `class reset`, `mana set`, `element grant`, `magic o
 
 ## Summoner (feature-complete pass, untested in play)
 This is the template for the other classes. Skills live in `Skills.java`; Summoner logic is in `echo/EchoSkills.java`.
-- **Skill wheel** (`client/SkillWheelScreen`): hold the wheel key, point, release to select; Z (`CAST`) casts the selection (`UseSkillPayload(slot)`, slot = index in `Skills.available`).
-  The HUD shows only the selected skill. No slot limit any more. Wheel layout is a ring of boxes, untested visually.
+- **Skill wheel** (`client/SkillWheelScreen`): tap Z casts the selected skill; hold Z opens the wheel (after 150 ms), point, release to select and cast. Esc cancels.
+  The old flicker came from key-repeat presses closing and reopening the screen; the screen no longer handles presses. The HUD shows only the selected skill. No slot limit.
 - **Ladder** (level: skill, mana): 1 Spirit Ward 14, 3 Scout's Eye 12, 5 Soul Drain 16, 7 Rally 10, 10 Command Strike 14, 13 Empower 20, 16 Soul Link 18,
   20 Sacrifice 10, 28 Soul Swap 10, 35 Bind Chains 16, 45 Legion Call 40, 60 Soul Storm 36, 80 Ascension 55, 100 Sovereign's Domain 80.
   Mana pool is 20 + 4*Intellect, so the ultimate needs Intellect 15+.

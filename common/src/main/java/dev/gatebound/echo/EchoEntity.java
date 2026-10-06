@@ -45,6 +45,11 @@ public class EchoEntity extends PathfinderMob {
     int wanderCooldown;
     net.minecraft.core.BlockPos seekFound;
     boolean guideWarned;
+    /** Guide order: the owner has right-clicked this echo and it is leading the way to guideTarget. */
+    boolean guideGo;
+    boolean guideReady;
+    boolean guideArrived;
+    net.minecraft.core.BlockPos guideTarget;
     net.minecraft.world.phys.Vec3 exploreTarget;
     int exploreRound;
     int stuckChecks;
@@ -169,14 +174,23 @@ public class EchoEntity extends PathfinderMob {
     /** The owner mounts a flying echo with an empty-handed right click. */
     @Override
     protected net.minecraft.world.InteractionResult mobInteract(net.minecraft.world.entity.player.Player player, InteractionHand hand) {
-        if (hand == InteractionHand.MAIN_HAND && isFlier() && !isVehicle() && !player.isShiftKeyDown()) {
+        boolean mine = player.getUUID().toString().equals(ownerId());
+        if (hand == InteractionHand.MAIN_HAND && mine && !isCorpse() && !isVehicle() && !player.isShiftKeyDown()) {
             if (level().isClientSide()) {
                 return net.minecraft.world.InteractionResult.SUCCESS;
             }
             EchoManager.Info info = EchoManager.info(this);
-            if (info != null && info.owner.equals(player.getUUID())) {
-                player.startRiding(this);
-                return net.minecraft.world.InteractionResult.SUCCESS_SERVER;
+            if (info != null && info.owner.equals(player.getUUID()) && player instanceof net.minecraft.server.level.ServerPlayer sp
+                    && level() instanceof ServerLevel server) {
+                // A Guide echo takes the right-click as the signal to lead the way; other flying echoes can be ridden.
+                if (EchoManager.effectiveMode(sp, getUUID(), info.slot) == EchoRoster.GUIDE) {
+                    EchoBrain.guideSignal(this, sp, server);
+                    return net.minecraft.world.InteractionResult.SUCCESS_SERVER;
+                }
+                if (isFlier()) {
+                    player.startRiding(this);
+                    return net.minecraft.world.InteractionResult.SUCCESS_SERVER;
+                }
             }
         }
         return super.mobInteract(player, hand);

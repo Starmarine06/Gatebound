@@ -76,11 +76,11 @@ public final class GateboundHud {
         if (affordable) {
             g.fill(x - 3, y - 2, x - 1, y + 11, 0xFF3DDC84);
         }
-        String key = ClientHooks.CAST.getTranslatedKeyMessage().getString();
+        String key = ClientHooks.WHEEL.getTranslatedKeyMessage().getString();
         g.text(mc.font, "[" + key + "] " + Component.translatable(s.nameKey()).getString(), x + 3, y,
                 affordable ? 0xFFFFFFFF : 0xFF7A7A99, true);
         g.text(mc.font, s.manaCost() + "mp", x + w - 22, y, affordable ? 0xFF8FB8FF : 0xFF666680, true);
-        g.text(mc.font, "Hold [" + ClientHooks.WHEEL.getTranslatedKeyMessage().getString() + "] for all skills", x, y + 14, 0xFF888894, true);
+        g.text(mc.font, "Tap to cast, hold to choose", x, y + 14, 0xFF888894, true);
     }
 
     private static void drawTargetPosture(GuiGraphicsExtractor g, Minecraft mc) {

@@ -1,7 +1,9 @@
 package dev.gatebound.client;
 
+import dev.architectury.networking.NetworkManager;
 import dev.gatebound.data.ClientPlayerData;
 import dev.gatebound.data.ClientSkillData;
+import dev.gatebound.network.UseSkillPayload;
 import dev.gatebound.skill.Skill;
 import dev.gatebound.skill.Skills;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -13,8 +15,8 @@ import net.minecraft.network.chat.Component;
 import java.util.List;
 
 /**
- * The skill wheel. Hold the wheel key, point the mouse at a skill and let go: that skill becomes the selected one,
- * and the cast key (Z by default) uses it. A click also selects, and pressing the wheel key again or Esc cancels.
+ * The skill wheel. Hold Z, point the mouse at a skill and let go: that skill becomes the selected one and is cast.
+ * A quick tap of Z casts the selected skill without showing the wheel. A click also casts; Esc cancels.
  */
 public final class SkillWheelScreen extends Screen {
     private static final int BOX_W = 92;
@@ -24,7 +26,11 @@ public final class SkillWheelScreen extends Screen {
     /** The selected skill's index in the player's available skills. Client side only. */
     private static int selected;
 
+    /** The wheel stays invisible for a moment so a quick tap (cast the selected skill) does not flash it. */
+    private static final long SHOW_AFTER_MS = 150;
+
     private final List<Skill> skills;
+    private final long openedMs = System.currentTimeMillis();
     private int hovered;
 
     public SkillWheelScreen() {
@@ -87,17 +93,22 @@ public final class SkillWheelScreen extends Screen {
         }
     }
 
+    /** Selects the pointed-at skill and casts it. */
     private void choose() {
         if (!skills.isEmpty()) {
             selected = hovered;
+            NetworkManager.sendToServer(new UseSkillPayload(hovered));
         }
         onClose();
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
-        super.extractRenderState(g, mouseX, mouseY, partialTick);
         updateHover(mouseX, mouseY);
+        if (System.currentTimeMillis() - openedMs < SHOW_AFTER_MS) {
+            return;
+        }
+        super.extractRenderState(g, mouseX, mouseY, partialTick);
         int cx = this.width / 2;
         int cy = this.height / 2;
         if (skills.isEmpty()) {
@@ -120,8 +131,7 @@ public final class SkillWheelScreen extends Screen {
         Skill h = skills.get(hovered);
         g.centeredText(this.font, Component.translatable(h.nameKey()), cx, cy - 12, 0xFFFFD866);
         g.centeredText(this.font, Component.translatable(h.descriptionKey()), cx, cy, 0xFFCCCCCC);
-        g.centeredText(this.font, "Release to select. Cast it with ["
-                + ClientHooks.CAST.getTranslatedKeyMessage().getString() + "]", cx, cy + 14, 0xFF888894);
+        g.centeredText(this.font, "Release to cast. Esc cancels.", cx, cy + 14, 0xFF888894);
     }
 
     @Override
@@ -131,15 +141,6 @@ public final class SkillWheelScreen extends Screen {
             return true;
         }
         return super.keyReleased(event);
-    }
-
-    @Override
-    public boolean keyPressed(KeyEvent event) {
-        if (ClientHooks.WHEEL.matches(event)) {
-            onClose();
-            return true;
-        }
-        return super.keyPressed(event);
     }
 
     @Override

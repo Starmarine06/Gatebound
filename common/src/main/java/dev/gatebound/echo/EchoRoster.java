@@ -11,8 +11,8 @@ public final class EchoRoster {
     public static final int GROUPS = 4;
 
     /** Orders a group can be given. */
-    public static final int FOLLOW = 0;
-    public static final int GUARD = 1;
+    public static final int GUARD = 0;
+    public static final int ATTACK = 1;
     public static final int SEEK = 2;
     public static final int GUIDE = 3;
     /** Eye-only order: fly straight to the selected gate. Never stored on a group. */
@@ -59,7 +59,7 @@ public final class EchoRoster {
 
     private void resetModes() {
         for (int i = 0; i < GROUPS; i++) {
-            groupModes[i] = i; // out of the box: group 1 follows, 2 guards, 3 seeks gates, 4 guides
+            groupModes[i] = i; // out of the box: group 1 guards, 2 attacks, 3 seeks gates, 4 guides
         }
     }
 
@@ -77,7 +77,7 @@ public final class EchoRoster {
         this.entries.addAll(saved);
         this.bonusSlots = Math.max(0, bonus);
         for (int i = 0; i < GROUPS && i < modes.size(); i++) {
-            this.groupModes[i] = Math.max(FOLLOW, Math.min(GUIDE, modes.get(i)));
+            this.groupModes[i] = Math.max(GUARD, Math.min(GUIDE, modes.get(i)));
         }
     }
 }

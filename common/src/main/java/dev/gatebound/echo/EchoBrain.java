@@ -60,6 +60,8 @@ final class EchoBrain {
         }
         if (mode != EchoRoster.GUIDE) {
             e.guideWarned = false;
+            e.guideGo = false;
+            e.guideReady = false;
         }
 
         if (kit.special() == EchoKits.Special.HEALER) {
@@ -69,6 +71,12 @@ final class EchoBrain {
             acquire(e, owner, level, mode);
         }
         LivingEntity target = e.getTarget();
+        boolean onLeash = mode == EchoRoster.GUARD || mode == EchoRoster.GUIDE;
+        if (target != null && onLeash && (e.distanceToSqr(owner) > GUARD_LEASH * GUARD_LEASH
+                || target.distanceToSqr(owner) > GUARD_LEASH * GUARD_LEASH)) {
+            e.setTarget(null);
+            target = null;
+        }
         if (target != null && !validTarget(e, target, owner)) {
             e.setTarget(null);
             target = null;
@@ -79,11 +87,11 @@ final class EchoBrain {
         }
         e.setAggressive(false);
         switch (mode) {
-            case EchoRoster.GUARD -> follow(e, owner, 4.5, 2.5);
+            case EchoRoster.ATTACK -> follow(e, owner, 9, 4);
             case EchoRoster.SEEK -> seek(e, owner, level);
             case EchoRoster.GUIDE -> guide(e, owner, level);
             case EchoRoster.GOTO -> goTo(e, owner, level);
-            default -> follow(e, owner, 7, 4);
+            default -> follow(e, owner, 5, 2.5); // Guard: stays close
         }
     }
 
@@ -113,34 +121,40 @@ final class EchoBrain {
             return;
         }
         LivingEntity pick = null;
-        LivingEntity hit = owner.getLastHurtMob();
-        if (hit != null && owner.tickCount - owner.getLastHurtMobTimestamp() < 100 && validTarget(e, hit, owner)
-                && !passive(mode)) {
-            pick = hit;
-        }
-        LivingEntity hurtBy = owner.getLastHurtByMob();
-        if (pick == null && hurtBy != null && owner.tickCount - owner.getLastHurtByMobTimestamp() < 100
-                && validTarget(e, hurtBy, owner) && !passive(mode)) {
-            pick = hurtBy;
-        }
-        if (pick == null) {
-            // Guards watch the area around the owner; the others only what comes near themselves.
-            boolean guard = mode == EchoRoster.GUARD;
-            double radius = guard ? 16 : (mode == EchoRoster.FOLLOW ? 9 : 4);
-            AABB box = (guard ? owner.getBoundingBox() : e.getBoundingBox()).inflate(radius, 6, radius);
-            double best = Double.MAX_VALUE;
-            for (LivingEntity m : level.getEntitiesOfClass(LivingEntity.class, box,
-                    m -> validTarget(e, m, owner) && threat(m, e, owner))) {
-                double d = e.distanceToSqr(m);
-                if (d < best) {
-                    best = d;
-                    pick = m;
+        if (mode == EchoRoster.ATTACK) {
+            // Attack: go for the nearest enemy around the echo, and for whatever the owner is fighting.
+            LivingEntity hit = owner.getLastHurtMob();
+            if (hit != null && owner.tickCount - owner.getLastHurtMobTimestamp() < 100 && validTarget(e, hit, owner)) {
+                pick = hit;
+            }
+            if (pick == null) {
+                double best = Double.MAX_VALUE;
+                for (LivingEntity m : level.getEntitiesOfClass(LivingEntity.class, e.getBoundingBox().inflate(20, 8, 20),
+                        m -> validTarget(e, m, owner) && threat(m, e, owner))) {
+                    double d = e.distanceToSqr(m);
+                    if (d < best) {
+                        best = d;
+                        pick = m;
+                    }
                 }
             }
-            // Anything hunting the owner, even from outside the box.
-            if (pick == null && !passive(mode)) {
-                for (Mob m : level.getEntitiesOfClass(Mob.class, owner.getBoundingBox().inflate(22, 8, 22),
-                        m -> m.getTarget() == owner && validTarget(e, m, owner))) {
+        } else {
+            // Guard (and Guide, and scouts when something is on top of them): only what has just done harm, close to the owner.
+            double reach = passive(mode) ? 4 : GUARD_LEASH;
+            LivingEntity hurtBy = owner.getLastHurtByMob();
+            if (hurtBy != null && owner.tickCount - owner.getLastHurtByMobTimestamp() < 100 && !passive(mode)
+                    && validTarget(e, hurtBy, owner) && hurtBy.distanceToSqr(owner) < reach * reach) {
+                pick = hurtBy;
+            }
+            LivingEntity hurtEcho = e.getLastHurtByMob();
+            if (pick == null && hurtEcho != null && e.tickCount - e.getLastHurtByMobTimestamp() < 100
+                    && validTarget(e, hurtEcho, owner) && hurtEcho.distanceToSqr(owner) < reach * reach) {
+                pick = hurtEcho;
+            }
+            if (pick == null) {
+                double best = Double.MAX_VALUE;
+                for (Mob m : level.getEntitiesOfClass(Mob.class, owner.getBoundingBox().inflate(reach, 6, reach),
+                        m -> (m.getTarget() == owner || m.getTarget() == e) && validTarget(e, m, owner))) {
                     double d = e.distanceToSqr(m);
                     if (d < best) {
                         best = d;
@@ -153,6 +167,9 @@ final class EchoBrain {
             e.setTarget(pick);
         }
     }
+
+    /** Guards never chase or fight farther than this from their owner. */
+    private static final double GUARD_LEASH = 12;
 
     // ---------------------------------------------------------------- fighting
 
@@ -561,46 +578,132 @@ final class EchoBrain {
         }
     }
 
-    /** Guide: lead the owner to the selected gate, waiting whenever the owner falls behind. */
+    /** Right-click on a Guide echo: lead the owner to the selected gate, or (clicked again) stop and wait at the owner's side. */
+    static void guideSignal(EchoEntity e, ServerPlayer owner, ServerLevel level) {
+        EchoManager.Found gate = EchoManager.selectedGate(owner);
+        if (gate == null || !gate.dim().equals(level.dimension())) {
+            owner.sendOverlayMessage(Component.literal(e.mobName() + ": no gate has been found yet. I will wait with you.")
+                    .withStyle(ChatFormatting.GRAY));
+            return;
+        }
+        e.guideGo = !e.guideGo;
+        e.guideTarget = gate.pos();
+        e.guideArrived = false;
+        e.repath = 0;
+        owner.sendOverlayMessage(Component.literal(e.guideGo
+                ? e.mobName() + ": follow me to the " + gate.label() + "."
+                : e.mobName() + ": I will wait here with you.").withStyle(ChatFormatting.AQUA));
+    }
+
+    /**
+     * Guide: wait beside the owner until a gate is known, announce it, and keep waiting until the owner right-clicks the
+     * echo. Then take the best route to the gate, waiting for the owner when they fall behind, and hold at the gate.
+     */
     private static void guide(EchoEntity e, ServerPlayer owner, ServerLevel level) {
         EchoManager.Found gate = EchoManager.selectedGate(owner);
         if (gate == null || !gate.dim().equals(level.dimension())) {
+            e.guideGo = false;
+            e.guideReady = false;
             if (!e.guideWarned) {
                 e.guideWarned = true;
-                Component msg = Component.literal(gate == null
-                        ? "[Echo] " + e.mobName() + ": no gate has been found yet. Send a group to Seek Gate first."
-                        : "[Echo] " + e.mobName() + ": the selected gate is in another dimension.")
-                        .withStyle(ChatFormatting.GRAY);
-                owner.sendSystemMessage(msg);
+                owner.sendSystemMessage(Component.literal(gate == null
+                        ? "[Echo] " + e.mobName() + ": waiting with you until a gate is found. Send a group to Seek first."
+                        : "[Echo] " + e.mobName() + ": the selected gate is in another dimension.").withStyle(ChatFormatting.GRAY));
             }
-            follow(e, owner, 7, 4);
+            follow(e, owner, 5, 2.5);
             return;
         }
         e.guideWarned = false;
+        if (e.guideGo && !gate.pos().equals(e.guideTarget)) {
+            e.guideGo = false; // a different gate was selected: wait for a new signal
+        }
+        if (!e.guideGo) {
+            if (!e.guideReady) {
+                e.guideReady = true;
+                owner.sendSystemMessage(Component.literal("[Echo] " + e.mobName() + ": " + gate.label()
+                        + " found. Right-click me and I will lead the way.").withStyle(ChatFormatting.AQUA));
+            }
+            follow(e, owner, 5, 2.5);
+            return;
+        }
         double gx = gate.pos().getX() + 0.5;
         double gz = gate.pos().getZ() + 0.5;
         double toGate = Math.sqrt(e.distanceToSqr(gx, e.getY(), gz));
-        double ownerBehind = e.distanceToSqr(owner);
         if (toGate < 3) {
             e.getNavigation().stop();
-        } else if (ownerBehind > 14 * 14) {
-            // The owner is lagging: wait for them.
-            e.getNavigation().stop();
+            if (!e.guideArrived) {
+                e.guideArrived = true;
+                owner.sendOverlayMessage(Component.literal(e.mobName() + " reached the " + gate.label() + ".")
+                        .withStyle(ChatFormatting.AQUA));
+            }
+        } else if (e.distanceToSqr(owner) > 20 * 20) {
+            e.getNavigation().stop(); // the owner is lagging: wait for them
             e.getLookControl().setLookAt(owner);
         } else if (--e.repath <= 0) {
-            e.repath = 15;
-            double step = Math.min(24, toGate);
-            double dx = (gx - e.getX()) / toGate * step;
-            double dz = (gz - e.getZ()) / toGate * step;
-            e.getNavigation().moveTo(e.getX() + dx, gate.pos().getY(), e.getZ() + dz, 1.0);
+            e.repath = 20;
+            routeTo(e, level, gate.pos());
         }
         if (e.tickCount % 10 == 0) {
             level.sendParticles(ParticleTypes.END_ROD, e.getX(), e.getY() + e.getBbHeight() + 0.3, e.getZ(), 2, 0.1, 0.1, 0.1, 0.01);
         }
-        if (e.tickCount % 100 == 0) {
+        if (e.tickCount % 100 == 0 && toGate >= 3) {
             int meters = (int) Math.sqrt(owner.distanceToSqr(gx, gate.pos().getY(), gz));
             owner.sendOverlayMessage(Component.literal("Following " + e.mobName() + ": " + gate.label() + ", " + meters + " blocks")
                     .withStyle(ChatFormatting.AQUA));
         }
+    }
+
+    /**
+     * Best route to a gate: the full path when the pathfinder can reach it, otherwise the reachable waypoint (nearest
+     * step first, then sidesteps around obstacles) that leaves the least distance to the gate. Fliers go straight.
+     */
+    private static void routeTo(EchoEntity e, ServerLevel level, BlockPos gate) {
+        double gx = gate.getX() + 0.5;
+        double gy = gate.getY();
+        double gz = gate.getZ() + 0.5;
+        if (e.isFlier()) {
+            e.getNavigation().moveTo(gx, gy + 2, gz, 1.3);
+            return;
+        }
+        net.minecraft.world.level.pathfinder.Path full = e.getNavigation().createPath(gx, gy, gz, 2);
+        if (full != null && full.canReach()) {
+            e.getNavigation().moveTo(full, 1.25);
+            return;
+        }
+        double dist = Math.max(1, Math.sqrt(e.distanceToSqr(gx, e.getY(), gz)));
+        double ux = (gx - e.getX()) / dist;
+        double uz = (gz - e.getZ()) / dist;
+        boolean overworld = level.dimension().equals(net.minecraft.world.level.Level.OVERWORLD);
+        for (double step : new double[]{44, 30, 18, 10}) {
+            if (step > dist) {
+                continue;
+            }
+            net.minecraft.world.level.pathfinder.Path best = null;
+            double bestRemain = Double.MAX_VALUE;
+            for (double lateral : new double[]{0, 10, -10, 20, -20}) {
+                double wx = e.getX() + ux * step - uz * lateral;
+                double wz = e.getZ() + uz * step + ux * lateral;
+                if (!level.hasChunkAt(BlockPos.containing(wx, e.getY(), wz))) {
+                    continue;
+                }
+                double wy = overworld ? level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                        (int) Math.floor(wx), (int) Math.floor(wz)) : gy;
+                net.minecraft.world.level.pathfinder.Path p = e.getNavigation().createPath(wx, wy, wz, 2);
+                if (p == null) {
+                    continue;
+                }
+                double remain = (wx - gx) * (wx - gx) + (wz - gz) * (wz - gz);
+                if (remain < bestRemain) {
+                    bestRemain = remain;
+                    best = p;
+                }
+            }
+            if (best != null) {
+                e.getNavigation().moveTo(best, 1.25);
+                return;
+            }
+        }
+        e.repath = 50; // nothing reachable right now: look again shortly
+        e.getNavigation().moveTo(gx, gy, gz, 1.1);
     }
 }
