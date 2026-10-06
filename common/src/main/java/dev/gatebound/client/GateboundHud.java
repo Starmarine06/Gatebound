@@ -65,25 +65,22 @@ public final class GateboundHud {
         drawSkills(g, mc, x, y + 55, w);
     }
 
-    /** One row per usable skill: key, name, mana cost and a cooldown fill. Greyed when mana is short. */
+    /** The skill picked on the wheel: cast key, name and mana cost, greyed when mana is short. */
     private static void drawSkills(GuiGraphicsExtractor g, Minecraft mc, int x, int y, int w) {
-        List<Skill> skills = Skills.available(ClientPlayerData.classId, ClientPlayerData.elements, ClientPlayerData.level);
-        for (int i = 0; i < skills.size() && i < ClientHooks.SKILL_KEYS.length; i++) {
-            Skill s = skills.get(i);
-            int rowY = y + i * 15;
-            float cd = ClientSkillData.cooldownRemaining(s.id());
-            boolean affordable = ClientSkillData.mana >= s.manaCost();
-            g.fill(x - 3, rowY - 2, x + w + 3, rowY + 11, 0x90000000);
-            if (cd > 0) {
-                g.fill(x - 3, rowY - 2, x - 3 + (int) ((w + 6) * (1f - cd)), rowY + 11, 0x55808090);
-            } else if (affordable) {
-                g.fill(x - 3, rowY - 2, x - 1, rowY + 11, 0xFF3DDC84);
-            }
-            String key = ClientHooks.SKILL_KEYS[i].getTranslatedKeyMessage().getString();
-            int color = cd > 0 ? 0xFF888894 : (affordable ? 0xFFFFFFFF : 0xFF7A7A99);
-            g.text(mc.font, "[" + key + "] " + Component.translatable(s.nameKey()).getString(), x + 3, rowY, color, true);
-            g.text(mc.font, s.manaCost() + "mp", x + w - 22, rowY, affordable ? 0xFF8FB8FF : 0xFF666680, true);
+        Skill s = SkillWheelScreen.selectedSkill();
+        if (s == null) {
+            return;
         }
+        boolean affordable = ClientSkillData.mana >= s.manaCost();
+        g.fill(x - 3, y - 2, x + w + 3, y + 11, 0x90000000);
+        if (affordable) {
+            g.fill(x - 3, y - 2, x - 1, y + 11, 0xFF3DDC84);
+        }
+        String key = ClientHooks.CAST.getTranslatedKeyMessage().getString();
+        g.text(mc.font, "[" + key + "] " + Component.translatable(s.nameKey()).getString(), x + 3, y,
+                affordable ? 0xFFFFFFFF : 0xFF7A7A99, true);
+        g.text(mc.font, s.manaCost() + "mp", x + w - 22, y, affordable ? 0xFF8FB8FF : 0xFF666680, true);
+        g.text(mc.font, "Hold [" + ClientHooks.WHEEL.getTranslatedKeyMessage().getString() + "] for all skills", x, y + 14, 0xFF888894, true);
     }
 
     private static void drawTargetPosture(GuiGraphicsExtractor g, Minecraft mc) {

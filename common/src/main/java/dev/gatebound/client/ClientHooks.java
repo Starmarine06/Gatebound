@@ -26,15 +26,10 @@ public final class ClientHooks {
     public static final KeyMapping OPEN_STATUS = new KeyMapping("key.gatebound.status", KEY_TAB, CATEGORY);
     public static final KeyMapping PARRY = new KeyMapping("key.gatebound.parry", InputConstants.Type.MOUSE, MOUSE_BUTTON_5, CATEGORY);
 
-    /** GLFW keys Z, X, C, V, B, N: skill slots 1 to 6. */
-    private static final int[] SKILL_DEFAULT_KEYS = {90, 88, 67, 86, 66, 78};
-    public static final KeyMapping[] SKILL_KEYS = new KeyMapping[6];
-
-    static {
-        for (int i = 0; i < SKILL_KEYS.length; i++) {
-            SKILL_KEYS[i] = new KeyMapping("key.gatebound.skill" + (i + 1), SKILL_DEFAULT_KEYS[i], CATEGORY);
-        }
-    }
+    /** Hold to open the skill wheel (GLFW_KEY_GRAVE, the key left of 1; Left Alt is already the dodge). */
+    public static final KeyMapping WHEEL = new KeyMapping("key.gatebound.skill_wheel", 96, CATEGORY);
+    /** Casts the skill picked on the wheel (GLFW_KEY_Z). */
+    public static final KeyMapping CAST = new KeyMapping("key.gatebound.skill_cast", 90, CATEGORY);
 
     private ClientHooks() {
     }
@@ -45,15 +40,17 @@ public final class ClientHooks {
         Combat4bClient.init();
         NpcClient.init();
         ClientGuiEvent.RENDER_HUD.register(GateboundHud::render);
-        for (KeyMapping key : SKILL_KEYS) {
-            KeyMappingRegistry.register(key);
-        }
+        KeyMappingRegistry.register(WHEEL);
+        KeyMappingRegistry.register(CAST);
         ClientTickEvent.CLIENT_POST.register(mc -> {
-            for (int slot = 0; slot < SKILL_KEYS.length; slot++) {
-                while (SKILL_KEYS[slot].consumeClick()) {
-                    if (mc.gui.screen() == null && mc.player != null) {
-                        NetworkManager.sendToServer(new UseSkillPayload(slot));
-                    }
+            while (WHEEL.consumeClick()) {
+                if (mc.gui.screen() == null && mc.player != null) {
+                    mc.setScreenAndShow(new SkillWheelScreen());
+                }
+            }
+            while (CAST.consumeClick()) {
+                if (mc.gui.screen() == null && mc.player != null && SkillWheelScreen.selectedSkill() != null) {
+                    NetworkManager.sendToServer(new UseSkillPayload(SkillWheelScreen.selectedSlot()));
                 }
             }
         });
