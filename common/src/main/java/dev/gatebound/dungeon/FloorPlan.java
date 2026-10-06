@@ -897,7 +897,7 @@ public final class FloorPlan {
         if (arenaR > 0) {
             int pillars = kind == Spire.Kind.FINAL ? 12 : 8;
             for (int k = 0; k < pillars; k++) {
-                double ang = Math.PI * 2 * k / pillars;
+                double ang = Math.PI * 2 * (k + 0.5) / pillars; // half a step off the east-west axis, where the exit portal hangs
                 int px = arenaCx + (int) Math.round(Math.cos(ang) * (arenaR - 5));
                 int pz = arenaCz + (int) Math.round(Math.sin(ang) * (arenaR - 5));
                 int top = Spire.FY + (kind == Spire.Kind.FINAL ? 17 : 14);
@@ -905,8 +905,6 @@ public final class FloorPlan {
                     deco(px, y, pz, theme.pillar());
                 }
             }
-            // Sealed pedestal where the exit will appear once the guardian falls.
-            deco(upPortal.getX() - ox, Spire.FY + 1, upPortal.getZ(), Blocks.CRYING_OBSIDIAN.defaultBlockState());
         }
 
         if (kind == Spire.Kind.REST) {

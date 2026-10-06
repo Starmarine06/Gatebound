@@ -68,7 +68,8 @@ public final class GateLabels {
                     continue; // the tower's own entrance gate stays unlabeled
                 }
                 labels.add(gateLabel(store, level, pos.immutable(), total));
-            } else if (state.getBlock() instanceof GateExitBlock) {
+            } else if (state.getBlock() instanceof GateExitBlock
+                    && state.getValue(GateExitBlock.HALF) == net.minecraft.world.level.block.state.properties.DoubleBlockHalf.LOWER) {
                 labels.add(exitLabel(level, pos.immutable(), state.getValue(GateExitBlock.KIND), inSpire, total));
             }
         }
@@ -111,7 +112,7 @@ public final class GateLabels {
 
     private static Label exitLabel(ServerLevel level, BlockPos pos, GateExitBlock.Kind kind, boolean inSpire, int total) {
         int floor = inSpire ? Spire.floorAt(pos.getX() + 0.5, pos.getZ() + 0.5, total) : 0;
-        double y = pos.getY() + 0.2;
+        double y = pos.getY() + 1.9; // above the two-block pane
         if (Spire.isGate(floor)) {
             return new Label(pos, y,
                     Component.literal(kind == GateExitBlock.Kind.HOME ? "Exit the Gate Dungeon" : "Back to the gate").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD),

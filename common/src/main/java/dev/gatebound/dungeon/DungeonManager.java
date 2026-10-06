@@ -492,7 +492,7 @@ public final class DungeonManager {
 
         BlockPos exit = fs.upPortal;
         if (!exit.equals(BlockPos.ZERO)) {
-            level.setBlock(exit, GateExitBlock.state(fin ? GateExitBlock.Kind.HOME : GateExitBlock.Kind.UP), 3);
+            PortalPlacer.place(level, exit, fin ? GateExitBlock.Kind.HOME : GateExitBlock.Kind.UP, Direction.EAST);
             RandomSource rng = level.getRandom();
             int[] offsets = fin ? new int[]{-9, -6, -3, 3, 6, 9} : new int[]{-3, 3};
             for (int dz : offsets) {
@@ -1074,16 +1074,16 @@ public final class DungeonManager {
             }
         }
         int missingPortals = 0;
-        if (!(d.getBlockState(fs.downArrive.west(2)).getBlock() instanceof GateExitBlock)) {
+        if (!PortalPlacer.exists(d, fs.downArrive.west(2), Direction.WEST)) {
             missingPortals++;
         }
         Spire.Kind kind = Spire.kind(floor, total);
         boolean upExpected = kind == Spire.Kind.NORMAL || kind == Spire.Kind.REST;
-        if (upExpected && !(d.getBlockState(fs.upArrive.east(2)).getBlock() instanceof GateExitBlock)) {
+        if (upExpected && !PortalPlacer.exists(d, fs.upArrive.east(2), Direction.EAST)) {
             missingPortals++;
         }
         for (BlockPos r : fs.rifts) {
-            if (!(d.getBlockState(r.west(2)).getBlock() instanceof GateExitBlock)) {
+            if (!PortalPlacer.exists(d, r.west(2), Direction.WEST)) {
                 missingPortals++;
             }
         }

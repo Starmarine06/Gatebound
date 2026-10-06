@@ -372,13 +372,8 @@ final class EchoBrain {
                 return;
             }
         }
-        // Detect getting stuck: not having moved for a while means the target is unreachable.
-        if (e.tickCount % 20 == 0) {
-            double moved = (e.getX() - e.lastX) * (e.getX() - e.lastX) + (e.getZ() - e.lastZ) * (e.getZ() - e.lastZ);
-            e.stuckChecks = moved < 2.0 ? e.stuckChecks + 1 : 0;
-            e.lastX = e.getX();
-            e.lastZ = e.getZ();
-        }
+        // Detect getting stuck: not having moved for a while means the target is unreachable from here.
+        stuckTick(e);
         boolean arrived = e.exploreTarget != null && e.distanceToSqr(e.exploreTarget.x, e.getY(), e.exploreTarget.z) < 25;
         if (e.exploreTarget == null || arrived || e.stuckChecks >= 3 || (!e.getNavigation().isInProgress() && e.tickCount % 20 == 0)) {
             if (arrived) {
@@ -388,6 +383,16 @@ final class EchoBrain {
                             + "It keeps looking; walk somewhere new to widen the search.").withStyle(ChatFormatting.GRAY);
                     owner.sendSystemMessage(msg);
                     e.exploreRound = 6;
+                }
+            }
+            if (e.stuckChecks >= 3) {
+                // Stuck even after choosing new targets: slip out toward where it was going (or toward a random bearing).
+                e.stuckStrikes++;
+                if (e.stuckStrikes >= 2) {
+                    double bearing = e.getRandom().nextDouble() * Math.PI * 2;
+                    double tx = e.exploreTarget != null ? e.exploreTarget.x : e.getX() + Math.cos(bearing) * 20;
+                    double tz = e.exploreTarget != null ? e.exploreTarget.z : e.getZ() + Math.sin(bearing) * 20;
+                    blink(e, level, tx, tz);
                 }
             }
             e.stuckChecks = 0;
@@ -508,7 +513,8 @@ final class EchoBrain {
             int floor = Spire.floorAt(e.getX(), e.getZ(), store.ensureTower(level.getServer()));
             if (floor > 0) {
                 DungeonStore.FloorState fs = store.floor(floor);
-                BlockPos up = fs.upPortal;
+                BlockPos up = fs.upPortal.equals(BlockPos.ZERO) ? BlockPos.ZERO
+                        : dev.gatebound.dungeon.PortalPlacer.where(level, fs.upPortal, net.minecraft.core.Direction.EAST);
                 if (fs.built && up != null && !up.equals(BlockPos.ZERO)
                         && level.getBlockState(up).getBlock() instanceof GateExitBlock
                         && e.distanceToSqr(up.getX() + 0.5, up.getY(), up.getZ() + 0.5) < bestD) {
@@ -578,6 +584,78 @@ final class EchoBrain {
         }
     }
 
+
+    // ---------------------------------------------------------------- getting unstuck
+
+    /** Once a second: counts how long the echo has barely moved. Two or three seconds of that means it is stuck. */
+    private static void stuckTick(EchoEntity e) {
+        if (e.tickCount % 20 != 0) {
+            return;
+        }
+        double moved = (e.getX() - e.lastX) * (e.getX() - e.lastX) + (e.getZ() - e.lastZ) * (e.getZ() - e.lastZ);
+        e.stuckChecks = moved < 2.0 ? e.stuckChecks + 1 : 0;
+        if (moved >= 9) {
+            e.stuckStrikes = 0;
+        }
+        e.lastX = e.getX();
+        e.lastZ = e.getZ();
+    }
+
+    /** A spot the echo could stand on near the given column: free space for its body, ground under it, no water or lava. */
+    private static Vec3 standSpot(EchoEntity e, ServerLevel level, double x, double z) {
+        if (!level.hasChunkAt(BlockPos.containing(x, e.getY(), z))) {
+            return null;
+        }
+        int[] offsets = {0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -6, -8};
+        for (int dy : offsets) {
+            double y = Math.floor(e.getY()) + dy;
+            net.minecraft.world.phys.AABB box = e.getBoundingBox().move(x - e.getX(), y - e.getY(), z - e.getZ());
+            if (!level.noCollision(e, box) || level.noCollision(e, box.move(0, -0.6, 0))) {
+                continue;
+            }
+            BlockPos feet = BlockPos.containing(x, y, z);
+            if (!level.getFluidState(feet).isEmpty() || !level.getFluidState(feet.below()).isEmpty()) {
+                continue;
+            }
+            return new Vec3(x, y, z);
+        }
+        return null;
+    }
+
+    /**
+     * Last resort for an echo that cannot path out of where it is (a closed room, odd slabs and stairs, a pit): it slips
+     * through the spirit world to the nearest standable spot toward where it was heading. Returns whether it moved.
+     */
+    private static boolean blink(EchoEntity e, ServerLevel level, double towardX, double towardZ) {
+        if (e.isFlier()) {
+            return false;
+        }
+        double dx = towardX - e.getX();
+        double dz = towardZ - e.getZ();
+        double len = Math.max(1, Math.sqrt(dx * dx + dz * dz));
+        dx /= len;
+        dz /= len;
+        for (double dist : new double[]{12, 8, 5, 16}) {
+            for (double side : new double[]{0, 4, -4, 8, -8}) {
+                Vec3 spot = standSpot(e, level, e.getX() + dx * dist - dz * side, e.getZ() + dz * dist + dx * side);
+                if (spot == null) {
+                    continue;
+                }
+                level.sendParticles(ParticleTypes.PORTAL, e.getX(), e.getY() + 0.8, e.getZ(), 15, 0.3, 0.5, 0.3, 0.2);
+                e.getNavigation().stop();
+                e.teleportTo(spot.x, spot.y, spot.z);
+                level.sendParticles(ParticleTypes.PORTAL, e.getX(), e.getY() + 0.8, e.getZ(), 15, 0.3, 0.5, 0.3, 0.2);
+                e.stuckChecks = 0;
+                e.stuckStrikes = 0;
+                e.repath = 0;
+                e.lastX = e.getX();
+                e.lastZ = e.getZ();
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** Right-click on a Guide echo: lead the owner to the selected gate, or (clicked again) stop and wait at the owner's side. */
     static void guideSignal(EchoEntity e, ServerPlayer owner, ServerLevel level) {
         EchoManager.Found gate = EchoManager.selectedGate(owner);
@@ -639,9 +717,15 @@ final class EchoBrain {
         } else if (e.distanceToSqr(owner) > 20 * 20) {
             e.getNavigation().stop(); // the owner is lagging: wait for them
             e.getLookControl().setLookAt(owner);
-        } else if (--e.repath <= 0) {
-            e.repath = 20;
-            routeTo(e, level, gate.pos());
+        } else {
+            stuckTick(e);
+            if (e.stuckChecks >= 4 && blink(e, level, gx, gz)) {
+                e.stuckChecks = 0;
+            }
+            if (--e.repath <= 0) {
+                e.repath = 20;
+                routeTo(e, level, gate.pos());
+            }
         }
         if (e.tickCount % 10 == 0) {
             level.sendParticles(ParticleTypes.END_ROD, e.getX(), e.getY() + e.getBbHeight() + 0.3, e.getZ(), 2, 0.1, 0.1, 0.1, 0.01);

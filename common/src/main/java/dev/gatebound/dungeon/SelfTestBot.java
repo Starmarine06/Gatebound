@@ -185,7 +185,7 @@ final class SelfTestBot {
                     DungeonManager.testBossDeath(dun, store, f);
                     int shardsAfter = countShards();
                     DungeonStore.FloorState fs = store.floor(f);
-                    boolean portal = dun.getBlockState(fs.upPortal).getBlock() instanceof GateExitBlock;
+                    boolean portal = PortalPlacer.exists(dun, fs.upPortal, net.minecraft.core.Direction.EAST);
                     log("boss reward: shards {} -> {}, exit portal present={}, bossDead={}, claimed={}", shardsBefore, shardsAfter,
                             portal, fs.bossDead, store.progressOf(bot.getUUID()).bosses);
                     DungeonManager.testBossDeath(dun, store, f);

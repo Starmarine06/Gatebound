@@ -305,15 +305,16 @@ public final class FloorJob extends WorkQueue.Job {
     private boolean features(ServerLevel level) {
         DungeonStore store = DungeonStore.get(level.getServer());
         DungeonStore.FloorState fs = store.floor(floor);
-        level.setBlock(plan.downPortal, GateExitBlock.state(GateExitBlock.Kind.DOWN), 3);
+        // Portals hang on walls: the way down on the west wall, the way up on the east wall (away from where you arrive).
+        PortalPlacer.place(level, plan.downPortal, GateExitBlock.Kind.DOWN, net.minecraft.core.Direction.WEST);
         if (plan.kind == Spire.Kind.NORMAL || plan.kind == Spire.Kind.REST) {
-            level.setBlock(plan.upPortal, GateExitBlock.state(GateExitBlock.Kind.UP), 3);
+            PortalPlacer.place(level, plan.upPortal, GateExitBlock.Kind.UP, net.minecraft.core.Direction.EAST);
         }
         for (BlockPos rift : plan.riftPortals) {
-            level.setBlock(rift, GateExitBlock.state(GateExitBlock.Kind.HOME), 3);
+            PortalPlacer.place(level, rift, GateExitBlock.Kind.HOME, net.minecraft.core.Direction.WEST);
         }
         if (fs.bossDead && plan.kind == Spire.Kind.BOSS) {
-            level.setBlock(plan.upPortal, GateExitBlock.state(GateExitBlock.Kind.UP), 3);
+            PortalPlacer.place(level, plan.upPortal, GateExitBlock.Kind.UP, net.minecraft.core.Direction.EAST);
         }
         placeChests(level);
         return true;

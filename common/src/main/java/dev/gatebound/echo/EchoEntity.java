@@ -53,6 +53,8 @@ public class EchoEntity extends PathfinderMob {
     net.minecraft.world.phys.Vec3 exploreTarget;
     int exploreRound;
     int stuckChecks;
+    /** How many times in a row the echo stayed stuck even after picking a new target. */
+    int stuckStrikes;
     double lastX;
     double lastZ;
     // Summoner skill state (EchoSkills): game-time deadlines.
@@ -86,6 +88,7 @@ public class EchoEntity extends PathfinderMob {
                 .add(Attributes.MOVEMENT_SPEED, 0.28)
                 .add(Attributes.ATTACK_DAMAGE, 3)
                 .add(Attributes.FLYING_SPEED, 0.6)
+                .add(Attributes.STEP_HEIGHT, 1.0) // walks up slabs, stairs and full blocks without having to jump
                 .add(Attributes.FOLLOW_RANGE, 64);
     }
 
@@ -144,6 +147,11 @@ public class EchoEntity extends PathfinderMob {
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));
+        if (getNavigation() instanceof net.minecraft.world.entity.ai.navigation.GroundPathNavigation ground) {
+            ground.setCanOpenDoors(true);
+            ground.setCanFloat(true);
+            this.goalSelector.addGoal(1, new net.minecraft.world.entity.ai.goal.OpenDoorGoal(this, true));
+        }
     }
 
     private void makeFlier() {
