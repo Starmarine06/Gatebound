@@ -22,6 +22,17 @@ final class EchoClient {
     private EchoClient() {
     }
 
+    /** True while the select key is physically held (read from the keyboard, not from repeating key events). */
+    static boolean selectHeld() {
+        com.mojang.blaze3d.platform.InputConstants.Key key = com.mojang.blaze3d.platform.InputConstants.getKey(SELECT.saveString());
+        return key.getType() == com.mojang.blaze3d.platform.InputConstants.Type.KEYBOARD
+                ? com.mojang.blaze3d.platform.InputConstants.isKeyDown(key.getValue()) : SELECT.isDown();
+    }
+
+    static void onWheel(EchoWheelPayload payload) {
+        net.minecraft.client.Minecraft.getInstance().setScreenAndShow(new EchoWheelScreen(payload));
+    }
+
     /** Opens the Echoes screen, or refreshes it when it is already showing. */
     static void onRoster(EchoRosterPayload payload) {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();

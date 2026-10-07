@@ -817,11 +817,18 @@ public final class EchoManager {
             }
         }
         if (body != null && bodyD < Double.MAX_VALUE && bodyD <= echoD) {
-            if (player.isShiftKeyDown()) {
-                bindCorpse(player, body.getId(), 0);
-            } else {
-                body.openMenu(player);
+            PlayerData data = PlayerDataStore.of(player);
+            List<String> labels = new ArrayList<>();
+            for (int g = 0; g < EchoRoster.GROUPS; g++) {
+                int n = 0;
+                for (EchoRoster.Entry en : data.echo.entries) {
+                    if (en.group() == g) {
+                        n++;
+                    }
+                }
+                labels.add("Group " + (g + 1) + ": " + ORDER_NAMES[data.echo.groupModes[g]] + " (" + n + ")");
             }
+            NetworkManager.sendToPlayer(player, new EchoWheelPayload(body.getId(), true, body.bodyName(), labels, -1));
             return;
         }
         if (echo == null || echoD == Double.MAX_VALUE) {
@@ -830,21 +837,66 @@ public final class EchoManager {
             return;
         }
         int slot = info(echo).slot;
+        boolean selected = SELECTED_SLOT.getOrDefault(player.getUUID(), -99) == slot;
+        int personal = personalOrder(player, slot);
+        List<String> labels = new ArrayList<>(List.of(ORDER_NAMES));
+        labels.add("Group order");
+        labels.add(selected ? "Deselect" : "Select");
+        NetworkManager.sendToPlayer(player, new EchoWheelPayload(echo.getId(), false, echo.mobName(), labels, personal >= 0 ? personal : 4));
+    }
+
+    private static final String[] ORDER_NAMES = {"Guard", "Attack", "Seek", "Guide"};
+
+    /** Selects (or deselects) one echo, clearing the previous selection. */
+    private static void setSelection(ServerPlayer player, EchoEntity echo, int slot, boolean on) {
         Integer current = SELECTED_SLOT.get(player.getUUID());
         if (current != null) {
             EchoEntity old = echoInSlot(player, current);
             if (old != null) {
                 markSelected(old, false);
             }
-        }
-        if (current != null && current == slot) {
             SELECTED_SLOT.remove(player.getUUID());
-            player.sendOverlayMessage(Component.literal("Deselected " + echo.mobName() + ".").withStyle(net.minecraft.ChatFormatting.GRAY));
-        } else {
+        }
+        if (on) {
             SELECTED_SLOT.put(player.getUUID(), slot);
             markSelected(echo, true);
-            player.sendOverlayMessage(Component.literal("Selected " + echo.mobName()
-                    + ". Open the Echoes screen (H) to give it its own order.").withStyle(net.minecraft.ChatFormatting.GOLD));
+        }
+    }
+
+    /**
+     * The player chose an entry on the C wheel. For a soul body the choice is the group to bind it into. For an echo,
+     * 0 to 3 give it its own order (and select it), 4 hands it back to its group, 5 selects or deselects it.
+     */
+    static void wheelPick(ServerPlayer player, int entityId, int choice) {
+        Entity e = player.level().getEntity(entityId);
+        if (e instanceof EchoCorpse body) {
+            if (choice >= 0 && choice < EchoRoster.GROUPS && player.getUUID().equals(body.owner())) {
+                bindCorpse(player, entityId, choice);
+            }
+            return;
+        }
+        if (!(e instanceof EchoEntity echo) || echo.isCorpse() || echo.distanceToSqr(player) > 20 * 20) {
+            return;
+        }
+        Info info = info(echo);
+        if (info == null || !info.owner.equals(player.getUUID()) || info.slot < 0) {
+            return;
+        }
+        int slot = info.slot;
+        if (choice >= 0 && choice <= 3) {
+            setPersonalOrder(player, slot, choice);
+            setSelection(player, echo, slot, true);
+            player.sendOverlayMessage(Component.literal(echo.mobName() + ": " + ORDER_NAMES[choice] + ".")
+                    .withStyle(net.minecraft.ChatFormatting.GOLD));
+        } else if (choice == 4) {
+            setPersonalOrder(player, slot, -1);
+            player.sendOverlayMessage(Component.literal(echo.mobName() + " follows its group again.")
+                    .withStyle(net.minecraft.ChatFormatting.GRAY));
+        } else if (choice == 5) {
+            boolean on = SELECTED_SLOT.getOrDefault(player.getUUID(), -99) != slot;
+            setSelection(player, echo, slot, on);
+            player.sendOverlayMessage(Component.literal((on ? "Selected " : "Deselected ") + echo.mobName() + ".")
+                    .withStyle(on ? net.minecraft.ChatFormatting.GOLD : net.minecraft.ChatFormatting.GRAY));
         }
         sendRoster(player, false);
     }

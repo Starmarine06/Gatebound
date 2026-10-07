@@ -53,6 +53,14 @@ final class EchoNetwork {
                         EchoManager.bindCorpse(player, payload.entityId(), payload.group());
                     }
                 }));
+        NetworkManager.registerC2S(EchoWheelPickPayload.TYPE, EchoWheelPickPayload.CODEC, (payload, context) ->
+                context.queue(() -> {
+                    if (context.getPlayer() instanceof ServerPlayer player && player.isAlive()) {
+                        EchoManager.wheelPick(player, payload.entityId(), payload.choice());
+                    }
+                }));
+        NetworkManager.registerS2C(EchoWheelPayload.TYPE, EchoWheelPayload.CODEC, (payload, context) ->
+                context.queue(() -> EnvExecutor.runInEnv(Env.CLIENT, () -> () -> EchoClient.onWheel(payload))));
         NetworkManager.registerS2C(EchoBindMenuPayload.TYPE, EchoBindMenuPayload.CODEC, (payload, context) ->
                 context.queue(() -> EnvExecutor.runInEnv(Env.CLIENT, () -> () -> EchoClient.onBindMenu(payload))));
         NetworkManager.registerS2C(EchoViewPayload.TYPE, EchoViewPayload.CODEC, (payload, context) ->
