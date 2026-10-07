@@ -185,5 +185,5 @@ This is the template for the other classes. Skills live in `Skills.java`; Summon
 - Seek on dungeon floors is frontier exploration: waypoints once explored (stood within 7 blocks, or seen within 15 with a clear line) stay explored, no second sweep; the next target is the cheapest-to-walk unexplored waypoint in the echo's sector, and a finished echo takes the nearest unexplored branch at once. Far waypoints are approached by partial paths; when the floor is done the echoes wait with the owner and report it.
 
 ## Select key (C)
-- **C** near a soul body of yours opens the bind menu (sneak + C binds straight into group 1). Otherwise C selects the nearest of your echoes within 6 blocks (gold glow via the `gatebound_echo_sel` team, `>` marker in the HUD list); C again deselects.
+- **C** on the soul body you are looking at opens the bind menu (sneak + C binds straight into group 1). Otherwise C selects the echo you are looking at (within 8 blocks) (gold glow via the `gatebound_echo_sel` team, `>` marker in the HUD list); C again deselects.
 - A selected echo shows on the H screen with its own order buttons (Guard/Attack/Seek/Guide, or "Group order" to clear). Personal orders sit between Scout's Eye and the group order in `EchoManager.effectiveMode`, are kept per roster slot for the session only, and are cleared when an echo is released.

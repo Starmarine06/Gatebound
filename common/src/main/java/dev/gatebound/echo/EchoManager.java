@@ -711,7 +711,12 @@ public final class EchoManager {
     private static final Map<UUID, Integer> SELECTED_SLOT = new HashMap<>();
     /** Own orders for single echoes, by owner then roster slot; they override the echo's group order. */
     private static final Map<UUID, Map<Integer, Integer>> PERSONAL = new HashMap<>();
-    private static final double SELECT_RANGE = 6;
+    private static final double SELECT_RANGE = 8;
+
+    /** Distance along the line of sight to the entity's (slightly enlarged) box, or infinity if the line misses it. */
+    private static double lookDistance(Entity e, Vec3 eye, Vec3 end) {
+        return e.getBoundingBox().inflate(0.3).clip(eye, end).map(hit -> hit.distanceTo(eye)).orElse(Double.MAX_VALUE);
+    }
 
     /** The echo's own order, or -1 when it follows its group. */
     static int personalOrder(ServerPlayer owner, int slot) {
@@ -756,11 +761,14 @@ public final class EchoManager {
             return;
         }
         ServerLevel level = player.level();
-        net.minecraft.world.phys.AABB area = player.getBoundingBox().inflate(SELECT_RANGE);
+        Vec3 eye = player.getEyePosition();
+        Vec3 end = eye.add(player.getLookAngle().scale(SELECT_RANGE));
+        net.minecraft.world.phys.AABB area = player.getBoundingBox().expandTowards(player.getLookAngle().scale(SELECT_RANGE)).inflate(1.5);
+        // Whatever the crosshair is on: the nearest soul body or echo of yours along the line of sight.
         EchoCorpse body = null;
         double bodyD = Double.MAX_VALUE;
         for (EchoCorpse c : level.getEntitiesOfClass(EchoCorpse.class, area, c -> c.isAlive() && player.getUUID().equals(c.owner()))) {
-            double d = c.distanceToSqr(player);
+            double d = lookDistance(c, eye, end);
             if (d < bodyD) {
                 bodyD = d;
                 body = c;
@@ -773,13 +781,13 @@ public final class EchoManager {
             if (info == null || !info.owner.equals(player.getUUID()) || info.slot < 0) {
                 continue;
             }
-            double d = c.distanceToSqr(player);
+            double d = lookDistance(c, eye, end);
             if (d < echoD) {
                 echoD = d;
                 echo = c;
             }
         }
-        if (body != null && bodyD <= echoD) {
+        if (body != null && bodyD < Double.MAX_VALUE && bodyD <= echoD) {
             if (player.isShiftKeyDown()) {
                 bindCorpse(player, body.getId(), 0);
             } else {
@@ -787,8 +795,8 @@ public final class EchoManager {
             }
             return;
         }
-        if (echo == null) {
-            player.sendOverlayMessage(Component.literal("Stand near one of your echoes or a soul body and press the select key.")
+        if (echo == null || echoD == Double.MAX_VALUE) {
+            player.sendOverlayMessage(Component.literal("Look at one of your echoes or a soul body and press the select key.")
                     .withStyle(net.minecraft.ChatFormatting.GRAY));
             return;
         }
