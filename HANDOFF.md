@@ -94,7 +94,7 @@ Ops: `level set`, `xp add`, `class reset`, `mana set`, `element grant`, `magic o
 - **Attack** (1): hunts the nearest enemies within 20 blocks of itself, plus whatever the owner is fighting.
 - **Seek** (2): gate search sweep (see Gate search). Echoes now have **step height 1.0** (no jumping needed for slabs, stairs, ledges) and a door-opening goal (they used to be stopped by
   closed doors). A **stuck rescue** (`EchoBrain.blink`): after about 3 s of barely moving, twice in a row, a ground echo slips to the nearest standable spot toward its target; Guide uses it too.
-  **Dungeon floors:** Seek walks room to room along the floor plan's waypoints (`EchoBrain.pickWaypoint`: spawn spots, centre, portals), nearest unvisited first with noise so groups fan out, remembering visited ones per owner and floor; random-ring targets are only used outside the dungeon.
+  **Dungeon floors:** Seek walks room to room along the floor plan's waypoints (`EchoBrain.pickWaypoint`: spawn spots, centre, portals), in per-echo claimed sectors (48-block cells) so a group splits up without overlapping, nearest unvisited first within a sector, remembering visited ones per owner and floor; random-ring targets are only used outside the dungeon.
 - **Guide** (3): waits beside the owner until a gate is found, announces it, then holds until the owner **right-clicks the echo**; it then paths to the gate by the best route
   (full path if reachable, else best waypoint step with sidesteps; fliers fly straight), waits when the owner is 20+ blocks behind, holds at the gate. Right-click again to stop.
   A Guide echo's right-click is the signal, so a flying echo is only rideable while it is not in a Guide group. Old saved orders shift (old Follow = Guard, old Guard = Attack).
