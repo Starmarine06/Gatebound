@@ -547,6 +547,7 @@ final class EchoBrain {
         return SEEN_WAYPOINTS.computeIfAbsent(owner.getUUID() + "#" + floor, k -> new java.util.HashSet<>());
     }
 
+    /** A waypoint counts as explored once the echo has stood near it or has seen it across open space. */
     private static void markWaypoints(EchoEntity e, ServerPlayer owner, ServerLevel level) {
         if (!level.dimension().equals(DungeonRegistries.DUNGEON)) {
             return;
@@ -557,15 +558,36 @@ final class EchoBrain {
             return;
         }
         java.util.Set<Long> seen = seenWaypoints(owner, floor);
+        Vec3 eye = e.getEyePosition();
         for (BlockPos w : list) {
+            if (seen.contains(w.asLong()) || Math.abs(w.getY() - e.getY()) >= 4) {
+                continue;
+            }
             double dx = w.getX() + 0.5 - e.getX();
             double dz = w.getZ() + 0.5 - e.getZ();
-            if (dx * dx + dz * dz < 49 && Math.abs(w.getY() - e.getY()) < 4) {
+            double d2 = dx * dx + dz * dz;
+            if (d2 < 49) {
                 seen.add(w.asLong());
+            } else if (d2 < 15 * 15) {
+                Vec3 to = new Vec3(w.getX() + 0.5, w.getY() + 1.2, w.getZ() + 0.5);
+                if (level.clip(new net.minecraft.world.level.ClipContext(eye, to, net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                        net.minecraft.world.level.ClipContext.Fluid.NONE, e)).getType() == net.minecraft.world.phys.HitResult.Type.MISS) {
+                    seen.add(w.asLong());
+                }
             }
         }
     }
 
+    private static final java.util.Map<String, Integer> ATTEMPTS = new java.util.HashMap<>();
+    private static final java.util.Set<String> FLOOR_DONE = new java.util.HashSet<>();
+
+    /**
+     * Frontier exploration over the floor's waypoints. Explored waypoints stay explored (there is no second sweep), so an
+     * echo never goes back over ground that has been searched. The next target is the unexplored waypoint in the echo's own
+     * sector that costs the least walking; when the sector is finished the cheapest unexplored waypoint anywhere else is
+     * taken at once, which is the nearest branch not yet searched. Waypoints too far for one path search are approached
+     * along a partial path rather than written off.
+     */
     private static boolean pickWaypoint(EchoEntity e, ServerPlayer owner, ServerLevel level) {
         int total = DungeonStore.get(level.getServer()).ensureTower(level.getServer());
         int floor = Spire.floorAt(e.getX(), e.getZ(), total);
@@ -573,6 +595,7 @@ final class EchoBrain {
             return false;
         }
         List<BlockPos> list = waypoints(level, floor, total, true);
+        String ownerKey = owner.getUUID() + "#" + floor;
         java.util.Set<Long> seen = seenWaypoints(owner, floor);
         List<BlockPos> open = new java.util.ArrayList<>();
         for (BlockPos w : list) {
@@ -581,12 +604,20 @@ final class EchoBrain {
             }
         }
         if (open.isEmpty()) {
-            seen.clear(); // everything has been seen: start another sweep
-            return false;
+            // Everything on this floor has been searched: report once and wait with the owner instead of wandering.
+            e.exploreTarget = null;
+            if (FLOOR_DONE.add(ownerKey)) {
+                owner.sendSystemMessage(Component.literal("[Echo] This floor has been searched completely. No unexplored paths are left.")
+                        .withStyle(ChatFormatting.GRAY));
+            }
+            if (e.distanceToSqr(owner) > 6 * 6) {
+                e.getNavigation().moveTo(owner, 1.2);
+            }
+            return true;
         }
-        // Sectors: the floor is cut into square cells; each seeking echo claims one and sweeps only that, so the group
-        // splits up and covers everything without overlapping. A finished echo claims the nearest free sector with work left.
-        java.util.Map<Long, Claim> claims = CLAIMS.computeIfAbsent(owner.getUUID() + "#" + floor, k -> new java.util.HashMap<>());
+        FLOOR_DONE.remove(ownerKey);
+
+        java.util.Map<Long, Claim> claims = CLAIMS.computeIfAbsent(ownerKey, k -> new java.util.HashMap<>());
         long now = level.getGameTime();
         claims.values().removeIf(c -> now - c.tick > 600);
         java.util.Map<Long, List<BlockPos>> bySector = new java.util.HashMap<>();
@@ -600,58 +631,77 @@ final class EchoBrain {
             }
         }
         if (mine != Long.MIN_VALUE && !bySector.containsKey(mine)) {
-            claims.remove(mine); // sector finished
+            claims.remove(mine); // sector finished: move on straight away
             mine = Long.MIN_VALUE;
         }
-        if (mine == Long.MIN_VALUE) {
-            double bestD = Double.MAX_VALUE;
+        List<BlockPos> pool = mine != Long.MIN_VALUE ? bySector.get(mine) : null;
+        if (pool == null) {
+            // Candidates: every unclaimed sector's waypoints (or, if all are claimed, all open ones).
+            pool = new java.util.ArrayList<>();
             for (java.util.Map.Entry<Long, List<BlockPos>> s : bySector.entrySet()) {
-                Claim taken = claims.get(s.getKey());
-                if (taken != null) {
-                    continue;
-                }
-                for (BlockPos w : s.getValue()) {
-                    double d = e.distanceToSqr(w.getX() + 0.5, w.getY(), w.getZ() + 0.5);
-                    if (d < bestD) {
-                        bestD = d;
-                        mine = s.getKey();
-                    }
+                if (!claims.containsKey(s.getKey())) {
+                    pool.addAll(s.getValue());
                 }
             }
-            if (mine == Long.MIN_VALUE) {
-                // Every sector with work left is claimed: help in the one with the most left.
-                int most = 0;
-                for (java.util.Map.Entry<Long, List<BlockPos>> s : bySector.entrySet()) {
-                    if (s.getValue().size() > most) {
-                        most = s.getValue().size();
-                        mine = s.getKey();
-                    }
-                }
-            } else {
-                claims.put(mine, new Claim(e.getUUID(), now));
+            if (pool.isEmpty()) {
+                pool = open;
             }
+        }
+        // Rank by straight-line distance, then judge the nearest few by real walking cost.
+        pool.sort(java.util.Comparator.comparingDouble(w -> e.distanceToSqr(w.getX() + 0.5, w.getY(), w.getZ() + 0.5)));
+        BlockPos pick = null;
+        net.minecraft.world.level.pathfinder.Path pickPath = null;
+        int pickCost = Integer.MAX_VALUE;
+        BlockPos partial = null;
+        net.minecraft.world.level.pathfinder.Path partialPath = null;
+        for (int i = 0; i < Math.min(8, pool.size()); i++) {
+            BlockPos w = pool.get(i);
+            net.minecraft.world.level.pathfinder.Path path = e.getNavigation().createPath(w.getX() + 0.5, w.getY(), w.getZ() + 0.5, 1);
+            if (path == null) {
+                seen.add(w.asLong()); // no way toward it at all from here
+                continue;
+            }
+            if (path.canReach()) {
+                if (path.getNodeCount() < pickCost) {
+                    pickCost = path.getNodeCount();
+                    pick = w;
+                    pickPath = path;
+                }
+            } else if (partial == null) {
+                partial = w;
+                partialPath = path;
+            }
+        }
+        if (pick == null && partial != null) {
+            pick = partial;
+            pickPath = partialPath;
+            // A waypoint that keeps ending in partial paths without being reached is a dead end: stop trying it.
+            String ak = ownerKey + "@" + pick.asLong();
+            int tries = ATTEMPTS.merge(ak, 1, Integer::sum);
+            if (tries > 8) {
+                seen.add(pick.asLong());
+                ATTEMPTS.remove(ak);
+            }
+        }
+        if (pick == null) {
+            e.exploreTarget = null;
+            if (e.distanceToSqr(owner) > 8 * 8) {
+                e.getNavigation().moveTo(owner, 1.2);
+            }
+            return true;
+        }
+        long sec = sector(pick);
+        if (mine == Long.MIN_VALUE && !claims.containsKey(sec)) {
+            claims.put(sec, new Claim(e.getUUID(), now));
+            mine = sec;
         }
         Claim held = claims.get(mine);
         if (held != null && held.who.equals(e.getUUID())) {
             held.tick = now;
         }
-        open = bySector.get(mine);
-        java.util.Map<BlockPos, Double> key = new java.util.HashMap<>();
-        for (BlockPos w : open) {
-            key.put(w, Math.sqrt(e.distanceToSqr(w.getX() + 0.5, w.getY(), w.getZ() + 0.5)) + e.getRandom().nextDouble() * 4);
-        }
-        open.sort(java.util.Comparator.comparingDouble(key::get));
-        for (int i = 0; i < Math.min(6, open.size()); i++) {
-            BlockPos w = open.get(i);
-            net.minecraft.world.level.pathfinder.Path path = e.getNavigation().createPath(w.getX() + 0.5, w.getY(), w.getZ() + 0.5, 1);
-            if (path != null && path.canReach()) {
-                e.exploreTarget = new Vec3(w.getX() + 0.5, w.getY(), w.getZ() + 0.5);
-                e.getNavigation().moveTo(path, e.isFlier() ? 1.5 : 1.3);
-                return true;
-            }
-            seen.add(w.asLong()); // cannot be walked to from here: skip it this sweep
-        }
-        return false;
+        e.exploreTarget = new Vec3(pick.getX() + 0.5, pick.getY(), pick.getZ() + 0.5);
+        e.getNavigation().moveTo(pickPath, e.isFlier() ? 1.5 : 1.3);
+        return true;
     }
 
     private static BlockPos findGate(EchoEntity e, ServerLevel level, double sight) {

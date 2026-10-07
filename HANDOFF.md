@@ -182,3 +182,4 @@ This is the template for the other classes. Skills live in `Skills.java`; Summon
 ## Portals (reworked)
 - Escape rifts are gone. Each Spire floor has exactly one way down (the entrance) and one way up; a gate dungeon has only its entrance as an exit (no portal after the guardian dies).
 - Portals are framed doorways (`PortalPlacer.frame`): stone-brick posts, chiseled lintel, a lantern on each post. Existing floors keep the old layout until rebuilt with `/gatebound tower regen <n>`.
+- Seek on dungeon floors is frontier exploration: waypoints once explored (stood within 7 blocks, or seen within 15 with a clear line) stay explored, no second sweep; the next target is the cheapest-to-walk unexplored waypoint in the echo's sector, and a finished echo takes the nearest unexplored branch at once. Far waypoints are approached by partial paths; when the floor is done the echoes wait with the owner and report it.
