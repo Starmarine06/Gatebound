@@ -106,13 +106,13 @@ public class EchoCorpse extends EchoEntity {
                 EchoManager.bindCorpse(sp, getId(), 0);
                 return InteractionResult.SUCCESS_SERVER;
             }
-            sendMenu(sp);
+            openMenu(sp);
             return InteractionResult.SUCCESS_SERVER;
         }
         return InteractionResult.PASS;
     }
 
-    private void sendMenu(ServerPlayer player) {
+    void openMenu(ServerPlayer player) {
         PlayerData data = PlayerDataStore.of(player);
         List<Integer> modes = new ArrayList<>();
         List<Integer> counts = new ArrayList<>();

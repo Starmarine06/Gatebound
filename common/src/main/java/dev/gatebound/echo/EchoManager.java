@@ -143,7 +143,11 @@ public final class EchoManager {
     /** The order an echo follows right now: its Scout's Eye order if the owner is viewing it, else its group's order. */
     public static int effectiveMode(ServerPlayer owner, java.util.UUID echoId, int slot) {
         int override = EchoView.orderFor(echoId);
-        return override >= 0 ? override : modeOf(owner, slot);
+        if (override >= 0) {
+            return override;
+        }
+        int personal = personalOrder(owner, slot);
+        return personal >= 0 ? personal : modeOf(owner, slot);
     }
 
     /** Gives every echo of one group an order (group -1 = all groups). */
@@ -264,7 +268,8 @@ public final class EchoManager {
         List<EchoRosterPayload.Row> rows = new ArrayList<>();
         for (int i = 0; i < data.echo.entries.size(); i++) {
             EchoRoster.Entry en = data.echo.entries.get(i);
-            rows.add(new EchoRosterPayload.Row(en.name(), en.type(), en.group(), isActive(owner.getUUID(), i), i < slots(data)));
+            rows.add(new EchoRosterPayload.Row(en.name(), en.type(), en.group(), isActive(owner.getUUID(), i), i < slots(data),
+                    SELECTED_SLOT.getOrDefault(owner.getUUID(), -99) == i, personalOrder(owner, i)));
         }
         List<Integer> modes = new ArrayList<>();
         for (int m : data.echo.groupModes) {
@@ -602,6 +607,8 @@ public final class EchoManager {
         }
         // Slots are positional, so dismiss everything first and let the player summon again.
         dismissAll(player, false);
+        SELECTED_SLOT.remove(player.getUUID());
+        PERSONAL.remove(player.getUUID());
         data.echo.entries.remove(index);
         PlayerDataStore.markDirty(player);
         return true;
@@ -664,7 +671,11 @@ public final class EchoManager {
         mob.setCustomName(Component.literal((lifetimeTicks > 0 ? "Spectral " : "Echo: ") + entry.name()));
         mob.setCustomNameVisible(true);
         mob.setGlowingTag(true);
-        joinTeam(level, mob);
+        joinTeam(level, mob, false);
+        if (slot == SELECTED_SLOT.getOrDefault(owner.getUUID(), -99)) {
+            mob.setSelected(true);
+            joinTeam(level, mob, true);
+        }
         mob.setTarget(null);
 
         if (!level.addFreshEntity(mob)) {
@@ -682,15 +693,123 @@ public final class EchoManager {
         }
     }
 
-    private static void joinTeam(ServerLevel level, Mob mob) {
+    private static void joinTeam(ServerLevel level, Mob mob, boolean selected) {
         Scoreboard sb = level.getScoreboard();
-        PlayerTeam team = sb.getPlayerTeam(TEAM);
+        String name = selected ? TEAM + "_sel" : TEAM;
+        PlayerTeam team = sb.getPlayerTeam(name);
         if (team == null) {
-            team = sb.addPlayerTeam(TEAM);
-            team.setColor(Optional.of(TeamColor.DARK_PURPLE));
+            team = sb.addPlayerTeam(name);
+            team.setColor(Optional.of(selected ? TeamColor.GOLD : TeamColor.DARK_PURPLE));
             team.setAllowFriendlyFire(false);
         }
         sb.addPlayerToTeam(mob.getScoreboardName(), team);
+    }
+
+    // ---------------------------------------------------------------- selecting one echo
+
+    /** Roster slot of the echo each owner has picked with the select key (session only). */
+    private static final Map<UUID, Integer> SELECTED_SLOT = new HashMap<>();
+    /** Own orders for single echoes, by owner then roster slot; they override the echo's group order. */
+    private static final Map<UUID, Map<Integer, Integer>> PERSONAL = new HashMap<>();
+    private static final double SELECT_RANGE = 6;
+
+    /** The echo's own order, or -1 when it follows its group. */
+    static int personalOrder(ServerPlayer owner, int slot) {
+        Map<Integer, Integer> m = PERSONAL.get(owner.getUUID());
+        Integer v = m == null ? null : m.get(slot);
+        return v == null ? -1 : v;
+    }
+
+    /** Gives one echo its own order (a value past Guide clears it, so the echo follows its group again). */
+    public static void setPersonalOrder(ServerPlayer owner, int slot, int mode) {
+        Map<Integer, Integer> m = PERSONAL.computeIfAbsent(owner.getUUID(), k -> new HashMap<>());
+        if (mode < EchoRoster.GUARD || mode > EchoRoster.GUIDE) {
+            m.remove(slot);
+        } else {
+            m.put(slot, mode);
+        }
+    }
+
+    private static EchoEntity echoInSlot(ServerPlayer owner, int slot) {
+        for (Map.Entry<UUID, Info> e : ACTIVE.entrySet()) {
+            if (e.getValue().owner.equals(owner.getUUID()) && e.getValue().slot == slot
+                    && findAnywhere(owner.level().getServer(), e.getKey()) instanceof EchoEntity echo) {
+                return echo;
+            }
+        }
+        return null;
+    }
+
+    private static void markSelected(EchoEntity echo, boolean on) {
+        echo.setSelected(on);
+        if (echo.level() instanceof ServerLevel level) {
+            joinTeam(level, echo, on);
+        }
+    }
+
+    /**
+     * The select key. Beside a soul body of yours it opens the bind menu (sneak: bind straight into group 1); otherwise
+     * it selects the nearest of your echoes within a few blocks, or deselects it if it was already the selected one.
+     */
+    public static void pressSelect(ServerPlayer player) {
+        if (!isSummoner(PlayerDataStore.of(player))) {
+            return;
+        }
+        ServerLevel level = player.level();
+        net.minecraft.world.phys.AABB area = player.getBoundingBox().inflate(SELECT_RANGE);
+        EchoCorpse body = null;
+        double bodyD = Double.MAX_VALUE;
+        for (EchoCorpse c : level.getEntitiesOfClass(EchoCorpse.class, area, c -> c.isAlive() && player.getUUID().equals(c.owner()))) {
+            double d = c.distanceToSqr(player);
+            if (d < bodyD) {
+                bodyD = d;
+                body = c;
+            }
+        }
+        EchoEntity echo = null;
+        double echoD = Double.MAX_VALUE;
+        for (EchoEntity c : level.getEntitiesOfClass(EchoEntity.class, area, c -> !c.isCorpse() && c.isAlive())) {
+            Info info = info(c);
+            if (info == null || !info.owner.equals(player.getUUID()) || info.slot < 0) {
+                continue;
+            }
+            double d = c.distanceToSqr(player);
+            if (d < echoD) {
+                echoD = d;
+                echo = c;
+            }
+        }
+        if (body != null && bodyD <= echoD) {
+            if (player.isShiftKeyDown()) {
+                bindCorpse(player, body.getId(), 0);
+            } else {
+                body.openMenu(player);
+            }
+            return;
+        }
+        if (echo == null) {
+            player.sendOverlayMessage(Component.literal("Stand near one of your echoes or a soul body and press the select key.")
+                    .withStyle(net.minecraft.ChatFormatting.GRAY));
+            return;
+        }
+        int slot = info(echo).slot;
+        Integer current = SELECTED_SLOT.get(player.getUUID());
+        if (current != null) {
+            EchoEntity old = echoInSlot(player, current);
+            if (old != null) {
+                markSelected(old, false);
+            }
+        }
+        if (current != null && current == slot) {
+            SELECTED_SLOT.remove(player.getUUID());
+            player.sendOverlayMessage(Component.literal("Deselected " + echo.mobName() + ".").withStyle(net.minecraft.ChatFormatting.GRAY));
+        } else {
+            SELECTED_SLOT.put(player.getUUID(), slot);
+            markSelected(echo, true);
+            player.sendOverlayMessage(Component.literal("Selected " + echo.mobName()
+                    + ". Open the Echoes screen (H) to give it its own order.").withStyle(net.minecraft.ChatFormatting.GOLD));
+        }
+        sendRoster(player, false);
     }
 
     // ---------------------------------------------------------------- tick

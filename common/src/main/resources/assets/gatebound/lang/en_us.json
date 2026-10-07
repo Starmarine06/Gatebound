@@ -78,6 +78,7 @@
   "block.gatebound.gate": "Gate",
   "block.gatebound.gate_exit": "Gate Exit",
   "key.gatebound.echo_toggle": "Summon/Dismiss Echoes",
+  "key.gatebound.echo_select": "Bind Soul Body / Select Echo",
   "gatebound.echo.bound": "Echo bound: %s",
   "gatebound.echo.fallen": "Your echo (%s) has fallen. Summon it again when ready.",
   "gatebound.echo.summoned": "Summoned %s echo(es)",

@@ -15,7 +15,8 @@ import java.util.List;
  */
 public record EchoRosterPayload(boolean open, boolean summoner, List<Row> rows, List<Integer> groupModes,
                                 List<GateRow> gates, String viewing) implements CustomPacketPayload {
-    public record Row(String name, String type, int group, boolean active, boolean unlocked) {
+    /** selected: this is the echo picked with the select key; personal: its own order (-1 = follows its group). */
+    public record Row(String name, String type, int group, boolean active, boolean unlocked, boolean selected, int personal) {
     }
 
     /** distance is in blocks, or -1 when the gate is in another dimension. */
@@ -32,7 +33,8 @@ public record EchoRosterPayload(boolean open, boolean summoner, List<Row> rows, 
             int n = buf.readVarInt();
             List<Row> rows = new ArrayList<>(n);
             for (int i = 0; i < n; i++) {
-                rows.add(new Row(buf.readUtf(), buf.readUtf(), buf.readVarInt(), buf.readBoolean(), buf.readBoolean()));
+                rows.add(new Row(buf.readUtf(), buf.readUtf(), buf.readVarInt(), buf.readBoolean(), buf.readBoolean(),
+                        buf.readBoolean(), buf.readVarInt() - 1));
             }
             int m = buf.readVarInt();
             List<Integer> modes = new ArrayList<>(m);
@@ -59,6 +61,8 @@ public record EchoRosterPayload(boolean open, boolean summoner, List<Row> rows, 
                 buf.writeVarInt(r.group);
                 buf.writeBoolean(r.active);
                 buf.writeBoolean(r.unlocked);
+                buf.writeBoolean(r.selected);
+                buf.writeVarInt(r.personal + 1);
             }
             buf.writeVarInt(p.groupModes.size());
             for (int m : p.groupModes) {

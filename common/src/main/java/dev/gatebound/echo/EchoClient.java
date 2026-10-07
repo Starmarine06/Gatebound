@@ -15,6 +15,10 @@ final class EchoClient {
     private static final KeyMapping TOGGLE = new KeyMapping("key.gatebound.echo_toggle",
             com.mojang.blaze3d.platform.InputConstants.KEY_R, ClientHooks.CATEGORY);
 
+    /** C binds the soul body beside you, or selects/deselects the echo beside you. */
+    private static final KeyMapping SELECT = new KeyMapping("key.gatebound.echo_select",
+            com.mojang.blaze3d.platform.InputConstants.KEY_C, ClientHooks.CATEGORY);
+
     private EchoClient() {
     }
 
@@ -46,12 +50,18 @@ final class EchoClient {
         dev.architectury.event.events.client.ClientGuiEvent.RENDER_HUD.register(EchoHud::render);
         KeyMappingRegistry.register(TOGGLE);
         KeyMappingRegistry.register(MENU);
+        KeyMappingRegistry.register(SELECT);
         dev.architectury.registry.client.level.entity.EntityRendererRegistry.register(EchoEntities.ECHO, EchoRenderer::new);
         dev.architectury.registry.client.level.entity.EntityRendererRegistry.register(EchoEntities.CORPSE, EchoRenderer::new);
         ClientTickEvent.CLIENT_POST.register(mc -> {
             while (MENU.consumeClick()) {
                 if (mc.gui.screen() == null && mc.player != null && NetworkManager.canServerReceive(EchoMenuPayload.TYPE)) {
                     NetworkManager.sendToServer(new EchoMenuPayload());
+                }
+            }
+            while (SELECT.consumeClick()) {
+                if (mc.gui.screen() == null && mc.player != null && NetworkManager.canServerReceive(EchoSelectPayload.TYPE)) {
+                    NetworkManager.sendToServer(new EchoSelectPayload());
                 }
             }
             while (TOGGLE.consumeClick()) {

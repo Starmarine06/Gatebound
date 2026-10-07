@@ -26,6 +26,8 @@ import java.util.EnumSet;
 public class EchoEntity extends PathfinderMob {
     private static final EntityDataAccessor<Boolean> FLIER =
             SynchedEntityData.defineId(EchoEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> SELECTED =
+            SynchedEntityData.defineId(EchoEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<String> OWNER_ID =
             SynchedEntityData.defineId(EchoEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<String> MOB_TYPE =
@@ -98,6 +100,7 @@ public class EchoEntity extends PathfinderMob {
         builder.define(MOB_TYPE, "minecraft:zombie");
         builder.define(FLIER, false);
         builder.define(OWNER_ID, "");
+        builder.define(SELECTED, false);
     }
 
     /** The owner's UUID as text (synced so the client HUD can list its own echoes); empty for a corpse. */
@@ -107,6 +110,15 @@ public class EchoEntity extends PathfinderMob {
 
     void setOwnerId(java.util.UUID id) {
         this.entityData.set(OWNER_ID, id.toString());
+    }
+
+    /** True while the owner has this echo picked with the select key (it glows gold and shows in the HUD list). */
+    public boolean isSelected() {
+        return this.entityData.get(SELECTED);
+    }
+
+    void setSelected(boolean selected) {
+        this.entityData.set(SELECTED, selected);
     }
 
     public String mobType() {

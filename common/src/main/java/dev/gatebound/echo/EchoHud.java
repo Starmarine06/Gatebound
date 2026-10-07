@@ -47,7 +47,11 @@ final class EchoHud {
             if (name.length() > 14) {
                 name = name.substring(0, 13) + ".";
             }
-            g.text(mc.font, name, x + 3, rowY + 2, 0xFFFFFFFF, true);
+            if (e.isSelected()) {
+                g.fill(x - 2, rowY, x, rowY + ROW_H - 1, 0xFFFFAA00);
+                name = "> " + name;
+            }
+            g.text(mc.font, name, x + 3, rowY + 2, e.isSelected() ? 0xFFFFD27C : 0xFFFFFFFF, true);
         }
     }
 }

@@ -29,6 +29,8 @@ final class EchoScreen extends Screen {
     private EchoRosterPayload data;
     private int page;
     private int viewY = -1;
+    private int selY = -1;
+    private EchoRosterPayload.Row selRow;
     private int groupsY;
     private int bulkY;
     private int echoesY;
@@ -84,6 +86,29 @@ final class EchoScreen extends Screen {
             y += 40;
         } else {
             viewY = -1;
+        }
+
+        // The echo picked with the select key gets its own order, overriding its group.
+        selY = -1;
+        selRow = null;
+        for (EchoRosterPayload.Row r : data.rows()) {
+            if (r.selected()) {
+                selRow = r;
+            }
+        }
+        if (selRow != null) {
+            selY = y;
+            int slot = data.rows().indexOf(selRow);
+            for (int m = 0; m < 4; m++) {
+                int mode = m;
+                addRenderableWidget(Button.builder(orderLabel(m, selRow.personal()), b -> send(7, slot, mode))
+                        .bounds(left + m * 62, y + 12, 60, 20)
+                        .tooltip(Tooltip.create(Component.literal("Give only this echo this order. " + HINTS[m]))).build());
+            }
+            addRenderableWidget(Button.builder(Component.literal("Group order"), b -> send(7, slot, 4))
+                    .bounds(left + 250, y + 12, 70, 20)
+                    .tooltip(Tooltip.create(Component.literal("Clear its own order: it follows its group again."))).build());
+            y += 40;
         }
 
         // Group orders.
@@ -184,6 +209,10 @@ final class EchoScreen extends Screen {
         for (int g = 0; g < EchoRoster.GROUPS; g++) {
             graphics.text(this.font, Component.literal("Group " + (g + 1) + " (" + countIn(g) + ")").withStyle(GROUP_COLORS[g]),
                     left, groupsY + g * ROW + 6, 0xFFFFFFFF);
+        }
+        if (selRow != null) {
+            graphics.text(this.font, "Selected: " + selRow.name() + (selRow.personal() < 0 ? " (follows its group)" : " (own order)"),
+                    this.width / 2 - 160, selY, 0xFFFFAA00);
         }
         graphics.text(this.font, "Assign:", left + 148, bulkY - 12, 0xFFFFD27C);
         graphics.text(this.font, "All to group:", left + 200, bulkY - 12, 0xFF999999);
