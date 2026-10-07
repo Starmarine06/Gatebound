@@ -760,6 +760,11 @@ public final class EchoManager {
         return null;
     }
 
+    /** A dungeon floor was (re)built: echoes forget what they had explored. */
+    public static void forgetExploration() {
+        EchoBrain.resetExploration();
+    }
+
     static void teleportTo(Mob mob, ServerPlayer owner) {
         Vec3 spot = freeSpot(mob, owner);
         mob.getNavigation().stop();

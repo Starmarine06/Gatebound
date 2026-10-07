@@ -394,6 +394,7 @@ public final class FloorJob extends WorkQueue.Job {
         long now = server.overworld().getGameTime();
         DungeonStore.FloorState fs = store.floor(floor);
         if (!populateOnly) {
+            dev.gatebound.echo.EchoManager.forgetExploration();
             fs.built = true;
             fs.downArrive = plan.downArrive;
             fs.upArrive = plan.upArrive;

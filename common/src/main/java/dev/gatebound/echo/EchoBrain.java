@@ -504,6 +504,25 @@ final class EchoBrain {
     // the echo just circles its own room. Instead it walks room to room along the floor's known waypoints (the plan's
     // spawn spots, spread through every room), nearest unvisited first, and remembers which it has seen.
 
+    private static long memorySeed = Long.MIN_VALUE;
+
+    /** Forgets every floor's waypoints, explored marks and sector claims (a floor was rebuilt, or the world changed). */
+    static void resetExploration() {
+        WAYPOINTS.clear();
+        SEEN_WAYPOINTS.clear();
+        CLAIMS.clear();
+        ATTEMPTS.clear();
+        FLOOR_DONE.clear();
+    }
+
+    /** The memory is static, so a different world in the same game session must not inherit it. */
+    private static void checkWorld(ServerLevel level) {
+        if (level.getSeed() != memorySeed) {
+            memorySeed = level.getSeed();
+            resetExploration();
+        }
+    }
+
     private static final java.util.Map<Integer, List<BlockPos>> WAYPOINTS = new java.util.HashMap<>();
     private static final java.util.Map<String, java.util.Set<Long>> SEEN_WAYPOINTS = new java.util.HashMap<>();
 
@@ -552,6 +571,7 @@ final class EchoBrain {
         if (!level.dimension().equals(DungeonRegistries.DUNGEON)) {
             return;
         }
+        checkWorld(level);
         int floor = Spire.floorAt(e.getX(), e.getZ(), DungeonStore.get(level.getServer()).ensureTower(level.getServer()));
         List<BlockPos> list = floor > 0 ? WAYPOINTS.get(floor) : null;
         if (list == null) {
@@ -589,6 +609,10 @@ final class EchoBrain {
      * along a partial path rather than written off.
      */
     private static boolean pickWaypoint(EchoEntity e, ServerPlayer owner, ServerLevel level) {
+        checkWorld(level);
+        if (e.exploreTarget == null && e.repath-- > 0) {
+            return true; // nothing to walk to right now: look again in a moment instead of every tick
+        }
         int total = DungeonStore.get(level.getServer()).ensureTower(level.getServer());
         int floor = Spire.floorAt(e.getX(), e.getZ(), total);
         if (floor <= 0) {
@@ -606,7 +630,10 @@ final class EchoBrain {
         if (open.isEmpty()) {
             // Everything on this floor has been searched: report once and wait with the owner instead of wandering.
             e.exploreTarget = null;
+            e.repath = 40;
             if (FLOOR_DONE.add(ownerKey)) {
+                dev.gatebound.Gatebound.LOGGER.info("[echo] seek: floor {} reported fully searched ({} waypoints, {} marked seen)",
+                        floor, list.size(), seen.size());
                 owner.sendSystemMessage(Component.literal("[Echo] This floor has been searched completely. No unexplored paths are left.")
                         .withStyle(ChatFormatting.GRAY));
             }
@@ -658,7 +685,10 @@ final class EchoBrain {
             BlockPos w = pool.get(i);
             net.minecraft.world.level.pathfinder.Path path = e.getNavigation().createPath(w.getX() + 0.5, w.getY(), w.getZ() + 0.5, 1);
             if (path == null) {
-                seen.add(w.asLong()); // no way toward it at all from here
+                // No path right now (the echo may be mid-air or boxed in): only give up on it after many failures.
+                if (ATTEMPTS.merge(ownerKey + "!" + w.asLong(), 1, Integer::sum) > 12) {
+                    seen.add(w.asLong());
+                }
                 continue;
             }
             if (path.canReach()) {
@@ -685,6 +715,7 @@ final class EchoBrain {
         }
         if (pick == null) {
             e.exploreTarget = null;
+            e.repath = 20;
             if (e.distanceToSqr(owner) > 8 * 8) {
                 e.getNavigation().moveTo(owner, 1.2);
             }
