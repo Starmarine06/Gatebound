@@ -2,6 +2,7 @@ package dev.gatebound.echo;
 
 import dev.gatebound.dungeon.DungeonRegistries;
 import dev.gatebound.dungeon.DungeonStore;
+import dev.gatebound.dungeon.FloorPlan;
 import dev.gatebound.dungeon.GateExitBlock;
 import dev.gatebound.dungeon.Spire;
 import net.minecraft.ChatFormatting;
@@ -414,6 +415,7 @@ final class EchoBrain {
         if (e.tickCount % 10 != 0) {
             return;
         }
+        markWaypoints(e, owner, level);
         java.util.Set<Long> set = EXPLORED.computeIfAbsent(exploredKey(owner, level), k -> new java.util.HashSet<>());
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
@@ -439,6 +441,9 @@ final class EchoBrain {
 
     /** Picks the reachable point around the owner whose surroundings have been explored the least. */
     private static void pickExploreTarget(EchoEntity e, ServerPlayer owner, ServerLevel level) {
+        if (level.dimension().equals(DungeonRegistries.DUNGEON) && pickWaypoint(e, owner, level)) {
+            return;
+        }
         java.util.Set<Long> seen = EXPLORED.computeIfAbsent(exploredKey(owner, level), k -> new java.util.HashSet<>());
         boolean flier = e.isFlier();
         double maxRadius = flier ? 110 : 90;
@@ -493,6 +498,91 @@ final class EchoBrain {
         } else {
             e.getNavigation().moveTo(best.x, best.y, best.z, speed);
         }
+    }
+
+    // Dungeon floors are walls with rooms and corridors, so random points around the owner are almost all solid rock and
+    // the echo just circles its own room. Instead it walks room to room along the floor's known waypoints (the plan's
+    // spawn spots, spread through every room), nearest unvisited first, and remembers which it has seen.
+
+    private static final java.util.Map<Integer, List<BlockPos>> WAYPOINTS = new java.util.HashMap<>();
+    private static final java.util.Map<String, java.util.Set<Long>> SEEN_WAYPOINTS = new java.util.HashMap<>();
+
+    private static List<BlockPos> waypoints(ServerLevel level, int floor, int total, boolean generate) {
+        List<BlockPos> list = WAYPOINTS.get(floor);
+        if (list == null && generate) {
+            FloorPlan plan = FloorPlan.generate(level.getSeed(), floor, total);
+            list = new java.util.ArrayList<>(plan.mobSpots);
+            for (BlockPos extra : new BlockPos[]{plan.center, plan.upArrive, plan.downArrive, plan.boss}) {
+                if (extra != null) {
+                    list.add(extra);
+                }
+            }
+            if (WAYPOINTS.size() > 40) {
+                WAYPOINTS.clear();
+            }
+            WAYPOINTS.put(floor, list);
+        }
+        return list;
+    }
+
+    private static java.util.Set<Long> seenWaypoints(ServerPlayer owner, int floor) {
+        return SEEN_WAYPOINTS.computeIfAbsent(owner.getUUID() + "#" + floor, k -> new java.util.HashSet<>());
+    }
+
+    private static void markWaypoints(EchoEntity e, ServerPlayer owner, ServerLevel level) {
+        if (!level.dimension().equals(DungeonRegistries.DUNGEON)) {
+            return;
+        }
+        int floor = Spire.floorAt(e.getX(), e.getZ(), DungeonStore.get(level.getServer()).ensureTower(level.getServer()));
+        List<BlockPos> list = floor > 0 ? WAYPOINTS.get(floor) : null;
+        if (list == null) {
+            return;
+        }
+        java.util.Set<Long> seen = seenWaypoints(owner, floor);
+        for (BlockPos w : list) {
+            double dx = w.getX() + 0.5 - e.getX();
+            double dz = w.getZ() + 0.5 - e.getZ();
+            if (dx * dx + dz * dz < 49 && Math.abs(w.getY() - e.getY()) < 4) {
+                seen.add(w.asLong());
+            }
+        }
+    }
+
+    private static boolean pickWaypoint(EchoEntity e, ServerPlayer owner, ServerLevel level) {
+        int total = DungeonStore.get(level.getServer()).ensureTower(level.getServer());
+        int floor = Spire.floorAt(e.getX(), e.getZ(), total);
+        if (floor <= 0) {
+            return false;
+        }
+        List<BlockPos> list = waypoints(level, floor, total, true);
+        java.util.Set<Long> seen = seenWaypoints(owner, floor);
+        List<BlockPos> open = new java.util.ArrayList<>();
+        for (BlockPos w : list) {
+            if (!seen.contains(w.asLong())) {
+                open.add(w);
+            }
+        }
+        if (open.isEmpty()) {
+            seen.clear(); // everything has been seen: start another sweep
+            return false;
+        }
+        // Nearest first, with some noise so a group fans out into different rooms.
+        java.util.Map<BlockPos, Double> key = new java.util.HashMap<>();
+        for (BlockPos w : open) {
+            key.put(w, Math.sqrt(e.distanceToSqr(w.getX() + 0.5, w.getY(), w.getZ() + 0.5)) + e.getRandom().nextDouble() * 14);
+        }
+        open.sort(java.util.Comparator.comparingDouble(key::get));
+        for (int i = 0; i < Math.min(6, open.size()); i++) {
+            BlockPos w = open.get(i);
+            net.minecraft.world.level.pathfinder.Path path = e.getNavigation().createPath(w.getX() + 0.5, w.getY(), w.getZ() + 0.5, 1);
+            if (path != null && path.canReach()) {
+                e.exploreTarget = new Vec3(w.getX() + 0.5, w.getY(), w.getZ() + 0.5);
+                e.getNavigation().moveTo(path, e.isFlier() ? 1.5 : 1.3);
+                return true;
+            }
+            seen.add(w.asLong()); // cannot be walked to from here: skip it this sweep
+        }
+        return false;
     }
 
     private static BlockPos findGate(EchoEntity e, ServerLevel level, double sight) {
