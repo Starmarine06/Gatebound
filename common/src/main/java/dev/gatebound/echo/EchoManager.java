@@ -14,6 +14,7 @@ import dev.gatebound.data.Progression;
 import dev.gatebound.data.Stat;
 import dev.gatebound.skill.ManaState;
 import dev.gatebound.skill.SkillHandler;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -34,6 +35,7 @@ import net.minecraft.world.entity.ai.goal.RestrictSunGoal;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.scores.TeamColor;
@@ -652,10 +654,8 @@ public final class EchoManager {
         if (lifetimeTicks > 0) {
             mob.tempUntil = level.getGameTime() + lifetimeTicks;
         }
-        double angle = owner.getRandom().nextDouble() * Math.PI * 2;
-        double x = owner.getX() + Math.cos(angle) * 2;
-        double z = owner.getZ() + Math.sin(angle) * 2;
-        mob.snapTo(x, owner.getY(), z, owner.getYRot(), 0);
+        Vec3 spot = freeSpot(mob, owner);
+        mob.snapTo(spot.x, spot.y, spot.z, owner.getYRot(), 0);
         ACTIVE.put(mob.getUUID(), new Info(owner.getUUID(), slot, owner.getX(), owner.getY(), owner.getZ()));
         mob.addTag(TAG);
         mob.setPersistenceRequired();
@@ -761,9 +761,43 @@ public final class EchoManager {
     }
 
     static void teleportTo(Mob mob, ServerPlayer owner) {
-        double angle = owner.getRandom().nextDouble() * Math.PI * 2;
+        Vec3 spot = freeSpot(mob, owner);
         mob.getNavigation().stop();
-        mob.teleportTo(owner.level(), owner.getX() + Math.cos(angle) * 2, owner.getY(), owner.getZ() + Math.sin(angle) * 2,
-                Set.of(), owner.getYRot(), 0, false);
+        mob.teleportTo(owner.level(), spot.x, spot.y, spot.z, Set.of(), owner.getYRot(), 0, false);
+    }
+
+    /**
+     * A place next to the owner where the mob's body fits in open air (and, unless it flies, has ground under it).
+     * Tries rings of increasing radius at random bearings and a few heights; falls back to the owner's own spot.
+     */
+    private static Vec3 freeSpot(Mob mob, ServerPlayer owner) {
+        ServerLevel level = owner.level();
+        boolean flier = mob instanceof EchoEntity ee && ee.isFlier();
+        double[] radii = {2, 1.5, 3, 1, 4};
+        double[] heights = {0, 1, -1, 2, -2};
+        for (double r : radii) {
+            double start = owner.getRandom().nextDouble() * Math.PI * 2;
+            for (int i = 0; i < 12; i++) {
+                double angle = start + i * Math.PI / 6;
+                double x = owner.getX() + Math.cos(angle) * r;
+                double z = owner.getZ() + Math.sin(angle) * r;
+                for (double dy : heights) {
+                    double y = owner.getY() + dy;
+                    net.minecraft.world.phys.AABB box = mob.getBoundingBox().move(x - mob.getX(), y - mob.getY(), z - mob.getZ());
+                    if (!level.noCollision(mob, box)) {
+                        continue;
+                    }
+                    if (!flier && level.noCollision(mob, box.move(0, -1.0, 0))) {
+                        continue; // nothing to stand on
+                    }
+                    BlockPos feet = BlockPos.containing(x, y, z);
+                    if (!level.getFluidState(feet).isEmpty() || !level.getFluidState(feet.above()).isEmpty()) {
+                        continue;
+                    }
+                    return new Vec3(x, y, z);
+                }
+            }
+        }
+        return owner.position();
     }
 }
