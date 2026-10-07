@@ -307,7 +307,7 @@ public final class DungeonManager {
             return;
         }
         if (job == null) {
-            job = new FloorJob(floor, false, fs.built, PlayerDataStore.of(player).level);
+            job = new FloorJob(floor, !fs.built && !fs.upArrive.equals(BlockPos.ZERO), fs.built, PlayerDataStore.of(player).level);
             WorkQueue.enqueue(job);
         }
         job.waiting.put(player.getUUID(), dest);
@@ -1002,7 +1002,7 @@ public final class DungeonManager {
             }
             return true;
         }
-        FloorJob job = new FloorJob(floor, false, false, level);
+        FloorJob job = new FloorJob(floor, !fs.upArrive.equals(BlockPos.ZERO), false, level);
         if (done != null) {
             job.onDone.add(done);
         }

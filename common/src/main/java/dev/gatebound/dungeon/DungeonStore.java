@@ -164,8 +164,13 @@ public final class DungeonStore extends SavedData {
             FloorState.CODEC.listOf().optionalFieldOf("floors", List.of()).forGetter(s -> new ArrayList<>(s.floors.values())),
             Return.CODEC.listOf().optionalFieldOf("returns", List.of()).forGetter(s -> new ArrayList<>(s.returns.values())),
             GateRef.CODEC.listOf().optionalFieldOf("gates", List.of()).forGetter(s -> s.gates),
-            Progress.CODEC.listOf().optionalFieldOf("progress", List.of()).forGetter(s -> new ArrayList<>(s.progress.values()))
+            Progress.CODEC.listOf().optionalFieldOf("progress", List.of()).forGetter(s -> new ArrayList<>(s.progress.values())),
+            Codec.INT.optionalFieldOf("layout", 0).forGetter(s -> s.layout)
     ).apply(i, DungeonStore::new));
+
+    /** Bump when FloorPlan generates different floors for the same seed: every saved floor is then rebuilt on next use. */
+    public static final int LAYOUT_VERSION = 2;
+    public int layout = LAYOUT_VERSION;
 
     public static final SavedDataType<DungeonStore> TYPE = new SavedDataType<>(
             Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, "spire"),
@@ -195,7 +200,8 @@ public final class DungeonStore extends SavedData {
 
     private DungeonStore(int total, boolean built, BlockPos towerPos, boolean placed, BlockPos entMin, BlockPos entMax,
                          BlockPos exit, int radius, int top, List<FloorState> floors, List<Return> returns,
-                         List<GateRef> gates, List<Progress> progress) {
+                         List<GateRef> gates, List<Progress> progress, int layout) {
+        this.layout = layout;
         this.totalFloors = total;
         this.towerBuilt = built;
         this.towerPos = towerPos;
@@ -218,7 +224,22 @@ public final class DungeonStore extends SavedData {
     }
 
     public static DungeonStore get(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(TYPE);
+        DungeonStore s = server.overworld().getDataStorage().computeIfAbsent(TYPE);
+        if (s.layout != LAYOUT_VERSION) {
+            // Saved floors were built from an older layout: forget them so they are rebuilt (and cleared) when next entered.
+            for (FloorState f : s.floors.values()) {
+                f.built = false;
+                f.populatedAt = 0;
+                f.cleared = false;
+                f.bossDead = false;
+                f.kills = 0;
+                f.totalMobs = 0;
+            }
+            s.layout = LAYOUT_VERSION;
+            s.setDirty();
+            Gatebound.LOGGER.info("Dungeon layout changed: all saved floors will be rebuilt when entered");
+        }
+        return s;
     }
 
     /** Decides the floor count on first use, deterministically from the world seed, and saves it. */
