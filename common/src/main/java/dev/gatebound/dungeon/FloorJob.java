@@ -310,9 +310,6 @@ public final class FloorJob extends WorkQueue.Job {
         if (plan.kind == Spire.Kind.NORMAL || plan.kind == Spire.Kind.REST) {
             PortalPlacer.place(level, plan.upPortal, GateExitBlock.Kind.UP, net.minecraft.core.Direction.EAST);
         }
-        for (BlockPos rift : plan.riftPortals) {
-            PortalPlacer.place(level, rift, GateExitBlock.Kind.HOME, net.minecraft.core.Direction.WEST);
-        }
         if (fs.bossDead && plan.kind == Spire.Kind.BOSS) {
             PortalPlacer.place(level, plan.upPortal, GateExitBlock.Kind.UP, net.minecraft.core.Direction.EAST);
         }
@@ -401,7 +398,7 @@ public final class FloorJob extends WorkQueue.Job {
             fs.downArrive = plan.downArrive;
             fs.upArrive = plan.upArrive;
             fs.upPortal = plan.upPortal;
-            fs.rifts = new ArrayList<>(plan.riftArrive);
+            fs.rifts = new ArrayList<>();
             if (rebuild) {
                 fs.bossDead = false;
             }

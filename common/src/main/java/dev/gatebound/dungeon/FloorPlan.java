@@ -55,8 +55,6 @@ public final class FloorPlan {
     public BlockPos upArrive;
     public BlockPos boss;
     public BlockPos center;
-    public final List<BlockPos> riftPortals = new ArrayList<>();
-    public final List<BlockPos> riftArrive = new ArrayList<>();
     public final List<BlockPos> mobSpots = new ArrayList<>();
     public final List<Chest> chests = new ArrayList<>();
     public int arenaCx;
@@ -114,16 +112,12 @@ public final class FloorPlan {
             return false;
         }
         planPools();
-        pickRifts();
         pickMobSpots();
         pickChests();
         computeWalls();
         decorate();
         int[] dist = bfs(startCx, startCz);
         reachable = dist[cell(upArrive)] >= 0;
-        for (BlockPos r : riftArrive) {
-            reachable &= dist[cell(r)] >= 0;
-        }
         return reachable;
     }
 
@@ -606,52 +600,6 @@ public final class FloorPlan {
                     }
                 }
             }
-        }
-    }
-
-    private void pickRifts() {
-        int want = Math.max(1, DungeonConfig.riftsPerFloor);
-        List<int[]> cands = openCells();
-        Collections.shuffle(cands, new java.util.Random(rng.nextLong()));
-        List<int[]> picked = new ArrayList<>();
-        for (int[] c : cands) {
-            if (picked.size() >= want) {
-                break;
-            }
-            int i = c[0];
-            int j = c[1];
-            if (blocked[idx(i, j)] || nearKeep(i, j, 14) || inArena(i, j, 5) || !allOpen(i, j, 0)
-                    || i < 8 || j < 8 || i >= size - 8 || j >= size - 8) {
-                continue;
-            }
-            boolean ok = true;
-            for (int[] p : picked) {
-                int dx = p[0] - i;
-                int dz = p[1] - j;
-                if (dx * dx + dz * dz < 18 * 18) {
-                    ok = false;
-                    break;
-                }
-            }
-            if (ok) {
-                picked.add(c);
-            }
-        }
-        // Fewer well-spaced spots than wanted is fine on small caves; fall back to closer spacing once.
-        if (picked.isEmpty()) {
-            for (int[] c : cands) {
-                if (!blocked[idx(c[0], c[1])] && !inArena(c[0], c[1], 5) && c[0] > 8 && c[1] > 8
-                        && c[0] < size - 8 && c[1] < size - 8 && !nearKeep(c[0], c[1], 6)) {
-                    picked.add(c);
-                    break;
-                }
-            }
-        }
-        for (int[] c : picked) {
-            carveCircle(c[0], c[1], 2, 5);
-            addKeep(c[0], c[1], 3);
-            riftPortals.add(Spire.abs(floor, c[0], Spire.FY + 1, c[1]));
-            riftArrive.add(Spire.abs(floor, c[0] + 2, Spire.FY + 1, c[1]));
         }
     }
 

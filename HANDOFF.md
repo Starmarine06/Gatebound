@@ -178,3 +178,7 @@ This is the template for the other classes. Skills live in `Skills.java`; Summon
 - Echo groups, Guide order, found-gate selection; tower guild hall and protection.
 - Echo brain, orders, kits; labels on gates and portals; auto-flush saving; pinned dev username.
 - Echo as custom entity with vanilla-model renderer; stale echo cleanup; NPC entity registration fix.
+
+## Portals (reworked)
+- Escape rifts are gone. Each Spire floor has exactly one way down (the entrance) and one way up; a gate dungeon has only its entrance as an exit (no portal after the guardian dies).
+- Portals are framed doorways (`PortalPlacer.frame`): stone-brick posts, chiseled lintel, a lantern on each post. Existing floors keep the old layout until rebuilt with `/gatebound tower regen <n>`.

@@ -157,7 +157,7 @@ final class SelfTestBot {
                 log("after DOWN portal: {}", where(bot));
                 DungeonManager.testClearCooldowns();
                 DungeonStore.FloorState fs = store.floor(Spire.floorAt(bot.getX(), bot.getZ(), total));
-                DungeonManager.usePortal(bot, fs.rifts.get(0).west(2), GateExitBlock.Kind.HOME);
+                DungeonManager.usePortal(bot, fs.downArrive.west(2), GateExitBlock.Kind.HOME);
                 step = 10;
                 wait = 5;
             }

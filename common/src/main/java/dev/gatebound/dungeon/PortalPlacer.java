@@ -3,6 +3,7 @@ package dev.gatebound.dungeon;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 
@@ -59,7 +60,32 @@ public final class PortalPlacer {
         Spot s = spot(level, nominal, prefer);
         level.setBlock(s.pos(), GateExitBlock.state(kind, s.facing(), DoubleBlockHalf.LOWER), 3);
         level.setBlock(s.pos().above(), GateExitBlock.state(kind, s.facing(), DoubleBlockHalf.UPPER), 3);
+        frame(level, s);
         return s.pos();
+    }
+
+    private static void put(ServerLevel level, BlockPos pos, BlockState state) {
+        if (level.getBlockState(pos).isAir()) {
+            level.setBlock(pos, state, 3);
+        }
+    }
+
+    /**
+     * Turns the pane into a proper doorway: stone-brick posts on both sides with a lantern on each, and a carved lintel
+     * over the top. Only empty blocks are replaced, so walls, chests and neighbouring portals are left alone.
+     */
+    private static void frame(ServerLevel level, Spot s) {
+        Direction side = s.facing().getClockWise();
+        BlockState brick = Blocks.STONE_BRICKS.defaultBlockState();
+        BlockState chiseled = Blocks.CHISELED_STONE_BRICKS.defaultBlockState();
+        for (Direction d : new Direction[]{side, side.getOpposite()}) {
+            BlockPos post = s.pos().relative(d);
+            put(level, post, brick);
+            put(level, post.above(), brick);
+            put(level, post.above(2), chiseled);
+            put(level, post.above(3), Blocks.LANTERN.defaultBlockState());
+        }
+        put(level, s.pos().above(2), chiseled);
     }
 
     /** Where the portal for this nominal spot stands (the lower half), whether or not it has been built yet. */

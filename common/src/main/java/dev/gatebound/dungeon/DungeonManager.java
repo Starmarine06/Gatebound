@@ -492,7 +492,9 @@ public final class DungeonManager {
 
         BlockPos exit = fs.upPortal;
         if (!exit.equals(BlockPos.ZERO)) {
-            PortalPlacer.place(level, exit, fin ? GateExitBlock.Kind.HOME : GateExitBlock.Kind.UP, Direction.EAST);
+            if (!gate) { // a gate dungeon has one way out: the entrance
+                PortalPlacer.place(level, exit, fin ? GateExitBlock.Kind.HOME : GateExitBlock.Kind.UP, Direction.EAST);
+            }
             RandomSource rng = level.getRandom();
             int[] offsets = fin ? new int[]{-9, -6, -3, 3, 6, 9} : new int[]{-3, 3};
             for (int dz : offsets) {
@@ -1082,11 +1084,6 @@ public final class DungeonManager {
         if (upExpected && !PortalPlacer.exists(d, fs.upArrive.east(2), Direction.EAST)) {
             missingPortals++;
         }
-        for (BlockPos r : fs.rifts) {
-            if (!PortalPlacer.exists(d, r.west(2), Direction.WEST)) {
-                missingPortals++;
-            }
-        }
         int chestsFound = 0;
         for (FloorPlan.Chest c : plan.chests) {
             if (d.getBlockState(c.pos()).is(net.minecraft.world.level.block.Blocks.CHEST)) {
@@ -1129,7 +1126,7 @@ public final class DungeonManager {
                 }
                 if (f <= 12 || f % 10 == 0 || f == total) {
                     Gatebound.LOGGER.info("SELFTEST plan floor {} {} {}: {} open cells, {} decos, {} spots, {} chests, {} rifts",
-                            f, a.kind, a.theme.label(), open, a.decos.size(), a.mobSpots.size(), a.chests.size(), a.riftPortals.size());
+                            f, a.kind, a.theme.label(), open, a.decos.size(), a.mobSpots.size(), a.chests.size(), 0);
                 }
             }
             Gatebound.LOGGER.info("SELFTEST plans: {} floors in {} ms, unreachable={}, nondeterministic={}",
