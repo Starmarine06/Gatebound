@@ -49,6 +49,8 @@ public class EchoEntity extends PathfinderMob {
     boolean guideWarned;
     /** Guide order: the owner has right-clicked this echo and it is leading the way to guideTarget. */
     boolean guideGo;
+    /** True for the seeker that found the gate itself (it keeps announcing it); the others were called there. */
+    boolean seekFinder;
     boolean guideReady;
     boolean guideArrived;
     net.minecraft.core.BlockPos guideTarget;

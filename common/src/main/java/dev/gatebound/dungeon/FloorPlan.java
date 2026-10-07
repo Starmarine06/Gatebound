@@ -181,6 +181,76 @@ public final class FloorPlan {
         }
     }
 
+    /** The open cell nearest to (i, j) within the given radius, or null. */
+    private int[] nearestOpen(int i, int j, int radius) {
+        for (int r = 0; r <= radius; r++) {
+            int[] best = null;
+            int bestD = Integer.MAX_VALUE;
+            for (int dj = -r; dj <= r; dj++) {
+                for (int di = -r; di <= r; di++) {
+                    if (Math.max(Math.abs(di), Math.abs(dj)) != r || !open(i + di, j + dj)) {
+                        continue;
+                    }
+                    int d = di * di + dj * dj;
+                    if (d < bestD) {
+                        bestD = d;
+                        best = new int[]{i + di, j + dj};
+                    }
+                }
+            }
+            if (best != null) {
+                return best;
+            }
+        }
+        return null;
+    }
+
+    /** Walking distances (in cells) from every open cell to the open cell nearest the given spot; null if there is none. */
+    public int[] distancesTo(BlockPos target) {
+        int[] c = nearestOpen(target.getX() - ox, target.getZ(), 6);
+        return c == null ? null : bfs(c[0], c[1]);
+    }
+
+    /**
+     * Follows a distance field downhill from the given position and returns the spot about {@code steps} cells further
+     * along the walkable route, or null if the position is cut off from the target.
+     */
+    public BlockPos hop(int[] dist, double x, double z, int steps) {
+        int[] c = nearestOpen((int) Math.floor(x) - ox, (int) Math.floor(z), 3);
+        if (c == null || dist[idx(c[0], c[1])] < 0) {
+            return null;
+        }
+        int i = c[0];
+        int j = c[1];
+        int[] dx = {1, -1, 0, 0};
+        int[] dz = {0, 0, 1, -1};
+        int last = -1;
+        for (int n = 0; n < steps; n++) {
+            int d = dist[idx(i, j)];
+            if (d <= 0) {
+                break;
+            }
+            int pick = -1;
+            if (last >= 0 && open(i + dx[last], j + dz[last]) && dist[idx(i + dx[last], j + dz[last])] == d - 1) {
+                pick = last; // keep going straight when possible: fewer zigzags
+            } else {
+                for (int k = 0; k < 4; k++) {
+                    if (open(i + dx[k], j + dz[k]) && dist[idx(i + dx[k], j + dz[k])] == d - 1) {
+                        pick = k;
+                        break;
+                    }
+                }
+            }
+            if (pick < 0) {
+                break;
+            }
+            i += dx[pick];
+            j += dz[pick];
+            last = pick;
+        }
+        return Spire.abs(floor, i, Spire.FY + 1, j);
+    }
+
     private int[] bfs(int sx, int sz) {
         int[] dist = new int[size * size];
         java.util.Arrays.fill(dist, -1);

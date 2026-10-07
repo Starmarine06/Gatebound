@@ -348,17 +348,30 @@ final class EchoBrain {
 
     /** Gate search: sweep the area around the owner, away from ground already covered, and report any gate in sight. */
     private static void seek(EchoEntity e, ServerPlayer owner, ServerLevel level) {
+        // As soon as any seeker has found a gate the whole group stops searching and gathers there.
+        BlockPos rally = EchoManager.rallyPoint(owner, e);
+        EchoManager.Info myInfo = EchoManager.info(e);
+        if (e.seekFound == null && rally != null) {
+            e.seekFound = rally;
+            e.seekFinder = false;
+            e.exploreTarget = null;
+        } else if (e.seekFound != null && !e.seekFinder && rally == null && myInfo != null
+                && EchoManager.effectiveMode(owner, e.getUUID(), myInfo.slot) == EchoRoster.SEEK) {
+            e.seekFound = null;
+        }
         if (e.seekFound != null) {
             if (e.distanceToSqr(e.seekFound.getX() + 0.5, e.seekFound.getY(), e.seekFound.getZ() + 0.5) > 9) {
                 if (--e.repath <= 0) {
                     e.repath = 15;
-                    e.getNavigation().moveTo(e.seekFound.getX() + 0.5, e.seekFound.getY() + (e.isFlier() ? 2 : 0),
-                            e.seekFound.getZ() + 0.5, 1.2);
+                    if (!routeInDungeon(e, level, e.seekFound, 1.3)) {
+                        e.getNavigation().moveTo(e.seekFound.getX() + 0.5, e.seekFound.getY() + (e.isFlier() ? 2 : 0),
+                                e.seekFound.getZ() + 0.5, 1.3);
+                    }
                 }
             } else {
                 e.getNavigation().stop();
             }
-            if (e.tickCount % 400 == 0) {
+            if (e.seekFinder && e.tickCount % 400 == 0) {
                 announce(e, owner, level, e.seekFound);
             }
             return;
@@ -368,6 +381,7 @@ final class EchoBrain {
             BlockPos found = findGate(e, level, e.isFlier() ? 80 : 56);
             if (found != null) {
                 e.seekFound = found;
+                e.seekFinder = true;
                 e.exploreTarget = null;
                 announce(e, owner, level, found);
                 return;
@@ -509,6 +523,8 @@ final class EchoBrain {
     /** Forgets every floor's waypoints, explored marks and sector claims (a floor was rebuilt, or the world changed). */
     static void resetExploration() {
         WAYPOINTS.clear();
+        PLANS.clear();
+        FIELDS.clear();
         SEEN_WAYPOINTS.clear();
         CLAIMS.clear();
         ATTEMPTS.clear();
@@ -524,6 +540,43 @@ final class EchoBrain {
     }
 
     private static final java.util.Map<Integer, List<BlockPos>> WAYPOINTS = new java.util.HashMap<>();
+    private static final java.util.Map<Integer, FloorPlan> PLANS = new java.util.HashMap<>();
+    private static final java.util.Map<String, int[]> FIELDS = new java.util.HashMap<>();
+
+    /**
+     * Walks toward a spot on a dungeon floor along the real walkable route (the plan's open cells), about 14 blocks at a
+     * time. The pathfinder alone cannot do this: its search is limited in range and gets stuck behind walls in a straight
+     * line to the target. Returns false when this is not a dungeon floor or the spot cannot be reached by any route.
+     */
+    private static boolean routeInDungeon(EchoEntity e, ServerLevel level, BlockPos target, double speed) {
+        if (!level.dimension().equals(DungeonRegistries.DUNGEON)) {
+            return false;
+        }
+        int total = DungeonStore.get(level.getServer()).ensureTower(level.getServer());
+        int floor = Spire.floorAt(e.getX(), e.getZ(), total);
+        if (floor <= 0 || floor != Spire.floorAt(target.getX() + 0.5, target.getZ() + 0.5, total)) {
+            return false;
+        }
+        waypoints(level, floor, total, true); // makes sure the plan is cached
+        FloorPlan plan = PLANS.get(floor);
+        if (plan == null) {
+            return false;
+        }
+        String key = floor + "#" + target.asLong();
+        if (FIELDS.size() > 12) {
+            FIELDS.clear();
+        }
+        int[] field = FIELDS.computeIfAbsent(key, k -> plan.distancesTo(target));
+        if (field == null) {
+            return false;
+        }
+        BlockPos hop = plan.hop(field, e.getX(), e.getZ(), 14);
+        if (hop == null) {
+            return false;
+        }
+        e.getNavigation().moveTo(hop.getX() + 0.5, hop.getY(), hop.getZ() + 0.5, speed);
+        return true;
+    }
     private static final java.util.Map<String, java.util.Set<Long>> SEEN_WAYPOINTS = new java.util.HashMap<>();
 
     private static final int SECTOR = 48;
@@ -548,6 +601,7 @@ final class EchoBrain {
         List<BlockPos> list = WAYPOINTS.get(floor);
         if (list == null && generate) {
             FloorPlan plan = FloorPlan.generate(level.getSeed(), floor, total);
+            PLANS.put(floor, plan);
             list = new java.util.ArrayList<>(plan.mobSpots);
             for (BlockPos extra : new BlockPos[]{plan.center, plan.upArrive, plan.downArrive, plan.boss}) {
                 if (extra != null) {
@@ -556,6 +610,8 @@ final class EchoBrain {
             }
             if (WAYPOINTS.size() > 40) {
                 WAYPOINTS.clear();
+                PLANS.clear();
+                FIELDS.clear();
             }
             WAYPOINTS.put(floor, list);
         }
@@ -702,6 +758,20 @@ final class EchoBrain {
                 partialPath = path;
             }
         }
+        if (pick == null && partial != null && routeInDungeon(e, level, partial, 1.3)) {
+            // Too far or round a corner for one path search: walk the plan's route toward it instead.
+            e.exploreTarget = new Vec3(partial.getX() + 0.5, partial.getY(), partial.getZ() + 0.5);
+            long sec0 = sector(partial);
+            if (mine == Long.MIN_VALUE && !claims.containsKey(sec0)) {
+                claims.put(sec0, new Claim(e.getUUID(), now));
+                mine = sec0;
+            }
+            Claim h0 = claims.get(mine);
+            if (h0 != null && h0.who.equals(e.getUUID())) {
+                h0.tick = now;
+            }
+            return true;
+        }
         if (pick == null && partial != null) {
             pick = partial;
             pickPath = partialPath;
@@ -782,7 +852,9 @@ final class EchoBrain {
 
     private static void announce(EchoEntity e, ServerPlayer owner, ServerLevel level, BlockPos pos) {
         String what = describe(level, pos);
-        EchoManager.addFound(owner, new EchoManager.Found(level.dimension(), pos, what, e.mobName()));
+        EchoManager.Found gate = new EchoManager.Found(level.dimension(), pos, what, e.mobName());
+        EchoManager.addFound(owner, gate);
+        EchoManager.setRally(owner, gate);
         Component msg = Component.literal("[Echo] " + e.mobName() + " found: " + what + " at "
                 + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + " (open the Echoes screen with H to send guides)")
                 .withStyle(ChatFormatting.LIGHT_PURPLE);
@@ -964,7 +1036,9 @@ final class EchoBrain {
             }
             if (--e.repath <= 0) {
                 e.repath = 20;
-                routeTo(e, level, gate.pos());
+                if (!routeInDungeon(e, level, gate.pos(), 1.25)) {
+                    routeTo(e, level, gate.pos());
+                }
             }
         }
         if (e.tickCount % 10 == 0) {

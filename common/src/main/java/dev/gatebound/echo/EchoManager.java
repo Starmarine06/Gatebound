@@ -101,6 +101,7 @@ public final class EchoManager {
         PlayerEvent.PLAYER_QUIT.register(player -> {
             dismissAll(player, false);
             FOUND.remove(player.getUUID());
+            RALLY.remove(player.getUUID());
             SELECTED.remove(player.getUUID());
         });
         PlayerEvent.PLAYER_RESPAWN.register((player, end, reason) -> {
@@ -212,6 +213,34 @@ public final class EchoManager {
 
     private static final Map<UUID, List<Found>> FOUND = new HashMap<>();
     private static final Map<UUID, Found> SELECTED = new HashMap<>();
+
+    /** The gate the seekers are currently gathering at (the latest one found), per owner. */
+    private static final Map<UUID, Found> RALLY = new HashMap<>();
+
+    static void setRally(ServerPlayer owner, Found gate) {
+        RALLY.put(owner.getUUID(), gate);
+    }
+
+    /** Where this echo should gather: the rally gate, if it is in the echo's dimension (and on its floor) and still stands. */
+    static net.minecraft.core.BlockPos rallyPoint(ServerPlayer owner, EchoEntity e) {
+        Found f = RALLY.get(owner.getUUID());
+        if (f == null || !f.dim().equals(e.level().dimension())) {
+            return null;
+        }
+        if (!foundGates(owner).contains(f)) {
+            RALLY.remove(owner.getUUID());
+            return null;
+        }
+        if (e.level().dimension().equals(dev.gatebound.dungeon.DungeonRegistries.DUNGEON)) {
+            net.minecraft.server.MinecraftServer server = e.level().getServer();
+            int total = dev.gatebound.dungeon.DungeonStore.get(server).ensureTower(server);
+            if (dev.gatebound.dungeon.Spire.floorAt(f.pos().getX() + 0.5, f.pos().getZ() + 0.5, total)
+                    != dev.gatebound.dungeon.Spire.floorAt(e.getX(), e.getZ(), total)) {
+                return null;
+            }
+        }
+        return f.pos();
+    }
 
     public static void addFound(ServerPlayer owner, Found gate) {
         List<Found> list = FOUND.computeIfAbsent(owner.getUUID(), id -> new ArrayList<>());
