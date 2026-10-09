@@ -1,5 +1,7 @@
 package dev.gatebound.combat;
 
+import dev.gatebound.sound.GateboundSounds;
+import dev.gatebound.compat.Compat;
 import dev.architectury.event.EventResult;
 import dev.architectury.event.events.common.EntityEvent;
 import dev.architectury.event.events.common.PlayerEvent;
@@ -95,12 +97,27 @@ public final class PlayerCombat {
         send(player, i, true);
     }
 
+    /** Spends stamina (never below zero) and restarts the regeneration delay. */
+    public static void spendStamina(ServerPlayer player, double amount) {
+        Info i = info(player);
+        i.stamina = Math.max(0, i.stamina - amount);
+        i.lastSpendTick = player.level().getServer().getTickCount();
+        send(player, i, true);
+    }
+
     public static boolean isStaggered(ServerPlayer player) {
         return info(player).staggeredUntil > player.level().getServer().getTickCount();
     }
 
     public static boolean hasIFrames(ServerPlayer player) {
         return info(player).iframeUntil > player.level().getServer().getTickCount();
+    }
+
+    /** Grants invulnerability to attacks for a few ticks without a stamina cost or perfect-dodge reward (Shadow Step). */
+    public static void grantIFrames(ServerPlayer player, int ticks) {
+        Info i = info(player);
+        i.iframeUntil = Math.max(i.iframeUntil, player.level().getServer().getTickCount() + ticks);
+        i.perfectDone = true;
     }
 
     private static void tick(ServerPlayer player, int now) {
@@ -144,11 +161,11 @@ public final class PlayerCombat {
             return;
         }
         if (i.staggeredUntil > now) {
-            player.sendOverlayMessage(Component.translatable("combat.gatebound.staggered").withStyle(ChatFormatting.RED));
+            Compat.overlay(player, Component.translatable("combat.gatebound.staggered").withStyle(ChatFormatting.RED));
             return;
         }
         if (i.stamina < CombatConfig.dodgeCost) {
-            player.sendOverlayMessage(Component.translatable("combat.gatebound.no_stamina").withStyle(ChatFormatting.GRAY));
+            Compat.overlay(player, Component.translatable("combat.gatebound.no_stamina").withStyle(ChatFormatting.GRAY));
             return;
         }
         i.stamina -= CombatConfig.dodgeCost;
@@ -174,7 +191,7 @@ public final class PlayerCombat {
 
         ServerLevel level = (ServerLevel) player.level();
         level.sendParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 0.2, player.getZ(), 8, 0.25, 0.05, 0.25, 0.02);
-        level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.5f, 1.9f);
+        level.playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.PLAYER_ATTACK_SWEEP), SoundSource.PLAYERS, 0.5f, 1.9f);
         send(player, i, true);
     }
 
@@ -193,8 +210,8 @@ public final class PlayerCombat {
             player.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, CombatConfig.playerStaggerTicks, 3));
             ServerLevel level = (ServerLevel) player.level();
             level.sendParticles(ParticleTypes.CRIT, player.getX(), player.getY(0.8), player.getZ(), 16, 0.3, 0.3, 0.3, 0.2);
-            level.playSound(null, player.blockPosition(), SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 0.5f, 1.4f);
-            player.sendOverlayMessage(Component.translatable("combat.gatebound.posture_broken").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
+            level.playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.ANVIL_LAND), SoundSource.PLAYERS, 0.5f, 1.4f);
+            Compat.overlay(player, Component.translatable("combat.gatebound.posture_broken").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
         }
         send(player, i, true);
     }
@@ -229,8 +246,8 @@ public final class PlayerCombat {
         i.dodgeReadyAt = 0;
         SkillHandler.reduceCooldowns(player, CombatConfig.perfectDodgeCooldownCut);
         level.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY(0.6), player.getZ(), 14, 0.3, 0.4, 0.3, 0.05);
-        level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0f, 1.6f);
-        player.sendOverlayMessage(Component.translatable("combat.gatebound.perfect_dodge").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
+        level.playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.AMETHYST_BLOCK_CHIME), SoundSource.PLAYERS, 1.0f, 1.6f);
+        Compat.overlay(player, Component.translatable("combat.gatebound.perfect_dodge").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
         send(player, i, true);
     }
 }

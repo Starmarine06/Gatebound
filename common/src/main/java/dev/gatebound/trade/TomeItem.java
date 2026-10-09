@@ -1,5 +1,7 @@
 package dev.gatebound.trade;
 
+import dev.gatebound.sound.GateboundSounds;
+import dev.gatebound.compat.Compat;
 import dev.gatebound.data.PlayerData;
 import dev.gatebound.data.PlayerDataStore;
 import dev.gatebound.data.Progression;
@@ -32,7 +34,7 @@ public class TomeItem extends Item {
         }
         int read = TradeStore.tomesRead(sp, stat);
         if (read >= TradeConfig.maxTomesPerStat) {
-            sp.sendOverlayMessage(Component.literal("You can learn no more from this tome (" + read + "/"
+            Compat.overlay(sp, Component.literal("You can learn no more from this tome (" + read + "/"
                     + TradeConfig.maxTomesPerStat + ").").withStyle(ChatFormatting.RED));
             return InteractionResult.FAIL;
         }
@@ -44,7 +46,7 @@ public class TomeItem extends Item {
         if (!player.hasInfiniteMaterials()) {
             stack.shrink(1);
         }
-        level.playSound(null, sp.blockPosition(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 1f, 1f);
+        level.playSound(null, sp.blockPosition(), GateboundSounds.custom("item.tome"), SoundSource.PLAYERS, 1f, 1f);
         sp.sendSystemMessage(Component.literal("[Gatebound] The tome crumbles. Your " + stat.id() + " is now "
                 + data.get(stat) + " (" + (read + 1) + "/" + TradeConfig.maxTomesPerStat + " tomes read).")
                 .withStyle(ChatFormatting.AQUA));

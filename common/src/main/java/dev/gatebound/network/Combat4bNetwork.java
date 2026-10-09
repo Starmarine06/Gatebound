@@ -1,5 +1,6 @@
 package dev.gatebound.network;
 
+import dev.gatebound.compat.Compat;
 import dev.architectury.networking.NetworkManager;
 import dev.gatebound.combat.PlayerCombat;
 import dev.gatebound.data.ClientStaminaData;
@@ -11,10 +12,10 @@ public final class Combat4bNetwork {
     }
 
     public static void init() {
-        NetworkManager.registerS2C(PlayerStatusPayload.TYPE, PlayerStatusPayload.CODEC, (payload, context) ->
+        Compat.registerS2C(PlayerStatusPayload.TYPE, PlayerStatusPayload.CODEC, (payload, context) ->
                 context.queue(() -> ClientStaminaData.update(payload)));
 
-        NetworkManager.registerC2S(DodgePayload.TYPE, DodgePayload.CODEC, (payload, context) ->
+        Compat.registerC2S(DodgePayload.TYPE, DodgePayload.CODEC, (payload, context) ->
                 context.queue(() -> {
                     if (context.getPlayer() instanceof ServerPlayer player) {
                         PlayerCombat.dodge(player, payload.forward(), payload.strafe());

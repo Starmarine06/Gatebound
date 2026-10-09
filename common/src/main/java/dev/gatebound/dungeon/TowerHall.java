@@ -1,8 +1,10 @@
 package dev.gatebound.dungeon;
 
+import dev.gatebound.compat.Compat;
 import dev.gatebound.trade.GateboundNpc;
 import dev.gatebound.trade.NpcHandler;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
@@ -40,7 +42,37 @@ public final class TowerHall {
         if (!level.getBlockState(c).is(Blocks.CHISELED_POLISHED_BLACKSTONE)) {
             build(level, c, r);
         }
+        gate(level, store, c, r);
         npcs(level, c);
+    }
+
+    /** The tower's gate: a three-by-three pane on the dais in the middle of the hall. Also removes the old pane in the entrance arch. */
+    private static void gate(ServerLevel level, DungeonStore store, BlockPos c, int r) {
+        BlockPos min = c.offset(-1, 1, 0);
+        BlockPos max = c.offset(1, 3, 0);
+        BlockPos oldGate = c.offset(0, 1, r - 2);
+        if (level.hasChunkAt(oldGate)) {
+            for (int dx = -4; dx <= 4; dx++) {
+                for (int y = 0; y <= 11; y++) {
+                    BlockPos p = c.offset(dx, y, r - 2);
+                    if (level.getBlockState(p).getBlock() instanceof GateBlock) {
+                        level.removeBlock(p, false);
+                    }
+                }
+            }
+        }
+        BlockState pane = DungeonRegistries.GATE.get().defaultBlockState()
+                .setValue(GateBlock.RANK, GateRank.S).setValue(GateBlock.FACING, Direction.SOUTH);
+        for (BlockPos p : BlockPos.betweenClosed(min, max)) {
+            if (!(level.getBlockState(p).getBlock() instanceof GateBlock)) {
+                level.setBlock(p, pane, 3);
+            }
+        }
+        if (!store.entranceMin.equals(min) || !store.entranceMax.equals(max)) {
+            store.entranceMin = min;
+            store.entranceMax = max;
+            store.setDirty();
+        }
     }
 
     private static void build(ServerLevel level, BlockPos c, int r) {
@@ -61,7 +93,7 @@ public final class TowerHall {
         // Carpet runner from the entrance to the dais.
         for (int dz = 6; dz <= r - 4; dz++) {
             for (int dx = -1; dx <= 1; dx++) {
-                level.setBlock(c.offset(dx, 0, dz), b(dx == 0 ? Blocks.CARPET.purple() : Blocks.CARPET.red()), 3);
+                level.setBlock(c.offset(dx, 0, dz), b(dx == 0 ? Compat.PURPLE_CARPET : Compat.RED_CARPET), 3);
             }
         }
         // Pillars with glowing bands.

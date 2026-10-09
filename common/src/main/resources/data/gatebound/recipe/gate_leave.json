@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:ender_pearl",
+    "minecraft:paper"
+  ],
+  "result": {
+    "id": "gatebound:gate_leave"
+  }
+}

@@ -74,8 +74,13 @@ public final class NpcHandler {
         if (npc == null) {
             return null;
         }
+        //? if >=26.1 {
         ResourceKey<VillagerProfession> prof = broker ? VillagerProfession.ARMORER : VillagerProfession.LIBRARIAN;
         npc.setVillagerData(npc.getVillagerData().withProfession(level.registryAccess(), prof).withLevel(2));
+        //?} else {
+        /*npc.setVillagerData(npc.getVillagerData()
+                .setProfession(broker ? VillagerProfession.ARMORER : VillagerProfession.LIBRARIAN).setLevel(2));
+        *///?}
         npc.addTag(broker ? BROKER_TAG : SCHOLAR_TAG);
         npc.setCustomName(Component.translatable(broker ? "npc.gatebound.broker" : "npc.gatebound.scholar"));
         npc.setCustomNameVisible(true);

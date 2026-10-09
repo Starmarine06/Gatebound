@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "D": "minecraft:diamond",
+    "A": "minecraft:amethyst_shard",
+    "E": "minecraft:ender_pearl"
+  },
+  "pattern": [
+    "EAE",
+    "ADA",
+    "EAE"
+  ],
+  "result": {
+    "id": "gatebound:awakening_stone"
+  }
+}

@@ -1,5 +1,6 @@
 package dev.gatebound.echo;
 
+import dev.gatebound.compat.Compat;
 import dev.architectury.networking.NetworkManager;
 import dev.architectury.utils.Env;
 import dev.architectury.utils.EnvExecutor;
@@ -10,26 +11,26 @@ final class EchoNetwork {
     }
 
     static void init() {
-        NetworkManager.registerC2S(EchoTogglePayload.TYPE, EchoTogglePayload.CODEC, (payload, context) ->
+        Compat.registerC2S(EchoTogglePayload.TYPE, EchoTogglePayload.CODEC, (payload, context) ->
                 context.queue(() -> {
                     if (context.getPlayer() instanceof ServerPlayer player && player.isAlive()) {
                         EchoManager.toggle(player);
                         EchoManager.sendRoster(player, false);
                     }
                 }));
-        NetworkManager.registerC2S(EchoMenuPayload.TYPE, EchoMenuPayload.CODEC, (payload, context) ->
+        Compat.registerC2S(EchoMenuPayload.TYPE, EchoMenuPayload.CODEC, (payload, context) ->
                 context.queue(() -> {
                     if (context.getPlayer() instanceof ServerPlayer player) {
                         EchoManager.sendRoster(player, true);
                     }
                 }));
-        NetworkManager.registerC2S(EchoSelectPayload.TYPE, EchoSelectPayload.CODEC, (payload, context) ->
+        Compat.registerC2S(EchoSelectPayload.TYPE, EchoSelectPayload.CODEC, (payload, context) ->
                 context.queue(() -> {
                     if (context.getPlayer() instanceof ServerPlayer player && player.isAlive()) {
                         EchoManager.pressSelect(player);
                     }
                 }));
-        NetworkManager.registerC2S(EchoOrderPayload.TYPE, EchoOrderPayload.CODEC, (payload, context) ->
+        Compat.registerC2S(EchoOrderPayload.TYPE, EchoOrderPayload.CODEC, (payload, context) ->
                 context.queue(() -> {
                     if (context.getPlayer() instanceof ServerPlayer player) {
                         switch (payload.kind()) {
@@ -47,25 +48,25 @@ final class EchoNetwork {
                         EchoManager.sendRoster(player, false);
                     }
                 }));
-        NetworkManager.registerC2S(EchoBindPayload.TYPE, EchoBindPayload.CODEC, (payload, context) ->
+        Compat.registerC2S(EchoBindPayload.TYPE, EchoBindPayload.CODEC, (payload, context) ->
                 context.queue(() -> {
                     if (context.getPlayer() instanceof ServerPlayer player) {
                         EchoManager.bindCorpse(player, payload.entityId(), payload.group());
                     }
                 }));
-        NetworkManager.registerC2S(EchoWheelPickPayload.TYPE, EchoWheelPickPayload.CODEC, (payload, context) ->
+        Compat.registerC2S(EchoWheelPickPayload.TYPE, EchoWheelPickPayload.CODEC, (payload, context) ->
                 context.queue(() -> {
                     if (context.getPlayer() instanceof ServerPlayer player && player.isAlive()) {
                         EchoManager.wheelPick(player, payload.entityId(), payload.choice());
                     }
                 }));
-        NetworkManager.registerS2C(EchoWheelPayload.TYPE, EchoWheelPayload.CODEC, (payload, context) ->
+        Compat.registerS2C(EchoWheelPayload.TYPE, EchoWheelPayload.CODEC, (payload, context) ->
                 context.queue(() -> EnvExecutor.runInEnv(Env.CLIENT, () -> () -> EchoClient.onWheel(payload))));
-        NetworkManager.registerS2C(EchoBindMenuPayload.TYPE, EchoBindMenuPayload.CODEC, (payload, context) ->
+        Compat.registerS2C(EchoBindMenuPayload.TYPE, EchoBindMenuPayload.CODEC, (payload, context) ->
                 context.queue(() -> EnvExecutor.runInEnv(Env.CLIENT, () -> () -> EchoClient.onBindMenu(payload))));
-        NetworkManager.registerS2C(EchoViewPayload.TYPE, EchoViewPayload.CODEC, (payload, context) ->
+        Compat.registerS2C(EchoViewPayload.TYPE, EchoViewPayload.CODEC, (payload, context) ->
                 context.queue(() -> EnvExecutor.runInEnv(Env.CLIENT, () -> () -> EchoClient.onView(payload))));
-        NetworkManager.registerS2C(EchoRosterPayload.TYPE, EchoRosterPayload.CODEC, (payload, context) ->
+        Compat.registerS2C(EchoRosterPayload.TYPE, EchoRosterPayload.CODEC, (payload, context) ->
                 context.queue(() -> EnvExecutor.runInEnv(Env.CLIENT, () -> () -> EchoClient.onRoster(payload))));
     }
 }

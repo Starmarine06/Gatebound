@@ -1,9 +1,9 @@
 package dev.gatebound.dungeon;
 
+import dev.gatebound.compat.MobTypes;
 import net.minecraft.ChatFormatting;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Mob;
 
 import java.util.List;
@@ -72,27 +72,27 @@ public enum GateRank implements StringRepresentable {
     /** Regular mob types for this rank; harder ranks add tougher types on top of the easier ones. */
     public List<EntityType<? extends Mob>> mobPool() {
         return switch (this) {
-            case E -> List.of(EntityTypes.ZOMBIE, EntityTypes.SKELETON, EntityTypes.SPIDER);
-            case D -> List.of(EntityTypes.ZOMBIE, EntityTypes.SKELETON, EntityTypes.SPIDER, EntityTypes.HUSK, EntityTypes.STRAY);
-            case C -> List.of(EntityTypes.ZOMBIE, EntityTypes.SKELETON, EntityTypes.HUSK, EntityTypes.STRAY,
-                    EntityTypes.CAVE_SPIDER, EntityTypes.PILLAGER);
-            case B -> List.of(EntityTypes.HUSK, EntityTypes.STRAY, EntityTypes.PILLAGER, EntityTypes.VINDICATOR,
-                    EntityTypes.CAVE_SPIDER, EntityTypes.WITCH);
-            case A -> List.of(EntityTypes.VINDICATOR, EntityTypes.PILLAGER, EntityTypes.WITCH, EntityTypes.WITHER_SKELETON,
-                    EntityTypes.STRAY, EntityTypes.HUSK);
-            case S -> List.of(EntityTypes.VINDICATOR, EntityTypes.WITHER_SKELETON, EntityTypes.WITCH, EntityTypes.PILLAGER,
-                    EntityTypes.EVOKER);
+            case E -> List.of(MobTypes.ZOMBIE, MobTypes.SKELETON, MobTypes.SPIDER);
+            case D -> List.of(MobTypes.ZOMBIE, MobTypes.SKELETON, MobTypes.SPIDER, MobTypes.HUSK, MobTypes.STRAY);
+            case C -> List.of(MobTypes.ZOMBIE, MobTypes.SKELETON, MobTypes.HUSK, MobTypes.STRAY,
+                    MobTypes.CAVE_SPIDER, MobTypes.PILLAGER);
+            case B -> List.of(MobTypes.HUSK, MobTypes.STRAY, MobTypes.PILLAGER, MobTypes.VINDICATOR,
+                    MobTypes.CAVE_SPIDER, MobTypes.WITCH);
+            case A -> List.of(MobTypes.VINDICATOR, MobTypes.PILLAGER, MobTypes.WITCH, MobTypes.WITHER_SKELETON,
+                    MobTypes.STRAY, MobTypes.HUSK);
+            case S -> List.of(MobTypes.VINDICATOR, MobTypes.WITHER_SKELETON, MobTypes.WITCH, MobTypes.PILLAGER,
+                    MobTypes.EVOKER);
         };
     }
 
     public EntityType<? extends Mob> bossType() {
         return switch (this) {
-            case E -> EntityTypes.ZOMBIE;
-            case D -> EntityTypes.VINDICATOR;
-            case C -> EntityTypes.WITHER_SKELETON;
-            case B -> EntityTypes.EVOKER;
-            case A -> EntityTypes.RAVAGER;
-            case S -> EntityTypes.WITHER_SKELETON;
+            case E -> MobTypes.ZOMBIE;
+            case D -> MobTypes.VINDICATOR;
+            case C -> MobTypes.WITHER_SKELETON;
+            case B -> MobTypes.EVOKER;
+            case A -> MobTypes.RAVAGER;
+            case S -> MobTypes.WITHER_SKELETON;
         };
     }
 

@@ -22,6 +22,17 @@ public final class Gatebound {
     public static void init() {
         dev.gatebound.config.GateboundConfig.load();
         GateboundRegistries.init();
+        dev.gatebound.item.KnifeItems.init();
+        dev.gatebound.item.StaffItems.init();
+        dev.gatebound.item.CompoundBow.init();
+        dev.gatebound.item.QuiverItem.init();
+        dev.gatebound.item.GateLeaveItem.init();
+        dev.gatebound.item.TrailMarkerItem.init();
+        dev.gatebound.item.QuiverBack.init();
+        dev.gatebound.sound.GateboundSounds.init();
+        dev.gatebound.grave.GraveRegistries.init();
+        dev.gatebound.mob.MobMaterials.init();
+        dev.gatebound.mob.SpireMobs.init();
         // Entity types must be registered before ClientHooks registers their renderers.
         dev.gatebound.trade.NpcEntities.init();
         dev.gatebound.echo.EchoEntities.init();
@@ -34,6 +45,10 @@ public final class Gatebound {
         dev.gatebound.combat.PlayerCombat.init();
         CombatHandler.init();
         SkillHandler.init();
+        dev.gatebound.skill.RogueSkills.init();
+        dev.gatebound.skill.WarriorSkills.init();
+        dev.gatebound.skill.mage.MageCore.init();
+        dev.gatebound.skill.RangerSkills.init();
         dev.gatebound.dungeon.DungeonManager.init();
         GateboundCommands.init();
         dev.gatebound.trade.NpcHandler.init();

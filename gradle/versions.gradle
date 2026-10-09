@@ -1,0 +1,10 @@
+// Per-Minecraft-version data for the Stonecutter nodes. Keys must match the versions in settings.gradle (1.21.1 is kept here for the future port but is not enabled).
+//   java:    Java release the mod is compiled for
+//   remap:   true for obfuscated versions (<26), which need the remapping Loom and Mojang mappings
+//   arch:    Architectury API version (check the minecraft range in its fabric.mod.json)
+ext.versionData = [
+        "1.21.1": [mc: "1.21.1", java: 21, remap: true,  arch: "13.0.8", fabricApi: "0.116.17+1.21.1", neoforge: "21.1.257"],
+        "26.1.2": [mc: "26.1.2", java: 25, remap: false, arch: "20.1.17", fabricApi: "0.155.3+26.1.2", neoforge: "26.1.2.115"],
+        "26.2":   [mc: "26.2",   java: 25, remap: false, arch: "21.1.12", fabricApi: "0.161.0+26.2",   neoforge: "26.2.0.89"],
+        "26.3":   [mc: "26.3",   java: 25, remap: false, arch: "22.0.3",  fabricApi: "0.160.5+26.3",   neoforge: "26.3.0.39-beta"],
+]

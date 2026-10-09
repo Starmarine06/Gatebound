@@ -1,5 +1,6 @@
 package dev.gatebound.echo;
 
+import dev.gatebound.compat.Compat;
 import dev.architectury.event.events.common.PlayerEvent;
 import dev.architectury.event.events.common.TickEvent;
 import dev.architectury.networking.NetworkManager;
@@ -67,7 +68,7 @@ public final class EchoView {
         }
         if (target == null) {
             ManaState.add(player, MANA_COST);
-            player.sendOverlayMessage(Component.literal("Look at one of your echoes to see through its eyes.")
+            Compat.overlay(player, Component.literal("Look at one of your echoes to see through its eyes.")
                     .withStyle(ChatFormatting.GRAY));
             return true; // the message above replaces the generic no-target hint
         }
@@ -120,7 +121,7 @@ public final class EchoView {
         player.removeEffect(MobEffects.SLOWNESS);
         player.removeEffect(MobEffects.RESISTANCE);
         if (notify) {
-            player.sendOverlayMessage(Component.literal("You return to your body.").withStyle(ChatFormatting.GRAY));
+            Compat.overlay(player, Component.literal("You return to your body.").withStyle(ChatFormatting.GRAY));
         }
         if (player.connection != null) {
             NetworkManager.sendToPlayer(player, new EchoViewPayload(-1));
@@ -152,7 +153,7 @@ public final class EchoView {
             }
             if (now % 40 == 0) {
                 int left = (s.end - now) / 20;
-                player.sendOverlayMessage(Component.literal("Eye of " + ((EchoEntity) echo).mobName()
+                Compat.overlay(player, Component.literal("Eye of " + ((EchoEntity) echo).mobName()
                         + " - H: orders, Sneak: return (" + left + "s)").withStyle(ChatFormatting.LIGHT_PURPLE));
             }
         }

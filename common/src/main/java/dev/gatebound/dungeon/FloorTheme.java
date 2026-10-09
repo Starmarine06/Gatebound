@@ -1,8 +1,8 @@
 package dev.gatebound.dungeon;
 
+import dev.gatebound.compat.MobTypes;
 import net.minecraft.ChatFormatting;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -189,11 +189,11 @@ public enum FloorTheme {
         List<EntityType<? extends Mob>> pool = new ArrayList<>(rank.mobPool());
         switch (this) {
             case FLOODED -> {
-                pool.add(EntityTypes.DROWNED);
-                pool.add(EntityTypes.DROWNED);
+                pool.add(MobTypes.DROWNED);
+                pool.add(MobTypes.DROWNED);
             }
-            case ASHEN -> pool.add(EntityTypes.BLAZE);
-            case LAVA_HALLS -> pool.add(EntityTypes.MAGMA_CUBE);
+            case ASHEN -> pool.add(MobTypes.BLAZE);
+            case LAVA_HALLS -> pool.add(MobTypes.MAGMA_CUBE);
             default -> {
             }
         }

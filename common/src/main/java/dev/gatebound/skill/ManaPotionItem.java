@@ -1,5 +1,7 @@
 package dev.gatebound.skill;
 
+import dev.gatebound.sound.GateboundSounds;
+import dev.gatebound.compat.Compat;
 import dev.gatebound.data.PlayerData;
 import dev.gatebound.data.PlayerDataStore;
 import net.minecraft.ChatFormatting;
@@ -38,7 +40,7 @@ public class ManaPotionItem extends Item {
         PlayerData data = PlayerDataStore.of(sp);
         double max = ManaState.max(data);
         if (ManaState.get(sp) >= max) {
-            sp.sendOverlayMessage(Component.literal("Your mana is already full.").withStyle(ChatFormatting.GRAY));
+            Compat.overlay(sp, Component.literal("Your mana is already full.").withStyle(ChatFormatting.GRAY));
             return InteractionResult.FAIL;
         }
         double before = ManaState.get(sp);
@@ -49,9 +51,9 @@ public class ManaPotionItem extends Item {
         if (!player.hasInfiniteMaterials()) {
             stack.shrink(1);
         }
-        server.playSound(null, sp.blockPosition(), SoundEvents.GENERIC_DRINK.value(), SoundSource.PLAYERS, 1f, 1f);
+        server.playSound(null, sp.blockPosition(), GateboundSounds.custom("item.mana_potion"), SoundSource.PLAYERS, 1f, 1f);
         server.sendParticles(ParticleTypes.ENCHANT, sp.getX(), sp.getY() + 1.2, sp.getZ(), 20, 0.4, 0.6, 0.4, 0.4);
-        sp.sendOverlayMessage(Component.literal("+" + Math.round(ManaState.get(sp) - before) + " mana").withStyle(ChatFormatting.AQUA));
+        Compat.overlay(sp, Component.literal("+" + Math.round(ManaState.get(sp) - before) + " mana").withStyle(ChatFormatting.AQUA));
         return InteractionResult.SUCCESS;
     }
 }

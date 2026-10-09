@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "gatebound:block/grave"
+    },
+    "facing=east": {
+      "model": "gatebound:block/grave",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "gatebound:block/grave",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "gatebound:block/grave",
+      "y": 270
+    }
+  }
+}

@@ -1,5 +1,7 @@
 package dev.gatebound.dungeon;
 
+import dev.gatebound.sound.GateboundSounds;
+import dev.gatebound.compat.Compat;
 import dev.architectury.event.EventResult;
 import dev.architectury.event.events.common.BlockEvent;
 import dev.architectury.event.events.common.EntityEvent;
@@ -31,7 +33,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.AABB;
 
 import java.util.ArrayList;
@@ -56,6 +57,8 @@ public final class DungeonManager {
     private static final Set<UUID> PENDING_HOME = new HashSet<>();
     private static final Set<UUID> FAILED = new HashSet<>();
     private static final Set<UUID> PENDING_RESPAWN = new HashSet<>();
+    /** Last time anyone was seen in a gate-dungeon copy, by floor index (not saved; a restart restarts the idle clock). */
+    private static final java.util.Map<Integer, Long> INSTANCE_SEEN = new java.util.HashMap<>();
     private static boolean towerChecked;
     private static int selfTestStage;
     private static int selfTestPending;
@@ -68,6 +71,7 @@ public final class DungeonManager {
         DungeonRegistries.init();
         DungeonCommands.register();
         GateLabels.init();
+        Parties.init();
 
         TickEvent.SERVER_POST.register(DungeonManager::tick);
         LifecycleEvent.SERVER_STARTED.register(DungeonManager::onStarted);
@@ -112,7 +116,7 @@ public final class DungeonManager {
                     String where = DungeonConfig.deathRespawnMode == 1 && rest > 0
                             ? "at rest floor " + rest : "at the tower entrance";
                     sp.sendSystemMessage(Component.literal(PREFIX + "You fell in the Spire. You will wake " + where
-                            + "; your belongings stay where you fell.").withStyle(ChatFormatting.RED));
+                            + "; your belongings rest in a grave where you fell.").withStyle(ChatFormatting.RED));
                 } else if (entity instanceof Mob && entity.level() instanceof ServerLevel level) {
                     onMobDeath(level, entity);
                 }
@@ -120,7 +124,16 @@ public final class DungeonManager {
             return EventResult.pass();
         });
         // Spire walls belong to the Spire, and the overworld tower to the landscape: survival players cannot edit them.
-        BlockEvent.BREAK.register((level, pos, state, player) -> {
+        Compat.onBlockBreak((level, pos, state, player) -> {
+            // Spire chests can be smashed open: the loot spills out and the empty chest stays where it is.
+            if (player != null && state.is(net.minecraft.world.level.block.Blocks.CHEST)
+                    && level instanceof ServerLevel sl && sl.dimension().equals(DungeonRegistries.DUNGEON)
+                    && sl.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.ChestBlockEntity chest) {
+                net.minecraft.world.Containers.dropContents(sl, pos, chest);
+                chest.setChanged();
+                sl.playSound(null, pos, GateboundSounds.custom("chest.smash"), SoundSource.BLOCKS, 1f, 1f);
+                return EventResult.interruptFalse();
+            }
             if (player != null && (DungeonConfig.protectFromCreative || !player.isCreative()) && protectedBlock(level, pos)) {
                 return EventResult.interruptFalse();
             }
@@ -214,7 +227,8 @@ public final class DungeonManager {
             store.setDirty();
             player.sendSystemMessage(Component.translatableWithFallback("gatebound.tower.enter", "You pass beneath the arch of the Spire.")
                     .withStyle(ChatFormatting.LIGHT_PURPLE));
-            travelFloor(player, 1, WorkQueue.Dest.BOTTOM);
+            // Resume at the highest floor reached; the way up past a guardian only opens once it has fallen.
+            travelFloor(player, Math.max(1, store.progressOf(player.getUUID()).highest), WorkQueue.Dest.BOTTOM);
             return;
         }
         int total = store.ensureTower(server);
@@ -247,9 +261,11 @@ public final class DungeonManager {
         markPortalUsed(player);
         GatePull.grantImmunity(player);
         GateRank r = Spire.rank(g.floor, total);
+        // Every party (or lone player) gets its own copy of the dungeon behind a gate.
+        int floor = instanceFloor(store, g, Parties.instanceKey(player), r);
         player.sendSystemMessage(Component.literal(PREFIX + "You are pulled through the gate into a " + r.label() + " dungeon!")
                 .withStyle(r.color()));
-        travelFloor(player, g.floor, WorkQueue.Dest.BOTTOM);
+        travelFloor(player, floor, WorkQueue.Dest.BOTTOM);
     }
 
     /** A floor portal block was used. */
@@ -302,12 +318,16 @@ public final class DungeonManager {
         }
         DungeonStore.FloorState fs = store.floor(floor);
         WorkQueue.Job job = WorkQueue.find("floor:" + floor);
-        if (job == null && fs.built && !needsRepopulate(fs, total, now(server))) {
+        boolean solo = server.getPlayerList().getPlayerCount() <= 1;
+        if (job == null && fs.built && !needsRepopulate(fs, total, now(server), solo)) {
             completeTravel(server, player, floor, dest);
             return;
         }
         if (job == null) {
-            job = new FloorJob(floor, !fs.built && !fs.upArrive.equals(BlockPos.ZERO), fs.built, PlayerDataStore.of(player).level);
+            // A boss floor whose guardian fell is rebuilt from scratch (sealed way up, fresh boss), not just repopulated.
+            boolean bossReset = fs.built && fs.bossDead && isBossFloor(floor, total);
+            job = new FloorJob(floor, bossReset || (!fs.built && !fs.upArrive.equals(BlockPos.ZERO)), fs.built && !bossReset,
+                    PlayerDataStore.of(player).level);
             WorkQueue.enqueue(job);
         }
         job.waiting.put(player.getUUID(), dest);
@@ -316,7 +336,21 @@ public final class DungeonManager {
                 .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.ITALIC));
     }
 
-    static boolean needsRepopulate(DungeonStore.FloorState fs, int total, long now) {
+    static boolean isBossFloor(int floor, int total) {
+        Spire.Kind kind = Spire.kind(floor, total);
+        return !Spire.isGate(floor) && (kind == Spire.Kind.BOSS || kind == Spire.Kind.FINAL);
+    }
+
+    /** Boss floors come back 15-20 minutes after the guardian fell; the exact delay is fixed per kill. */
+    static long bossDelay(DungeonStore.FloorState fs) {
+        return DungeonConfig.bossRepopulateTicks + Math.floorMod(Spire.mix(fs.clearedAt, fs.floor, 7), DungeonConfig.bossRepopulateJitter + 1);
+    }
+
+    /**
+     * Solo (one player online): a cleared floor or fallen boss resets as soon as the player returns.
+     * Multiplayer: floors come back after a delay, regardless of who is online.
+     */
+    static boolean needsRepopulate(DungeonStore.FloorState fs, int total, long now, boolean solo) {
         Spire.Kind kind = Spire.kind(fs.floor, total);
         if (kind == Spire.Kind.REST) {
             return false;
@@ -324,8 +358,14 @@ public final class DungeonManager {
         if (fs.populatedAt <= 0) {
             return true;
         }
-        long delay = kind == Spire.Kind.NORMAL ? DungeonConfig.repopulateTicks : DungeonConfig.bossRepopulateTicks;
-        return fs.cleared && now - fs.clearedAt >= delay;
+        if (!fs.cleared) {
+            return false;
+        }
+        if (solo) {
+            return true;
+        }
+        long delay = kind == Spire.Kind.NORMAL ? DungeonConfig.repopulateTicks : bossDelay(fs);
+        return now - fs.clearedAt >= delay;
     }
 
     /** Teleports a player onto a built floor and announces it. */
@@ -353,7 +393,7 @@ public final class DungeonManager {
             GateRank gr = Spire.rank(floor, store.totalFloors);
             player.sendSystemMessage(Component.literal(PREFIX + gr.label() + " gate dungeon. Slay the guardian to close the gate and stop the monsters leaking out.")
                     .withStyle(gr.color(), ChatFormatting.BOLD));
-            player.sendOverlayMessage(Component.literal(gr.label() + " Gate Dungeon").withStyle(gr.color()));
+            Compat.overlay(player, Component.literal(gr.label() + " Gate Dungeon").withStyle(gr.color()));
             return;
         }
         int total = store.totalFloors;
@@ -371,7 +411,7 @@ public final class DungeonManager {
         ChatFormatting color = kind == Spire.Kind.REST ? ChatFormatting.GREEN : rank.color();
         player.sendSystemMessage(Component.translatableWithFallback("gatebound.tower.floor", "Floor %s / %s", floor, total)
                 .withStyle(color, ChatFormatting.BOLD));
-        player.sendOverlayMessage(Component.translatableWithFallback("gatebound.tower.floor_title", "Floor %s - %s",
+        Compat.overlay(player, Component.translatableWithFallback("gatebound.tower.floor_title", "Floor %s - %s",
                 floor, Spire.describe(floor, total)).withStyle(color));
         if (record && floor > 1) {
             player.sendSystemMessage(Component.translatableWithFallback("gatebound.tower.record", "New highest floor reached!")
@@ -417,7 +457,7 @@ public final class DungeonManager {
             BlockPos e = store.towerExit;
             player.teleportTo(server.overworld(), e.getX() + 0.5, e.getY(), e.getZ() + 0.5, Set.of(), 180f, 0f, true);
         } else {
-            player.teleport(TeleportTransition.createDefault(player, TeleportTransition.DO_NOTHING));
+            Compat.teleportToDefaultSpawn(player);
         }
         player.sendSystemMessage(Component.literal(PREFIX + "You return from the Spire.").withStyle(ChatFormatting.GRAY));
     }
@@ -443,14 +483,20 @@ public final class DungeonManager {
         DungeonStore.FloorState fs = store.floor(f);
         if (entity.entityTags().contains(TAG_BOSS)) {
             onBossDeath(level, store, fs, f, total);
+            level.playSound(null, entity.blockPosition(), GateboundSounds.custom("boss.death"), SoundSource.HOSTILE, 2f, 1f);
+            MobLoot.dropBoss(level, entity, f, total, playersOnFloor(level, f));
         } else if (entity.entityTags().contains(TAG_MOB)) {
             fs.kills++;
             store.setDirty();
             Component msg = Component.literal("Monsters slain: " + Math.min(fs.kills, fs.totalMobs) + "/" + fs.totalMobs)
                     .withStyle(Spire.rank(f, total).color());
-            for (ServerPlayer p : playersOnFloor(level, f)) {
-                p.sendOverlayMessage(msg);
+            int killXp = DungeonConfig.mobKillXpBase + DungeonConfig.mobKillXpPerFloor * Spire.scaleFloor(f, total);
+            List<ServerPlayer> here = playersOnFloor(level, f);
+            for (ServerPlayer p : here) {
+                Compat.overlay(p, msg);
+                Progression.giveXp(p, Parties.share(killXp, Parties.shareCount(p, here)));
             }
+            MobLoot.drop(level, entity, f, total, here);
             Spire.Kind kind = Spire.kind(f, total);
             if (!fs.cleared && fs.totalMobs > 0 && fs.kills >= fs.totalMobs && kind == Spire.Kind.NORMAL) {
                 onFloorCleared(level, store, fs, f, total);
@@ -468,10 +514,11 @@ public final class DungeonManager {
         fs.clearedAt = now(level.getServer());
         store.setDirty();
         int xp = DungeonConfig.floorClearXpBase + DungeonConfig.floorClearXpPerFloor * f;
-        for (ServerPlayer p : playersOnFloor(level, f)) {
+        List<ServerPlayer> here = playersOnFloor(level, f);
+        for (ServerPlayer p : here) {
             p.sendSystemMessage(Component.literal(PREFIX + "Floor " + f + " cleared. The monsters will return in time.")
                     .withStyle(Spire.rank(f, total).color()));
-            Progression.giveXp(p, xp);
+            Progression.giveXp(p, Parties.share(xp, Parties.shareCount(p, here)));
         }
     }
 
@@ -492,9 +539,8 @@ public final class DungeonManager {
 
         BlockPos exit = fs.upPortal;
         if (!exit.equals(BlockPos.ZERO)) {
-            if (!gate) { // a gate dungeon has one way out: the entrance
-                PortalPlacer.place(level, exit, fin ? GateExitBlock.Kind.HOME : GateExitBlock.Kind.UP, Direction.EAST);
-            }
+            // A gate dungeon gets a portal home at the guardian's lair, so you never have to walk back to the entrance.
+            PortalPlacer.place(level, exit, fin ? GateExitBlock.Kind.HOME : GateExitBlock.Kind.UP, Direction.EAST);
             RandomSource rng = level.getRandom();
             int[] offsets = fin ? new int[]{-9, -6, -3, 3, 6, 9} : new int[]{-3, 3};
             for (int dz : offsets) {
@@ -508,24 +554,26 @@ public final class DungeonManager {
                 }
             }
         }
-        for (ServerPlayer p : playersOnFloor(level, f)) {
+        List<ServerPlayer> here = playersOnFloor(level, f);
+        for (ServerPlayer p : here) {
+            int ways = Parties.shareCount(p, here);
             if (gate) {
-                gateCleared(p, rank);
+                gateCleared(p, rank, ways);
                 continue;
             }
             p.sendSystemMessage(Component.literal(PREFIX + (fin ? "The Sovereign of the Spire has fallen!" : "The guardian of floor " + f + " has fallen!"))
                     .withStyle(rank.color(), ChatFormatting.BOLD));
             p.sendSystemMessage(Component.literal(PREFIX + (fin ? "A portal home and a trove of treasure appear." : "The way up opens, and treasure appears."))
                     .withStyle(ChatFormatting.GRAY));
-            p.sendOverlayMessage(Component.literal(fin ? "THE SPIRE IS CONQUERED" : "GUARDIAN DEFEATED").withStyle(rank.color(), ChatFormatting.BOLD));
-            p.level().playSound(null, p.blockPosition(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1f, 1f);
+            Compat.overlay(p, Component.literal(fin ? "THE SPIRE IS CONQUERED" : "GUARDIAN DEFEATED").withStyle(rank.color(), ChatFormatting.BOLD));
+            p.level().playSound(null, p.blockPosition(), GateboundSounds.of(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE), SoundSource.PLAYERS, 1f, 1f);
             DungeonStore.Progress prog = store.progressOf(p.getUUID());
             if (!prog.bosses.contains(f)) {
                 prog.bosses.add(f);
                 store.setDirty();
-                int xp = fin ? DungeonConfig.finalBossXp : DungeonConfig.bossXpBase + DungeonConfig.bossXpPerFloor * f;
+                int xp = Parties.share(fin ? DungeonConfig.finalBossXp : DungeonConfig.bossXpBase + DungeonConfig.bossXpPerFloor * f, ways);
                 Progression.giveXp(p, xp);
-                int shards = fin ? 25 : 3 + f / 5;
+                int shards = Parties.share(fin ? 25 : 3 + f / 5, ways);
                 giveItem(p, new ItemStack(TradeItems.GATE_SHARD.get(), shards));
                 giveItem(p, new ItemStack(TradeItems.ECHO_SHARD.get(), fin ? 3 : 1));
                 p.sendSystemMessage(Component.literal(PREFIX + "First clear reward: " + xp + " XP, " + shards + " Gate Shards and " + (fin ? 3 : 1) + " Echo Shard" + (fin ? "s" : "") + ".")
@@ -534,14 +582,14 @@ public final class DungeonManager {
         }
     }
 
-    private static void gateCleared(ServerPlayer p, GateRank rank) {
+    private static void gateCleared(ServerPlayer p, GateRank rank, int ways) {
         p.sendSystemMessage(Component.literal(PREFIX + "The gate guardian has fallen! The gate is closing; no more monsters will leak out.")
                 .withStyle(rank.color(), ChatFormatting.BOLD));
         p.sendSystemMessage(Component.literal(PREFIX + "A portal out and treasure appear.").withStyle(ChatFormatting.GRAY));
-        p.sendOverlayMessage(Component.literal("GATE CLEARED").withStyle(rank.color(), ChatFormatting.BOLD));
-        p.level().playSound(null, p.blockPosition(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1f, 1f);
-        int xp = rank.xpReward();
-        int shards = 3 + rank.ordinal() * 3;
+        Compat.overlay(p, Component.literal("GATE CLEARED").withStyle(rank.color(), ChatFormatting.BOLD));
+        p.level().playSound(null, p.blockPosition(), GateboundSounds.of(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE), SoundSource.PLAYERS, 1f, 1f);
+        int xp = Parties.share(rank.xpReward(), ways);
+        int shards = Parties.share(3 + rank.ordinal() * 3, ways);
         Progression.giveXp(p, xp);
         giveItem(p, new ItemStack(TradeItems.GATE_SHARD.get(), shards));
         giveItem(p, new ItemStack(TradeItems.MANA_POTION.get(), 1 + rank.ordinal() / 2));
@@ -557,7 +605,7 @@ public final class DungeonManager {
     /** Marks the gate that leads to this gate dungeon as cleared; it closes and stops leaking. */
     private static void closeGate(DungeonStore store, int floor) {
         for (DungeonStore.GateRef g : store.gates) {
-            if (g.floor == floor && !g.cleared) {
+            if ((g.floor == floor || g.instances.containsValue(floor)) && !g.cleared) {
                 g.cleared = true;
                 store.setDirty();
             }
@@ -574,19 +622,82 @@ public final class DungeonManager {
 
     /** Gives a gate its own gate dungeon (a free slot), reset to a fresh state. */
     static void assignDungeon(DungeonStore store, DungeonStore.GateRef g, GateRank rank) {
+        g.floor = freeGateIndex(store, g, rank);
+        g.instances.clear();
+        store.floors.remove(g.floor);
+        store.setDirty();
+    }
+
+    /** A gate-dungeon floor index no other gate or instance is using (or, if all are taken, the gate's own). */
+    private static int freeGateIndex(DungeonStore store, DungeonStore.GateRef g, GateRank rank) {
         Set<Integer> used = new HashSet<>();
         for (DungeonStore.GateRef o : store.gates) {
-            if (o != g && Spire.isGate(o.floor)) {
+            if (Spire.isGate(o.floor) && o != g) {
                 used.add((o.floor - Spire.GATE_BASE) / 6);
             }
+            for (int f : o.instances.values()) {
+                used.add((f - Spire.GATE_BASE) / 6);
+            }
         }
-        int slot = (int) Math.floorMod(Spire.mix(g.pos.asLong(), g.created, 11L), (long) Spire.GATE_SLOTS);
+        if (Spire.isGate(g.floor)) {
+            used.add((g.floor - Spire.GATE_BASE) / 6);
+        }
+        int slot = (int) Math.floorMod(Spire.mix(g.pos.asLong(), g.created + g.instances.size(), 11L + g.uses), (long) Spire.GATE_SLOTS);
         for (int i = 0; i < Spire.GATE_SLOTS && used.contains(slot); i++) {
             slot = (slot + 1) % Spire.GATE_SLOTS;
         }
-        g.floor = Spire.gateIndex(slot, rank);
-        store.floors.remove(g.floor);
+        return used.contains(slot) ? g.floor : Spire.gateIndex(slot, rank);
+    }
+
+    /** The floor holding this owner's copy of a gate dungeon; a new copy is rebuilt from scratch. */
+    static int instanceFloor(DungeonStore store, DungeonStore.GateRef g, UUID key, GateRank rank) {
+        Integer existing = g.instances.get(key);
+        if (existing != null) {
+            return existing;
+        }
+        int floor = g.instances.containsValue(g.floor) ? freeGateIndex(store, g, rank) : g.floor;
+        DungeonStore.FloorState fs = store.floors.get(floor);
+        if (fs != null) {
+            // The floor still holds an old run's layout, so it must be rebuilt (and cleared) before use.
+            fs.built = false;
+            fs.populatedAt = 0;
+            fs.cleared = false;
+            fs.bossDead = false;
+            fs.kills = 0;
+            fs.totalMobs = 0;
+        }
+        g.instances.put(key, floor);
         store.setDirty();
+        return floor;
+    }
+
+    /** Releases the dungeon copies of finished or abandoned runs so their floor slots can be reused. */
+    private static void freeInstances(DungeonStore store, Set<Integer> occupied, long now) {
+        for (DungeonStore.GateRef g : store.gates) {
+            if (g.instances.isEmpty()) {
+                continue;
+            }
+            boolean changed = false;
+            var it = g.instances.entrySet().iterator();
+            while (it.hasNext()) {
+                int f = it.next().getValue();
+                if (occupied.contains(f) || WorkQueue.find("floor:" + f) != null) {
+                    INSTANCE_SEEN.put(f, now);
+                    continue;
+                }
+                long idle = now - INSTANCE_SEEN.computeIfAbsent(f, k -> now);
+                DungeonStore.FloorState fs = store.floors.get(f);
+                long limit = fs != null && fs.bossDead ? 1200 : DungeonConfig.gateInstanceIdleTicks;
+                if (idle >= limit) {
+                    it.remove();
+                    INSTANCE_SEEN.remove(f);
+                    changed = true;
+                }
+            }
+            if (changed) {
+                store.setDirty();
+            }
+        }
     }
 
     private static void giveItem(ServerPlayer player, ItemStack stack) {
@@ -703,6 +814,24 @@ public final class DungeonManager {
                 checkClear(dungeon, store, f, total, now);
             }
         }
+        if (tc % 200 == 50) {
+            freeInstances(store, occupied, now);
+        }
+        // Multiplayer: an empty boss floor comes back on its own 15-20 minutes after the guardian fell.
+        if (tc % 200 == 100 && server.getPlayerList().getPlayerCount() > 1) {
+            for (DungeonStore.FloorState fs : new ArrayList<>(store.floors.values())) {
+                if (fs.built && fs.bossDead && isBossFloor(fs.floor, total) && !occupied.contains(fs.floor)
+                        && now - fs.clearedAt >= bossDelay(fs)) {
+                    int level = 1;
+                    for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+                        level = Math.max(level, PlayerDataStore.of(p).level);
+                    }
+                    if (regenFloor(server, fs.floor, level, null)) {
+                        Gatebound.LOGGER.info("Boss floor {} reset after {} ticks", fs.floor, now - fs.clearedAt);
+                    }
+                }
+            }
+        }
     }
 
     /** Safety net: a floor whose monsters are all gone but whose kill counter never completed is marked cleared. */
@@ -791,7 +920,7 @@ public final class DungeonManager {
                 }
                 l.sendParticles(ParticleTypes.REVERSE_PORTAL, g.pos.getX() + 0.5, g.pos.getY() + 1.0, g.pos.getZ() + 0.5,
                         40, 0.6, 1.0, 0.6, 0.2);
-                l.playSound(null, g.pos, SoundEvents.BEACON_DEACTIVATE, SoundSource.AMBIENT, 1.0f, 0.7f);
+                l.playSound(null, g.pos, GateboundSounds.of(SoundEvents.BEACON_DEACTIVATE), SoundSource.AMBIENT, 1.0f, 0.7f);
                 l.removeBlock(g.pos, false);
                 exists = false;
             }
@@ -861,7 +990,7 @@ public final class DungeonManager {
             floor = newGate(store, level.dimension(), pos, rank, true, now(server)).floor;
             store.setDirty();
             player.sendSystemMessage(Component.literal(PREFIX + "A gate has appeared...").withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.ITALIC));
-            player.level().playSound(null, pos, SoundEvents.BEACON_ACTIVATE, SoundSource.AMBIENT, 1.5f, 0.6f);
+            player.level().playSound(null, pos, GateboundSounds.of(SoundEvents.BEACON_ACTIVATE), SoundSource.AMBIENT, 1.5f, 0.6f);
             Gatebound.LOGGER.info("Natural {} gate (floor {}) spawned at {} near {}", rank, floor, pos, player.getName().getString());
             return;
         }
@@ -911,7 +1040,7 @@ public final class DungeonManager {
             floor = newGate(store, level.dimension(), pos, rank, true, now(server)).floor;
             store.setDirty();
             player.sendSystemMessage(Component.literal(PREFIX + "A gate has opened near a village...").withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.ITALIC));
-            level.playSound(null, pos, SoundEvents.BEACON_ACTIVATE, SoundSource.AMBIENT, 1.5f, 0.6f);
+            level.playSound(null, pos, GateboundSounds.of(SoundEvents.BEACON_ACTIVATE), SoundSource.AMBIENT, 1.5f, 0.6f);
             Gatebound.LOGGER.info("Village {} gate (floor {}) spawned at {} (village at {})", rank, floor, pos, village);
             return true;
         }

@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "gatebound:mossy_fang",
+    "gatebound:mossy_fang"
+  ],
+  "result": {
+    "id": "minecraft:gold_ingot",
+    "count": 2
+  }
+}

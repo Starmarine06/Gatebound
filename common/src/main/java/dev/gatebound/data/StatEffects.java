@@ -21,6 +21,10 @@ public final class StatEffects {
         set(player, Attributes.ATTACK_SPEED, "agility_attack_speed", bonus(data, Stat.AGILITY) * 0.02, Operation.ADD_VALUE);
         set(player, Attributes.MAX_HEALTH, "vitality_health", bonus(data, Stat.VITALITY) * 1.0, Operation.ADD_VALUE);
         set(player, Attributes.LUCK, "luck_luck", bonus(data, Stat.LUCK) * 0.25, Operation.ADD_VALUE);
+        // Rogues leap higher.
+        boolean rogue = GateboundClass.ROGUE.id().equals(data.classId);
+        set(player, Attributes.JUMP_STRENGTH, "rogue_jump", rogue ? 0.25 : 0, Operation.ADD_MULTIPLIED_BASE);
+        set(player, Attributes.SAFE_FALL_DISTANCE, "rogue_fall", rogue ? 3 : 0, Operation.ADD_VALUE);
         // Intellect has no vanilla attribute; it drives mana in the skills phase.
         if (player.getHealth() > player.getMaxHealth()) {
             player.setHealth(player.getMaxHealth());

@@ -53,11 +53,11 @@ public final class PlayerDataStore extends SavedData {
     public static void initAutoFlush() {
         dev.architectury.event.events.common.TickEvent.SERVER_POST.register(server -> {
             if (server.getTickCount() % 20 == 0) {
-                server.overworld().getDataStorage().scheduleSave();
+                dev.gatebound.compat.Compat.flushSavedData(server);
             }
         });
         dev.architectury.event.events.common.PlayerEvent.PLAYER_QUIT.register(player ->
-                player.level().getServer().overworld().getDataStorage().scheduleSave());
+                dev.gatebound.compat.Compat.flushSavedData(player.level().getServer()));
     }
 
     public static void markDirty(ServerPlayer player) {

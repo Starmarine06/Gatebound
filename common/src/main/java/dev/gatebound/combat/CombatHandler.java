@@ -1,5 +1,7 @@
 package dev.gatebound.combat;
 
+import dev.gatebound.sound.GateboundSounds;
+import dev.gatebound.compat.Compat;
 import dev.architectury.event.EventResult;
 import dev.architectury.event.events.common.EntityEvent;
 import dev.architectury.event.events.common.PlayerEvent;
@@ -34,6 +36,16 @@ public final class CombatHandler {
 
     public static void init() {
         EntityEvent.LIVING_HURT.register(CombatHandler::onHurt);
+        // Dungeon mobs never hurt each other (a stray arrow or a swing that misses the player must not start a brawl).
+        EntityEvent.LIVING_HURT.register((victim, source, amount) -> {
+            if (victim instanceof net.minecraft.world.entity.Mob
+                    && source.getEntity() instanceof net.minecraft.world.entity.Mob attacker
+                    && victim.level().dimension().equals(dev.gatebound.dungeon.DungeonRegistries.DUNGEON)
+                    && !dev.gatebound.echo.EchoManager.isEcho(victim) && !dev.gatebound.echo.EchoManager.isEcho(attacker)) {
+                return EventResult.interruptFalse();
+            }
+            return EventResult.pass();
+        });
         EntityEvent.LIVING_DEATH.register((entity, source) -> {
             CombatState.forget(entity.getUUID());
             return EventResult.pass();
@@ -53,14 +65,18 @@ public final class CombatHandler {
         if (CombatState.startParry(player.getUUID(), now)) {
             NetworkManager.sendToPlayer(player, new ParryStatePayload(CombatConfig.parryWindowTicks, CombatConfig.parryCooldownTicks));
             // Arm swing, shown to the player and everyone nearby.
-            player.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, true);
-            player.level().playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.5f, 1.6f);
+            Compat.swing(player, InteractionHand.MAIN_HAND, true);
+            player.level().playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.PLAYER_ATTACK_SWEEP), SoundSource.PLAYERS, 0.5f, 1.6f);
         }
     }
 
     private static EventResult onHurt(LivingEntity victim, DamageSource source, float amount) {
         if (amount <= 0 || applyingFinisher || !(victim.level() instanceof ServerLevel level)) {
             return EventResult.pass();
+        }
+        EventResult rogue = dev.gatebound.skill.RogueSkills.onHurt(victim, source, amount, level);
+        if (rogue.interruptsFurtherEvaluation()) {
+            return rogue;
         }
         int now = level.getServer().getTickCount();
 
@@ -73,7 +89,7 @@ public final class CombatHandler {
         return EventResult.pass();
     }
 
-    private static boolean isMelee(DamageSource source) {
+    public static boolean isMelee(DamageSource source) {
         return source.getDirectEntity() != null && source.getDirectEntity() == source.getEntity()
                 && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)
                 && !source.is(DamageTypes.MAGIC) && !source.is(DamageTypes.INDIRECT_MAGIC);
@@ -89,7 +105,7 @@ public final class CombatHandler {
         // Heavy attacks cannot be parried; trying to costs posture. They can only be dodged.
         if (TelegraphGoal.isHeavyStrike(attacker)) {
             if (timed) {
-                player.sendOverlayMessage(Component.translatable("combat.gatebound.cant_parry").withStyle(net.minecraft.ChatFormatting.RED, net.minecraft.ChatFormatting.BOLD));
+                Compat.overlay(player, Component.translatable("combat.gatebound.cant_parry").withStyle(net.minecraft.ChatFormatting.RED, net.minecraft.ChatFormatting.BOLD));
                 PlayerCombat.addPosture(player, CombatConfig.heavyParryPosture);
             }
             return EventResult.pass();
@@ -106,7 +122,7 @@ public final class CombatHandler {
                 String why = since < 0 ? "no parry pressed yet"
                         : !inFront ? "attacker was not in front"
                         : "pressed " + since + " ticks before the hit (window is " + CombatConfig.parryWindowTicks + ")";
-                player.sendOverlayMessage(Component.literal("Parry missed: " + why));
+                Compat.overlay(player, Component.literal("Parry missed: " + why));
             }
             return EventResult.pass();
         }
@@ -120,14 +136,14 @@ public final class CombatHandler {
         Vec3 mid = player.getEyePosition().add(attacker.getEyePosition()).scale(0.5);
         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, mid.x, mid.y, mid.z, 14, 0.2, 0.2, 0.2, 0.15);
         level.sendParticles(ParticleTypes.CRIT, mid.x, mid.y, mid.z, 8, 0.2, 0.2, 0.2, 0.2);
-        level.playSound(null, player.blockPosition(), SoundEvents.SHIELD_BLOCK.value(), SoundSource.PLAYERS, 1.0f, 1.3f);
-        level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 0.8f, 1.5f);
+        level.playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.SHIELD_BLOCK.value()), SoundSource.PLAYERS, 1.0f, 1.3f);
+        level.playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.PLAYER_ATTACK_CRIT), SoundSource.PLAYERS, 0.8f, 1.5f);
 
         // A second swing with the other arm on a clean parry, so a successful deflect looks different from a miss.
-        player.swing(InteractionHand.OFF_HAND, SwingAnimation.DEFAULT, true);
+        Compat.swing(player, InteractionHand.OFF_HAND, true);
         ManaState.add(player, CombatConfig.parryMana);
         player.addEffect(new MobEffectInstance(MobEffects.STRENGTH, CombatConfig.counterTicks, 1));
-        player.sendOverlayMessage(Component.literal("PARRY!").withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.BOLD));
+        Compat.overlay(player, Component.literal("PARRY!").withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.BOLD));
 
         addPostureAndMaybeBreak(attacker, CombatConfig.parryPosture, now, level, player);
         return EventResult.interruptFalse();
@@ -146,7 +162,7 @@ public final class CombatHandler {
                 applyingFinisher = false;
             }
             level.sendParticles(ParticleTypes.SWEEP_ATTACK, mob.getX(), mob.getY(0.5), mob.getZ(), 1, 0, 0, 0, 0);
-            player.sendOverlayMessage(Component.literal("FINISHER!").withStyle(net.minecraft.ChatFormatting.RED, net.minecraft.ChatFormatting.BOLD));
+            Compat.overlay(player, Component.literal("FINISHER!").withStyle(net.minecraft.ChatFormatting.RED, net.minecraft.ChatFormatting.BOLD));
             return;
         }
         if (isMelee(source)) {
@@ -158,7 +174,7 @@ public final class CombatHandler {
         double value = CombatState.addPosture(target.getUUID(), amount, now);
         syncPosture(player, target, value, false);
         if (CombatState.debug(player.getUUID())) {
-            player.sendOverlayMessage(Component.literal("Posture " + (int) value + " / " + (int) CombatConfig.postureMax));
+            Compat.overlay(player, Component.literal("Posture " + (int) value + " / " + (int) CombatConfig.postureMax));
         }
         if (value >= CombatConfig.postureMax) {
             CombatState.stagger(target.getUUID(), now);
@@ -167,8 +183,8 @@ public final class CombatHandler {
             target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, CombatConfig.staggerTicks, 4));
             target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, CombatConfig.staggerTicks, 2));
             level.sendParticles(ParticleTypes.CRIT, target.getX(), target.getY(0.8), target.getZ(), 20, 0.3, 0.3, 0.3, 0.3);
-            level.playSound(null, target.blockPosition(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 0.6f, 1.8f);
-            player.sendOverlayMessage(Component.literal("POSTURE BROKEN - strike now!").withStyle(net.minecraft.ChatFormatting.YELLOW, net.minecraft.ChatFormatting.BOLD));
+            level.playSound(null, target.blockPosition(), GateboundSounds.of(SoundEvents.ANVIL_LAND), SoundSource.HOSTILE, 0.6f, 1.8f);
+            Compat.overlay(player, Component.literal("POSTURE BROKEN - strike now!").withStyle(net.minecraft.ChatFormatting.YELLOW, net.minecraft.ChatFormatting.BOLD));
         }
     }
 

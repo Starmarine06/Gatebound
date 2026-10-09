@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "gatebound:ash_heart",
+    "gatebound:ash_heart",
+    "gatebound:ash_heart"
+  ],
+  "result": {
+    "id": "minecraft:netherite_scrap",
+    "count": 1
+  }
+}

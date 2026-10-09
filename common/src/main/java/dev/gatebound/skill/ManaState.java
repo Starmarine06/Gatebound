@@ -1,5 +1,6 @@
 package dev.gatebound.skill;
 
+import dev.gatebound.data.GateboundClass;
 import dev.gatebound.data.PlayerData;
 import dev.gatebound.data.PlayerDataStore;
 import dev.gatebound.data.Stat;
@@ -20,7 +21,10 @@ public final class ManaState {
     }
 
     public static int max(PlayerData data) {
-        return 20 + 4 * data.get(Stat.INTELLECT);
+        Stat primary = RogueConfig.agilityMana && GateboundClass.ROGUE.id().equals(data.classId) ? Stat.AGILITY
+                : RangerConfig.agilityMana && GateboundClass.RANGER.id().equals(data.classId) ? Stat.AGILITY
+                : WarriorConfig.strengthMana && GateboundClass.WARRIOR.id().equals(data.classId) ? Stat.STRENGTH : Stat.INTELLECT;
+        return 20 + 4 * data.get(primary);
     }
 
     /** Ticks for the pool to refill on its own: half a Minecraft day. Sleeping or a mana potion refills it much faster. */

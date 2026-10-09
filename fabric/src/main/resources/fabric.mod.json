@@ -8,12 +8,13 @@
   "license": "All-Rights-Reserved",
   "environment": "*",
   "entrypoints": {
-    "main": ["dev.gatebound.fabric.GateboundFabric"]
+    "main": ["dev.gatebound.fabric.GateboundFabric"],
+    "client": ["dev.gatebound.fabric.GateboundFabricClient"]
   },
   "depends": {
-    "minecraft": ">=26.3",
+    "minecraft": ">=${minecraft}",
     "fabricloader": ">=0.19.5",
     "fabric-api": "*",
-    "architectury": ">=22.0.3"
+    "architectury": ">=${architectury}"
   }
 }

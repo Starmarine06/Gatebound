@@ -21,7 +21,8 @@ public final class PlayerData {
             Codec.STRING.optionalFieldOf("class", "").forGetter(d -> d.classId),
             Codec.STRING.listOf().optionalFieldOf("elements", List.of()).forGetter(d -> d.elements),
             Codec.DOUBLE.optionalFieldOf("mana", MANA_UNSET).forGetter(d -> d.mana),
-            dev.gatebound.echo.EchoRoster.CODEC.optionalFieldOf("echo", new dev.gatebound.echo.EchoRoster()).forGetter(d -> d.echo)
+            dev.gatebound.echo.EchoRoster.CODEC.optionalFieldOf("echo", new dev.gatebound.echo.EchoRoster()).forGetter(d -> d.echo),
+            Codec.STRING.listOf().optionalFieldOf("spell_picks", List.of()).forGetter(d -> d.picks)
     ).apply(i, PlayerData::new));
 
     public int level;
@@ -31,17 +32,20 @@ public final class PlayerData {
     public String classId;
     /** Element ids for Mages, in the order they were gained. Empty for every other class. */
     public final List<String> elements = new ArrayList<>();
+    /** Skill ids a multi-element Mage has chosen to unlock (one element's spell per tier; see SpellPicks). */
+    public final List<String> picks = new ArrayList<>();
     public double mana;
     /** Summoner's saved Echoes (bound mobs). */
     public dev.gatebound.echo.EchoRoster echo = new dev.gatebound.echo.EchoRoster();
 
     public PlayerData() {
-        this(1, 0, 0, List.of(), "", List.of(), MANA_UNSET, new dev.gatebound.echo.EchoRoster());
+        this(1, 0, 0, List.of(), "", List.of(), MANA_UNSET, new dev.gatebound.echo.EchoRoster(), List.of());
     }
 
     private PlayerData(int level, int xp, int statPoints, List<Integer> savedStats, String classId,
-                       List<String> savedElements, double mana, dev.gatebound.echo.EchoRoster echo) {
+                       List<String> savedElements, double mana, dev.gatebound.echo.EchoRoster echo, List<String> savedPicks) {
         this.echo = echo.copy();
+        this.picks.addAll(savedPicks);
         this.level = Math.max(1, Math.min(MAX_LEVEL, level));
         this.xp = Math.max(0, xp);
         this.statPoints = Math.max(0, statPoints);

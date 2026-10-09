@@ -1,5 +1,6 @@
 package dev.gatebound.dungeon;
 
+import dev.gatebound.compat.Compat;
 import dev.gatebound.Gatebound;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -175,7 +176,7 @@ public final class WorkQueue {
                 p.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 24, 7, false, false));
                 p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 24, 4, false, false));
                 p.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 24, 0, false, false));
-                p.sendOverlayMessage(msg.copy().withStyle(ChatFormatting.LIGHT_PURPLE));
+                Compat.overlay(p, msg.copy().withStyle(ChatFormatting.LIGHT_PURPLE));
             }
             index++;
         }

@@ -1,5 +1,7 @@
 package dev.gatebound.trade;
 
+import dev.gatebound.sound.GateboundSounds;
+import dev.gatebound.compat.Compat;
 import dev.gatebound.data.GateboundClass;
 import dev.gatebound.data.PlayerData;
 import dev.gatebound.data.PlayerDataStore;
@@ -45,13 +47,13 @@ public class RespecTokenItem extends Item {
         }
         int refunded = respec(sp);
         if (refunded <= 0) {
-            sp.sendOverlayMessage(Component.literal("You have no spent stat points to refund.").withStyle(ChatFormatting.RED));
+            Compat.overlay(sp, Component.literal("You have no spent stat points to refund.").withStyle(ChatFormatting.RED));
             return InteractionResult.FAIL;
         }
         if (!player.hasInfiniteMaterials()) {
             player.getItemInHand(hand).shrink(1);
         }
-        level.playSound(null, sp.blockPosition(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1f, 1f);
+        level.playSound(null, sp.blockPosition(), GateboundSounds.custom("item.respec_token"), SoundSource.PLAYERS, 1f, 1f);
         sp.sendSystemMessage(Component.literal("[Gatebound] Your stats unravel. " + refunded
                 + " points refunded; spend them wisely.").withStyle(ChatFormatting.GOLD));
         return InteractionResult.SUCCESS;

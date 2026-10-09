@@ -1,5 +1,6 @@
 package dev.gatebound.echo;
 
+import dev.gatebound.compat.Compat;
 import dev.architectury.event.EventResult;
 import dev.architectury.event.events.common.EntityEvent;
 import dev.architectury.event.events.common.PlayerEvent;
@@ -38,7 +39,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
-import net.minecraft.world.scores.TeamColor;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -420,7 +420,7 @@ public final class EchoManager {
         if (level.addFreshEntity(body)) {
             level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, victim.getX(), victim.getY() + victim.getBbHeight() / 2,
                     victim.getZ(), 25, 0.4, 0.6, 0.4, 0.05);
-            player.sendOverlayMessage(Component.literal("The " + name + " leaves a soul body. Right-click it to bind it as an echo.")
+            Compat.overlay(player, Component.literal("The " + name + " leaves a soul body. Right-click it to bind it as an echo.")
                     .withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE));
         }
     }
@@ -521,7 +521,7 @@ public final class EchoManager {
     /** Tells the player something, in chat and as an overlay, so no failure path is ever silent. */
     private static void tell(ServerPlayer player, Component message) {
         player.sendSystemMessage(message);
-        player.sendOverlayMessage(message);
+        Compat.overlay(player, message);
     }
 
     private static Component msg(String key, String fallback, Object... args) {
@@ -577,7 +577,7 @@ public final class EchoManager {
         Gatebound.LOGGER.info("[echo] summoned {} echo(es) for {} (roster {}, slots {})",
                 summoned, who, data.echo.entries.size(), slotCount);
         if (summoned > 0) {
-            player.sendOverlayMessage(msg("gatebound.echo.summoned", "Summoned %s echo(es)", summoned));
+            Compat.overlay(player, msg("gatebound.echo.summoned", "Summoned %s echo(es)", summoned));
         }
         return summoned;
     }
@@ -624,7 +624,7 @@ public final class EchoManager {
             ACTIVE.remove(id);
         }
         if (message && count > 0) {
-            player.sendOverlayMessage(Component.translatable("gatebound.echo.dismissed", count));
+            Compat.overlay(player, Component.translatable("gatebound.echo.dismissed", count));
         }
     }
 
@@ -728,7 +728,7 @@ public final class EchoManager {
         PlayerTeam team = sb.getPlayerTeam(name);
         if (team == null) {
             team = sb.addPlayerTeam(name);
-            team.setColor(Optional.of(selected ? TeamColor.GOLD : TeamColor.DARK_PURPLE));
+            Compat.setTeamColor(team, selected);
             team.setAllowFriendlyFire(false);
         }
         sb.addPlayerToTeam(mob.getScoreboardName(), team);
@@ -832,7 +832,7 @@ public final class EchoManager {
             return;
         }
         if (echo == null || echoD == Double.MAX_VALUE) {
-            player.sendOverlayMessage(Component.literal("Look at one of your echoes or a soul body and press the select key.")
+            Compat.overlay(player, Component.literal("Look at one of your echoes or a soul body and press the select key.")
                     .withStyle(net.minecraft.ChatFormatting.GRAY));
             return;
         }
@@ -886,16 +886,16 @@ public final class EchoManager {
         if (choice >= 0 && choice <= 3) {
             setPersonalOrder(player, slot, choice);
             setSelection(player, echo, slot, true);
-            player.sendOverlayMessage(Component.literal(echo.mobName() + ": " + ORDER_NAMES[choice] + ".")
+            Compat.overlay(player, Component.literal(echo.mobName() + ": " + ORDER_NAMES[choice] + ".")
                     .withStyle(net.minecraft.ChatFormatting.GOLD));
         } else if (choice == 4) {
             setPersonalOrder(player, slot, -1);
-            player.sendOverlayMessage(Component.literal(echo.mobName() + " follows its group again.")
+            Compat.overlay(player, Component.literal(echo.mobName() + " follows its group again.")
                     .withStyle(net.minecraft.ChatFormatting.GRAY));
         } else if (choice == 5) {
             boolean on = SELECTED_SLOT.getOrDefault(player.getUUID(), -99) != slot;
             setSelection(player, echo, slot, on);
-            player.sendOverlayMessage(Component.literal((on ? "Selected " : "Deselected ") + echo.mobName() + ".")
+            Compat.overlay(player, Component.literal((on ? "Selected " : "Deselected ") + echo.mobName() + ".")
                     .withStyle(on ? net.minecraft.ChatFormatting.GOLD : net.minecraft.ChatFormatting.GRAY));
         }
         sendRoster(player, false);
@@ -976,7 +976,8 @@ public final class EchoManager {
     static void teleportTo(Mob mob, ServerPlayer owner) {
         Vec3 spot = freeSpot(mob, owner);
         mob.getNavigation().stop();
-        mob.teleportTo(owner.level(), spot.x, spot.y, spot.z, Set.of(), owner.getYRot(), 0, false);
+        ServerLevel ownerLevel = owner.level();
+        mob.teleportTo(ownerLevel, spot.x, spot.y, spot.z, Set.of(), owner.getYRot(), 0, false);
     }
 
     /**

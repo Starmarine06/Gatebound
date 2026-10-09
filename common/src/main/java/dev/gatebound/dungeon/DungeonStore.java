@@ -38,6 +38,14 @@ public final class DungeonStore extends SavedData {
 
     /** A gate in a world: where it leads, whether it spawned naturally, its age and how often it was used. */
     public static final class GateRef {
+        /** One party's (or one solo player's) own copy of a gate dungeon. */
+        public record Instance(UUID key, int floor) {
+            public static final Codec<Instance> CODEC = RecordCodecBuilder.create(i -> i.group(
+                    UUIDUtil.CODEC.fieldOf("key").forGetter(Instance::key),
+                    Codec.INT.fieldOf("floor").forGetter(Instance::floor)
+            ).apply(i, Instance::new));
+        }
+
         public static final Codec<GateRef> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Level.RESOURCE_KEY_CODEC.fieldOf("dim").forGetter(g -> g.dim),
                 BlockPos.CODEC.fieldOf("pos").forGetter(g -> g.pos),
@@ -45,8 +53,22 @@ public final class DungeonStore extends SavedData {
                 Codec.BOOL.optionalFieldOf("natural", true).forGetter(g -> g.natural),
                 Codec.LONG.optionalFieldOf("created", 0L).forGetter(g -> g.created),
                 Codec.INT.optionalFieldOf("uses", 0).forGetter(g -> g.uses),
-                Codec.BOOL.optionalFieldOf("cleared", false).forGetter(g -> g.cleared)
-        ).apply(i, GateRef::new));
+                Codec.BOOL.optionalFieldOf("cleared", false).forGetter(g -> g.cleared),
+                Instance.CODEC.listOf().optionalFieldOf("instances", List.of()).forGetter(g -> {
+                    List<Instance> out = new ArrayList<>();
+                    g.instances.forEach((k, f) -> out.add(new Instance(k, f)));
+                    return out;
+                })
+        ).apply(i, (dim, pos, floor, natural, created, uses, cleared, insts) -> {
+            GateRef g = new GateRef(dim, pos, floor, natural, created, uses, cleared);
+            for (Instance in : insts) {
+                g.instances.put(in.key(), in.floor());
+            }
+            return g;
+        }));
+
+        /** Owner key (party id, or the player's UUID when alone) to the floor index of that owner's copy of this dungeon. */
+        public final Map<UUID, Integer> instances = new HashMap<>();
 
         public final ResourceKey<Level> dim;
         public final BlockPos pos;

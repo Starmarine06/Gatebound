@@ -55,6 +55,8 @@ public final class FloorJob extends WorkQueue.Job {
     private RandomSource rng;
     private boolean forced;
     private boolean playersMoved;
+    /** Graves lifted out of the floor before a rebuild wiped it; set down again at the arrival point afterwards. */
+    private List<dev.gatebound.grave.GraveHandler.Saved> savedGraves = List.of();
 
     public FloorJob(int floor, boolean rebuild, boolean populateOnly, int popLevel) {
         super("floor:" + floor, "Floor " + floor);
@@ -122,6 +124,7 @@ public final class FloorJob extends WorkQueue.Job {
                 case CLEAR -> {
                     if (!playersMoved) {
                         evacuate(server, level);
+                        savedGraves = dev.gatebound.grave.GraveHandler.collect(level, Spire.bounds(floor));
                         playersMoved = true;
                     }
                     advance = sweep(level, b, true);
@@ -253,6 +256,19 @@ public final class FloorJob extends WorkQueue.Job {
             int hh = plan.h[idx];
             int wh = plan.wh[idx];
             if (hh <= 0 && wh <= 0) {
+                if (clear) {
+                    // Solid rock between rooms, so a regenerated floor ends up bedrock-filled even where the chunk was once air.
+                    int x0 = plan.ox + idx % plan.size;
+                    int z0 = idx / plan.size;
+                    int cost0 = 0;
+                    for (int y = Spire.FY - 2; y <= Spire.FY + 40; y++) {
+                        if (!level.getBlockState(mp.set(x0, y, z0)).is(Blocks.BEDROCK)) {
+                            set(level, x0, y, z0, Blocks.BEDROCK.defaultBlockState());
+                            cost0++;
+                        }
+                    }
+                    b.use(Math.max(1, cost0));
+                }
                 continue;
             }
             int i = idx % plan.size;
@@ -269,9 +285,13 @@ public final class FloorJob extends WorkQueue.Job {
                 }
                 b.use(Math.max(1, cost));
             } else if (hh > 0) {
+                // The dimension is solid bedrock, so the room is carved out between its floor and ceiling.
                 set(level, x, Spire.FY, j, plan.floorState(i, j));
+                for (int y = Spire.FY + 1; y <= Spire.FY + hh; y++) {
+                    set(level, x, y, j, air);
+                }
                 set(level, x, Spire.FY + hh + 1, j, plan.ceilingState(i, j));
-                b.use(2);
+                b.use(hh + 2);
             } else {
                 for (int y = Spire.FY; y <= Spire.FY + wh + 1; y++) {
                     set(level, x, y, j, plan.wallState(x, y, j));
@@ -310,10 +330,16 @@ public final class FloorJob extends WorkQueue.Job {
         if (plan.kind == Spire.Kind.NORMAL || plan.kind == Spire.Kind.REST) {
             PortalPlacer.place(level, plan.upPortal, GateExitBlock.Kind.UP, net.minecraft.core.Direction.EAST);
         }
-        if (fs.bossDead && plan.kind == Spire.Kind.BOSS) {
+        if (fs.bossDead && Spire.isGate(floor)) {
+            PortalPlacer.place(level, plan.upPortal, GateExitBlock.Kind.HOME, net.minecraft.core.Direction.EAST);
+        } else if (fs.bossDead && plan.kind == Spire.Kind.BOSS) {
             PortalPlacer.place(level, plan.upPortal, GateExitBlock.Kind.UP, net.minecraft.core.Direction.EAST);
         }
         placeChests(level);
+        if (!savedGraves.isEmpty()) {
+            dev.gatebound.grave.GraveHandler.restore(level, savedGraves, plan.downArrive);
+            savedGraves = List.of();
+        }
         return true;
     }
 

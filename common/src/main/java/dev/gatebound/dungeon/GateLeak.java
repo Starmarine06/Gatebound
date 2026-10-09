@@ -1,5 +1,6 @@
 package dev.gatebound.dungeon;
 
+import dev.gatebound.sound.GateboundSounds;
 import dev.gatebound.Gatebound;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -122,7 +123,7 @@ public final class GateLeak {
             mob.setPersistenceRequired();
             mob.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, MobEffectInstance.INFINITE_DURATION, 0, false, false));
             level.sendParticles(ParticleTypes.REVERSE_PORTAL, pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5, 20, 0.3, 0.6, 0.3, 0.2);
-            level.playSound(null, pos, SoundEvents.PORTAL_TRAVEL, SoundSource.HOSTILE, 0.25f, 1.4f);
+            level.playSound(null, pos, GateboundSounds.of(SoundEvents.PORTAL_TRAVEL), SoundSource.HOSTILE, 0.25f, 1.4f);
             Gatebound.LOGGER.debug("Gate at {} leaked a mob at {}", gate, pos);
             return true;
         }

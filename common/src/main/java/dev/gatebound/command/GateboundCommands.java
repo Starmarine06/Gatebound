@@ -74,6 +74,7 @@ public final class GateboundCommands {
                                 PlayerData d = PlayerDataStore.of(player);
                                 d.setLevel(IntegerArgumentType.getInteger(ctx, "level"));
                                 Progression.save(player, d);
+                                Progression.openSpellPickIfNeeded(player);
                                 ctx.getSource().sendSuccess(() -> Component.literal("Level set to " + d.level), false);
                                 return 1;
                             }))));
@@ -88,6 +89,11 @@ public final class GateboundCommands {
             // /gatebound awaken reopens the class screen if no class is chosen; /gatebound class reset is admin-only.
             root.then(Commands.literal("awaken").executes(ctx -> {
                 Progression.openAwakeningIfNeeded(ctx.getSource().getPlayerOrException());
+                return 1;
+            }));
+            // /gatebound spells reopens the spell choice screen when a multi-element Mage has a pick waiting.
+            root.then(Commands.literal("spells").executes(ctx -> {
+                Progression.openSpellPickIfNeeded(ctx.getSource().getPlayerOrException());
                 return 1;
             }));
             root.then(Commands.literal("class").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
@@ -132,6 +138,7 @@ public final class GateboundCommands {
                         d.elements.add(element.id());
                     }
                     Progression.save(player, d);
+                    Progression.openSpellPickIfNeeded(player);
                     ctx.getSource().sendSuccess(() -> Component.literal("Elements: " + String.join(", ", d.elements)), false);
                     return 1;
                 }));

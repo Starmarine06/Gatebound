@@ -1,5 +1,6 @@
 package dev.gatebound.trade;
 
+import dev.gatebound.compat.Compat;
 import dev.architectury.networking.NetworkManager;
 import dev.architectury.utils.Env;
 import dev.architectury.utils.EnvExecutor;
@@ -48,10 +49,10 @@ public final class NpcTrades {
     }
 
     public static void init() {
-        NetworkManager.registerS2C(NpcOffersPayload.TYPE, NpcOffersPayload.CODEC, (payload, context) ->
+        Compat.registerS2C(NpcOffersPayload.TYPE, NpcOffersPayload.CODEC, (payload, context) ->
                 context.queue(() -> EnvExecutor.runInEnv(Env.CLIENT, () -> () -> dev.gatebound.client.NpcClient.handle(payload))));
 
-        NetworkManager.registerC2S(NpcBuyPayload.TYPE, NpcBuyPayload.CODEC, (payload, context) ->
+        Compat.registerC2S(NpcBuyPayload.TYPE, NpcBuyPayload.CODEC, (payload, context) ->
                 context.queue(() -> {
                     if (context.getPlayer() instanceof ServerPlayer player) {
                         buy(player, payload.entityId(), payload.offerIndex());
@@ -69,11 +70,11 @@ public final class NpcTrades {
                 o.add(new Def(TradeItems.TOMES.get(s)::get, 1, TradeItems.GATE_SHARD::get, tomePrice(level), TradeConfig.offerStock));
             }
             o.add(new Def(TradeItems.ECHO_SHARD::get, 1, TradeItems.GATE_SHARD::get, 30 + level / 2, 2));
-            o.add(new Def(TradeItems.MANA_POTION::get, 1, TradeItems.GATE_SHARD::get, 6 + level / 10, 8));
+            o.add(new Def(TradeItems.MANA_POTION::get, 1, TradeItems.GATE_SHARD::get, 25 + level / 5, 8));
             o.add(new Def(TradeItems.GATE_SHARD::get, 5, () -> Items.DIAMOND, 1, 8));
         } else {
             o.add(new Def(TradeItems.INFO_SCROLL::get, 1, TradeItems.GATE_SHARD::get, 2 + level / 20, 10));
-            o.add(new Def(TradeItems.MANA_POTION::get, 1, TradeItems.GATE_SHARD::get, 6 + level / 10, 8));
+            o.add(new Def(TradeItems.MANA_POTION::get, 1, TradeItems.GATE_SHARD::get, 25 + level / 5, 8));
             for (Stat s : new Stat[]{Stat.INTELLECT, Stat.LUCK}) {
                 o.add(new Def(TradeItems.TOMES.get(s)::get, 1, TradeItems.GATE_SHARD::get, tomePrice(level), TradeConfig.offerStock));
             }
@@ -126,7 +127,7 @@ public final class NpcTrades {
             return;
         }
         if (player.distanceToSqr(npc) > MAX_DISTANCE_SQR) {
-            player.sendOverlayMessage(Component.translatableWithFallback("gatebound.npc.too_far", "You are too far away.")
+            Compat.overlay(player, Component.translatableWithFallback("gatebound.npc.too_far", "You are too far away.")
                     .withStyle(ChatFormatting.RED));
             return;
         }
@@ -138,10 +139,10 @@ public final class NpcTrades {
         int[] uses = usesToday(npc, defs.size());
         Item pay = d.pay().get();
         if (uses[index] >= d.max()) {
-            player.sendOverlayMessage(Component.translatableWithFallback("gatebound.npc.sold_out", "Sold out for today.")
+            Compat.overlay(player, Component.translatableWithFallback("gatebound.npc.sold_out", "Sold out for today.")
                     .withStyle(ChatFormatting.RED));
         } else if (countItems(player, pay) < d.price()) {
-            player.sendOverlayMessage(Component.translatableWithFallback("gatebound.npc.cannot_afford", "You cannot afford that.")
+            Compat.overlay(player, Component.translatableWithFallback("gatebound.npc.cannot_afford", "You cannot afford that.")
                     .withStyle(ChatFormatting.RED));
         } else {
             removeItems(player, pay, d.price());
@@ -151,7 +152,7 @@ public final class NpcTrades {
                 player.spawnAtLocation(player.level(), stack);
             }
             uses[index]++;
-            player.sendOverlayMessage(Component.translatableWithFallback("gatebound.npc.bought", "Bought %s", name)
+            Compat.overlay(player, Component.translatableWithFallback("gatebound.npc.bought", "Bought %s", name)
                     .withStyle(ChatFormatting.GREEN));
             Gatebound.LOGGER.info("[npc] {} bought {}", player.getName().getString(), id(d.result().get()));
         }

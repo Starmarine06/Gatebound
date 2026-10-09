@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:paper",
+    "minecraft:redstone",
+    "minecraft:red_dye"
+  ],
+  "result": {
+    "id": "gatebound:trail_marker_red",
+    "count": 4
+  }
+}

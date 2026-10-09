@@ -8,6 +8,7 @@ import com.google.gson.JsonObject;
 import dev.architectury.platform.Platform;
 import dev.gatebound.Gatebound;
 import dev.gatebound.combat.CombatConfig;
+import dev.gatebound.skill.RogueConfig;
 import dev.gatebound.dungeon.DungeonConfig;
 import dev.gatebound.echo.EchoConfig;
 import dev.gatebound.skill.MagicConfig;
@@ -32,7 +33,7 @@ public final class GateboundConfig {
     }
 
     private static Class<?>[] sections() {
-        return new Class<?>[]{CombatConfig.class, MagicConfig.class, EchoConfig.class, TradeConfig.class, DungeonConfig.class};
+        return new Class<?>[]{CombatConfig.class, MagicConfig.class, EchoConfig.class, TradeConfig.class, DungeonConfig.class, RogueConfig.class, dev.gatebound.skill.WarriorConfig.class, dev.gatebound.skill.RangerConfig.class};
     }
 
     public static void load() {
@@ -89,6 +90,8 @@ public final class GateboundConfig {
             field.setDouble(null, value.getAsDouble());
         } else if (type == boolean.class) {
             field.setBoolean(null, value.getAsBoolean());
+        } else if (type == String.class) {
+            field.set(null, value.getAsString());
         } else if (type == int[].class) {
             JsonArray arr = value.getAsJsonArray();
             int[] current = (int[]) field.get(null);
@@ -110,6 +113,8 @@ public final class GateboundConfig {
             return GSON.toJsonTree(field.getDouble(null));
         } else if (type == boolean.class) {
             return GSON.toJsonTree(field.getBoolean(null));
+        } else if (type == String.class) {
+            return GSON.toJsonTree(field.get(null));
         } else if (type == int[].class) {
             return GSON.toJsonTree(field.get(null));
         }

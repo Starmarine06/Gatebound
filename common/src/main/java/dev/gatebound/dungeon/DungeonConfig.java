@@ -74,8 +74,11 @@ public final class DungeonConfig {
     public static double hpPerLevel = 0.02;
     /** A cleared floor refills with mobs and loot after this long once someone returns (20 minutes). */
     public static long repopulateTicks = 24000;
-    /** Same for boss floors (1 hour). */
-    public static long bossRepopulateTicks = 72000;
+    /** Boss floors reset this long after the guardian falls (15 minutes), plus up to the jitter below (5 more). */
+    public static long bossRepopulateTicks = 18000;
+    public static long bossRepopulateJitter = 6000;
+    /** An unfinished gate dungeon copy that nobody has been in for this long (10 minutes) is released. */
+    public static long gateInstanceIdleTicks = 12000;
     /** Number of escape rifts (arrival points for gates) per floor. */
     public static int riftsPerFloor = 6;
     public static boolean restFloorHealing = true;
@@ -98,6 +101,19 @@ public final class DungeonConfig {
     public static int finalBossXp = 12000;
     public static int floorClearXpBase = 20;
     public static int floorClearXpPerFloor = 6;
+    /** XP per slain floor monster (base + per floor). */
+    public static int mobKillXpBase = 3;
+    public static int mobKillXpPerFloor = 1;
+    /** Trail markers last this long (5 minutes), and a player can have this many out at once. */
+    public static long markerTicks = 6000;
+    public static int markerMax = 16;
+    /** Floors up to this have custom bosses and vanilla regular mobs; above it every mob is custom. */
+    public static int customMobFloor = 50;
+    /** Chance a slain monster drops a material of its rank: custom monsters versus the vanilla ones on lower floors. */
+    public static double customMaterialChance = 0.6;
+    public static double vanillaMaterialChance = 0.15;
+    /** A grave can be opened only by its owner for this long (5 minutes). */
+    public static long graveOwnerTicks = 6000;
     /** 0 = respawn at the tower entrance on the surface, 1 = respawn at the last rest floor reached. */
     public static int deathRespawnMode = 1;
 

@@ -1,5 +1,7 @@
 package dev.gatebound.echo;
 
+import dev.gatebound.sound.GateboundSounds;
+import dev.gatebound.compat.Compat;
 import dev.gatebound.data.PlayerData;
 import dev.gatebound.data.PlayerDataStore;
 import net.minecraft.ChatFormatting;
@@ -27,11 +29,11 @@ public class EchoShardItem extends Item {
         }
         PlayerData data = PlayerDataStore.of(sp);
         if (!EchoManager.isSummoner(data)) {
-            sp.sendOverlayMessage(Component.literal("Only Summoners can bind more echoes.").withStyle(ChatFormatting.RED));
+            Compat.overlay(sp, Component.literal("Only Summoners can bind more echoes.").withStyle(ChatFormatting.RED));
             return InteractionResult.FAIL;
         }
         if (data.echo.bonusSlots >= EchoConfig.maxBonusSlots) {
-            sp.sendOverlayMessage(Component.literal("You can hold no more echo shards (" + data.echo.bonusSlots + "/"
+            Compat.overlay(sp, Component.literal("You can hold no more echo shards (" + data.echo.bonusSlots + "/"
                     + EchoConfig.maxBonusSlots + ").").withStyle(ChatFormatting.RED));
             return InteractionResult.FAIL;
         }
@@ -41,7 +43,7 @@ public class EchoShardItem extends Item {
         if (!player.hasInfiniteMaterials()) {
             stack.shrink(1);
         }
-        level.playSound(null, sp.blockPosition(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1f, 1f);
+        level.playSound(null, sp.blockPosition(), GateboundSounds.custom("item.echo_shard"), SoundSource.PLAYERS, 1f, 1f);
         sp.sendSystemMessage(Component.literal("[Gatebound] The shard dissolves into you. You can now hold "
                 + EchoManager.slots(data) + " echoes.").withStyle(ChatFormatting.LIGHT_PURPLE));
         EchoManager.sendRoster(sp, false);

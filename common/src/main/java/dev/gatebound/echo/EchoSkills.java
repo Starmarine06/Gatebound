@@ -1,5 +1,7 @@
 package dev.gatebound.echo;
 
+import dev.gatebound.sound.GateboundSounds;
+import dev.gatebound.compat.Compat;
 import dev.gatebound.data.PlayerData;
 import dev.gatebound.data.Stat;
 import dev.gatebound.skill.ManaState;
@@ -49,7 +51,7 @@ public final class EchoSkills {
             return false;
         }
         ManaState.add(player, cost);
-        player.sendOverlayMessage(Component.literal("You have no echoes out. Press R to summon them.")
+        Compat.overlay(player, Component.literal("You have no echoes out. Press R to summon them.")
                 .withStyle(ChatFormatting.GRAY));
         return true;
     }
@@ -72,8 +74,8 @@ public final class EchoSkills {
             level.sendParticles(ParticleTypes.END_ROD, e.getX(), e.getY() + 0.8, e.getZ(), 8, 0.3, 0.5, 0.3, 0.05);
             e.addEffect(new MobEffectInstance(MobEffects.SPEED, 100, 1));
         }
-        level.playSound(null, player.blockPosition(), SoundEvents.EVOKER_PREPARE_SUMMON, SoundSource.PLAYERS, 1.0f, 1.3f);
-        player.sendOverlayMessage(Component.literal("Rally! " + echoes.size() + " echoes return to your side.")
+        level.playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.EVOKER_PREPARE_SUMMON), SoundSource.PLAYERS, 1.0f, 1.3f);
+        Compat.overlay(player, Component.literal("Rally! " + echoes.size() + " echoes return to your side.")
                 .withStyle(ChatFormatting.LIGHT_PURPLE));
         return true;
     }
@@ -93,7 +95,7 @@ public final class EchoSkills {
         }
         if (mark == null) {
             ManaState.add(player, COMMAND_COST);
-            player.sendOverlayMessage(Component.literal("Look at an enemy to command your echoes to strike it.")
+            Compat.overlay(player, Component.literal("Look at an enemy to command your echoes to strike it.")
                     .withStyle(ChatFormatting.GRAY));
             return true;
         }
@@ -110,8 +112,8 @@ public final class EchoSkills {
         }
         mark.addEffect(new MobEffectInstance(MobEffects.GLOWING, COMMAND_TICKS, 0, false, false));
         level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, mark.getX(), mark.getY(0.5), mark.getZ(), 20, 0.4, 0.6, 0.4, 0.05);
-        level.playSound(null, player.blockPosition(), SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1.0f, 1.0f);
-        player.sendOverlayMessage(Component.literal("Strike! " + sent + " echoes attack " + mark.getName().getString() + ".")
+        level.playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.EVOKER_CAST_SPELL), SoundSource.PLAYERS, 1.0f, 1.0f);
+        Compat.overlay(player, Component.literal("Strike! " + sent + " echoes attack " + mark.getName().getString() + ".")
                 .withStyle(ChatFormatting.LIGHT_PURPLE));
         return true;
     }
@@ -135,8 +137,8 @@ public final class EchoSkills {
             level.sendParticles(ParticleTypes.ENCHANT, e.getX(), e.getY() + 1, e.getZ(), 25, 0.4, 0.7, 0.4, 0.5);
             boosted++;
         }
-        level.playSound(null, player.blockPosition(), SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.0f, 1.2f);
-        player.sendOverlayMessage(Component.literal("Empowered " + boosted + " echoes: +" + Math.round((mult - 1) * 100)
+        level.playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.BEACON_POWER_SELECT), SoundSource.PLAYERS, 1.0f, 1.2f);
+        Compat.overlay(player, Component.literal("Empowered " + boosted + " echoes: +" + Math.round((mult - 1) * 100)
                 + "% damage, extra toughness for 20 s.").withStyle(ChatFormatting.LIGHT_PURPLE));
         return true;
     }
@@ -158,7 +160,7 @@ public final class EchoSkills {
 
     private static boolean needEcho(ServerPlayer player, int cost, String hint) {
         ManaState.add(player, cost);
-        player.sendOverlayMessage(Component.literal(hint).withStyle(ChatFormatting.GRAY));
+        Compat.overlay(player, Component.literal(hint).withStyle(ChatFormatting.GRAY));
         return true; // the hint replaces the generic no-target message
     }
 
@@ -180,8 +182,8 @@ public final class EchoSkills {
             level.sendParticles(ParticleTypes.SOUL, e.getX(), e.getY() + 1, e.getZ(), 15, 0.4, 0.6, 0.4, 0.03);
             linked++;
         }
-        level.playSound(null, player.blockPosition(), SoundEvents.SOUL_ESCAPE.value(), SoundSource.PLAYERS, 1.0f, 0.8f);
-        player.sendOverlayMessage(Component.literal("Soul Link: " + linked + " echoes drain " + Math.round(fraction * 100)
+        level.playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.SOUL_ESCAPE.value()), SoundSource.PLAYERS, 1.0f, 0.8f);
+        Compat.overlay(player, Component.literal("Soul Link: " + linked + " echoes drain " + Math.round(fraction * 100)
                 + "% of the damage they deal as health for 15 s.").withStyle(ChatFormatting.LIGHT_PURPLE));
         return true;
     }
@@ -197,8 +199,8 @@ public final class EchoSkills {
         player.heal(heal);
         ManaState.add(player, mana);
         level.sendParticles(ParticleTypes.SOUL, player.getX(), player.getY() + 1, player.getZ(), 30, 0.5, 0.8, 0.5, 0.1);
-        level.playSound(null, player.blockPosition(), SoundEvents.SOUL_ESCAPE.value(), SoundSource.PLAYERS, 1.2f, 0.6f);
-        player.sendOverlayMessage(Component.literal("You consume " + echo.mobName() + ": +" + Math.round(heal) + " health, +"
+        level.playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.SOUL_ESCAPE.value()), SoundSource.PLAYERS, 1.2f, 0.6f);
+        Compat.overlay(player, Component.literal("You consume " + echo.mobName() + ": +" + Math.round(heal) + " health, +"
                 + Math.round(mana) + " mana. It returns when you summon again.").withStyle(ChatFormatting.LIGHT_PURPLE));
         EchoManager.consume(echo);
         return true;
@@ -217,7 +219,7 @@ public final class EchoSkills {
         echo.getNavigation().stop();
         echo.teleportTo(level, mine.x, mine.y, mine.z, Set.of(), echo.getYRot(), 0, false);
         player.teleportTo(level, theirs.x, theirs.y, theirs.z, Set.of(), player.getYRot(), player.getXRot(), false);
-        level.playSound(null, player.blockPosition(), SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 1.0f, 1.2f);
+        level.playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.ENDERMAN_TELEPORT), SoundSource.PLAYERS, 1.0f, 1.2f);
         return true;
     }
 
@@ -232,7 +234,7 @@ public final class EchoSkills {
         }
         if (mark == null) {
             ManaState.add(player, CHAINS_COST);
-            player.sendOverlayMessage(Component.literal("Look at an enemy to bind it.").withStyle(ChatFormatting.GRAY));
+            Compat.overlay(player, Component.literal("Look at an enemy to bind it.").withStyle(ChatFormatting.GRAY));
             return true;
         }
         final LivingEntity center = mark;
@@ -246,8 +248,8 @@ public final class EchoSkills {
             level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, e.getX(), e.getY() + 0.2, e.getZ(), 18, 0.4, 0.1, 0.4, 0.02);
             bound++;
         }
-        level.playSound(null, mark.blockPosition(), SoundEvents.CHAIN_PLACE, SoundSource.PLAYERS, 1.2f, 0.7f);
-        player.sendOverlayMessage(Component.literal("Bound " + bound + " enemies for " + ticks / 20 + " s.")
+        level.playSound(null, mark.blockPosition(), GateboundSounds.of(SoundEvents.CHAIN_PLACE), SoundSource.PLAYERS, 1.2f, 0.7f);
+        Compat.overlay(player, Component.literal("Bound " + bound + " enemies for " + ticks / 20 + " s.")
                 .withStyle(ChatFormatting.LIGHT_PURPLE));
         return true;
     }
@@ -256,13 +258,13 @@ public final class EchoSkills {
     public static boolean legionCall(ServerPlayer player, ServerLevel level, PlayerData data) {
         if (data.echo.entries.isEmpty()) {
             ManaState.add(player, LEGION_COST);
-            player.sendOverlayMessage(Component.literal("Your roster is empty: bind some echoes first.").withStyle(ChatFormatting.GRAY));
+            Compat.overlay(player, Component.literal("Your roster is empty: bind some echoes first.").withStyle(ChatFormatting.GRAY));
             return true;
         }
         int seconds = 15 + data.level / 5;
         int n = EchoManager.spawnLegion(player, data, seconds * 20);
-        level.playSound(null, player.blockPosition(), SoundEvents.EVOKER_PREPARE_SUMMON, SoundSource.PLAYERS, 1.2f, 0.7f);
-        player.sendOverlayMessage(Component.literal("Legion Call: " + n + " spectral echoes fight for " + seconds + " s.")
+        level.playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.EVOKER_PREPARE_SUMMON), SoundSource.PLAYERS, 1.2f, 0.7f);
+        Compat.overlay(player, Component.literal("Legion Call: " + n + " spectral echoes fight for " + seconds + " s.")
                 .withStyle(ChatFormatting.LIGHT_PURPLE));
         return true;
     }
@@ -296,8 +298,8 @@ public final class EchoSkills {
             level.sendParticles(ParticleTypes.SOUL, best.getX(), best.getY(0.5), best.getZ(), 12, 0.3, 0.4, 0.3, 0.05);
             hitsDone++;
         }
-        level.playSound(null, player.blockPosition(), SoundEvents.WITHER_SHOOT, SoundSource.PLAYERS, 0.9f, 1.4f);
-        player.sendOverlayMessage(Component.literal("Soul Storm: " + hitsDone + " echoes strike.").withStyle(ChatFormatting.LIGHT_PURPLE));
+        level.playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.WITHER_SHOOT), SoundSource.PLAYERS, 0.9f, 1.4f);
+        Compat.overlay(player, Component.literal("Soul Storm: " + hitsDone + " echoes strike.").withStyle(ChatFormatting.LIGHT_PURPLE));
         return true;
     }
 
@@ -324,8 +326,8 @@ public final class EchoSkills {
             level.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, e.getX(), e.getY() + 1, e.getZ(), 30, 0.4, 0.8, 0.4, 0.3);
             n++;
         }
-        level.playSound(null, player.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.2f, 1.0f);
-        player.sendOverlayMessage(Component.literal("Ascension: " + n + " echoes surge with power (x" + String.format("%.1f", mult)
+        level.playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.BEACON_ACTIVATE), SoundSource.PLAYERS, 1.2f, 1.0f);
+        Compat.overlay(player, Component.literal("Ascension: " + n + " echoes surge with power (x" + String.format("%.1f", mult)
                 + " damage) for 30 s.").withStyle(ChatFormatting.GOLD));
         return true;
     }
@@ -351,8 +353,8 @@ public final class EchoSkills {
         player.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, ticks, 1));
         player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, ticks, 1));
         level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, player.getX(), player.getY() + 0.2, player.getZ(), 120, 6, 0.2, 6, 0.05);
-        level.playSound(null, player.blockPosition(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.PLAYERS, 0.8f, 1.5f);
-        player.sendOverlayMessage(Component.literal("SOVEREIGN'S DOMAIN: your echoes are untouchable for 15 s.")
+        level.playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.ENDER_DRAGON_GROWL), SoundSource.PLAYERS, 0.8f, 1.5f);
+        Compat.overlay(player, Component.literal("SOVEREIGN'S DOMAIN: your echoes are untouchable for 15 s.")
                 .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
         return true;
     }

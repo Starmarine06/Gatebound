@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "D": "minecraft:diamond",
+    "L": "minecraft:lapis_lazuli",
+    "B": "minecraft:glass_bottle",
+    "A": "minecraft:amethyst_shard"
+  },
+  "pattern": [
+    "DDD",
+    "LBL",
+    " A "
+  ],
+  "result": {
+    "id": "gatebound:mana_potion"
+  }
+}

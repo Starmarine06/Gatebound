@@ -15,7 +15,7 @@
       </option>
       <option name="taskNames">
         <list>
-          <option value=":fabric:runServer" />
+          <option value=":fabric:26.3:runServer" />
         </list>
       </option>
       <option name="vmOptions" />

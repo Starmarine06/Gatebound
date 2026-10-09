@@ -1,5 +1,6 @@
 package dev.gatebound.client;
 
+import dev.gatebound.compat.ClientCompat;
 import dev.architectury.event.events.client.ClientTickEvent;
 import dev.architectury.networking.NetworkManager;
 import dev.architectury.registry.client.keymappings.KeyMappingRegistry;
@@ -20,7 +21,7 @@ public final class Combat4bClient {
         KeyMappingRegistry.register(DODGE);
         ClientTickEvent.CLIENT_POST.register(mc -> {
             while (DODGE.consumeClick()) {
-                if (mc.gui.screen() == null && mc.player != null) {
+                if (ClientCompat.screen(mc) == null && mc.player != null) {
                     int forward = (mc.options.keyUp.isDown() ? 1 : 0) - (mc.options.keyDown.isDown() ? 1 : 0);
                     int strafe = (mc.options.keyLeft.isDown() ? 1 : 0) - (mc.options.keyRight.isDown() ? 1 : 0);
                     NetworkManager.sendToServer(new DodgePayload(forward, strafe));

@@ -1,3 +1,4 @@
+apply from: rootProject.file("gradle/node.gradle")
 apply plugin: "com.gradleup.shadow"
 
 architectury {
@@ -14,17 +15,18 @@ configurations {
 }
 
 dependencies {
-    neoForge "net.neoforged:neoforge:${rootProject.neoforge_version}"
-    implementation "dev.architectury:architectury-neoforge:${rootProject.architectury_api_version}"
+    neoForge "net.neoforged:neoforge:${vd.neoforge}"
+    add(modImpl, "dev.architectury:architectury-neoforge:${vd.arch}")
 
-    common(project(path: ":common")) { transitive false }
-    shadowCommon(project(path: ":common", configuration: "transformProductionNeoForge")) { transitive false }
+    common(project(path: ":common:${mcVer}", configuration: commonCfg)) { transitive false }
+    shadowCommon(project(path: ":common:${mcVer}", configuration: "transformProductionNeoForge")) { transitive false }
 }
 
 processResources {
-    inputs.property "version", project.version
+    def props = [version: project.version, minecraft: vd.mc, neoforge: vd.neoforge, architectury: vd.arch]
+    inputs.properties props
     filesMatching("META-INF/neoforge.mods.toml") {
-        expand "version": project.version
+        expand props
     }
 }
 
@@ -48,7 +50,7 @@ loom {
     runs {
         client {
             // Fixed dev username: offline UUIDs come from the name, so a stable name keeps the same player data.
-            programArgs "--username", "Player989"
+            programArgs "--username", "Player896"
         }
     }
 }

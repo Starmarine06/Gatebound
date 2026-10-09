@@ -1,5 +1,6 @@
 package dev.gatebound.dungeon;
 
+import dev.gatebound.sound.GateboundSounds;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
@@ -93,10 +94,10 @@ public final class GatePull {
             }
             int salt = g.pos.hashCode() & 0x7F;
             if ((tc + salt) % 130 == 0) {
-                level.playSound(null, g.pos, SoundEvents.PORTAL_AMBIENT, SoundSource.AMBIENT, 0.35f, 0.45f);
+                level.playSound(null, g.pos, GateboundSounds.custom("gate.ambient"), SoundSource.AMBIENT, 0.35f, 1f);
             }
             if (veryNear && (tc + salt) % 50 == 0) {
-                level.playSound(null, g.pos, SoundEvents.BEACON_AMBIENT, SoundSource.AMBIENT, 0.5f, 0.5f);
+                level.playSound(null, g.pos, GateboundSounds.of(SoundEvents.BEACON_AMBIENT), SoundSource.AMBIENT, 0.5f, 0.5f);
             }
 
             AABB box = new AABB(gx - radius, gy - radius, gz - radius, gx + radius, gy + radius, gz + radius);

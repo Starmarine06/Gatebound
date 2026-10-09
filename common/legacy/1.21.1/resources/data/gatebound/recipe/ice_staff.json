@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "O": {
+      "item": "minecraft:blue_ice"
+    },
+    "S": {
+      "item": "minecraft:stick"
+    }
+  },
+  "pattern": [
+    " O ",
+    " S ",
+    " S "
+  ],
+  "result": {
+    "id": "gatebound:ice_staff"
+  }
+}

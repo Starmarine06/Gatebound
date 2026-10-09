@@ -39,7 +39,7 @@ public final class SkillWheelScreen extends Screen {
     }
 
     private static List<Skill> available() {
-        return Skills.available(ClientPlayerData.classId, ClientPlayerData.elements, ClientPlayerData.level);
+        return Skills.available(ClientPlayerData.classId, ClientPlayerData.elements, ClientPlayerData.picks, ClientPlayerData.level);
     }
 
     private static int clamp(int index, int size) {
@@ -92,11 +92,10 @@ public final class SkillWheelScreen extends Screen {
         }
     }
 
-    /** Selects the pointed-at skill and casts it. */
+    /** Selects the pointed-at skill. Casting is a separate key. */
     private void choose() {
         if (!skills.isEmpty()) {
             selected = hovered;
-            NetworkManager.sendToServer(new UseSkillPayload(hovered));
         }
         onClose();
     }
@@ -130,7 +129,7 @@ public final class SkillWheelScreen extends Screen {
         Skill h = skills.get(hovered);
         g.centeredText(this.font, Component.translatable(h.nameKey()), cx, cy - 12, 0xFFFFD866);
         g.centeredText(this.font, Component.translatable(h.descriptionKey()), cx, cy, 0xFFCCCCCC);
-        g.centeredText(this.font, "Release to cast. Esc cancels.", cx, cy + 14, 0xFF888894);
+        g.centeredText(this.font, "Release to select. Esc cancels.", cx, cy + 14, 0xFF888894);
     }
 
     /** Closes and casts when the key is physically let go. Polled, so repeated key events cannot make the wheel flicker. */

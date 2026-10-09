@@ -1,5 +1,6 @@
 package dev.gatebound.trade;
 
+import dev.gatebound.sound.GateboundSounds;
 import dev.gatebound.data.Element;
 import dev.gatebound.data.GateboundClass;
 import dev.gatebound.data.PlayerData;
@@ -42,7 +43,7 @@ public class InfoScrollItem extends Item {
         if (!player.hasInfiniteMaterials()) {
             player.getItemInHand(hand).shrink(1);
         }
-        level.playSound(null, sp.blockPosition(), SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 1f, 1f);
+        level.playSound(null, sp.blockPosition(), GateboundSounds.custom("item.scroll"), SoundSource.PLAYERS, 1f, 1f);
         return InteractionResult.SUCCESS;
     }
 

@@ -1,5 +1,6 @@
 package dev.gatebound.skill;
 
+import dev.gatebound.sound.GateboundSounds;
 import dev.gatebound.data.Element;
 import dev.gatebound.data.GateboundClass;
 import dev.gatebound.data.PlayerData;
@@ -11,6 +12,13 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import dev.gatebound.skill.mage.DarkSkills;
+import dev.gatebound.skill.mage.EarthSkills;
+import dev.gatebound.skill.mage.FireSkills;
+import dev.gatebound.skill.mage.IceSkills;
+import dev.gatebound.skill.mage.LightSkills;
+import dev.gatebound.skill.mage.LightningSkills;
+import dev.gatebound.skill.mage.WindSkills;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -21,21 +29,57 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The skill registry. Non-mage classes have two skills each (levels 1 and 5).
+ * The skill registry. Summoner, Rogue, Warrior and Ranger have full ladders to level 100.
  * Mages get two skills per element they hold, so a Mage with several elements can have up to six or more.
  */
 public final class Skills {
     public static final List<Skill> ALL = new ArrayList<>();
 
     // Warrior
-    public static final Skill SHOCKWAVE = add(new Skill("shockwave", GateboundClass.WARRIOR, null, 1, 12, 160, Skills::shockwave));
-    public static final Skill WAR_CRY = add(new Skill("war_cry", GateboundClass.WARRIOR, null, 5, 20, 400, Skills::warCry));
+    public static final Skill SHOCKWAVE = add(new Skill("shockwave", GateboundClass.WARRIOR, null, 1, WarriorSkills.SHOCKWAVE_COST, 160, WarriorSkills::shockwave));
+    public static final Skill CHARGE = add(new Skill("charge", GateboundClass.WARRIOR, null, 3, WarriorSkills.CHARGE_COST, 120, WarriorSkills::charge));
+    public static final Skill WAR_CRY = add(new Skill("war_cry", GateboundClass.WARRIOR, null, 5, WarriorSkills.WAR_CRY_COST, 400, WarriorSkills::warCry));
+    public static final Skill CLEAVE = add(new Skill("cleave", GateboundClass.WARRIOR, null, 8, WarriorSkills.CLEAVE_COST, 100, WarriorSkills::cleave));
+    public static final Skill IRON_SKIN = add(new Skill("iron_skin", GateboundClass.WARRIOR, null, 10, WarriorSkills.IRON_SKIN_COST, 300, WarriorSkills::ironSkin));
+    public static final Skill LEAP_SLAM = add(new Skill("leap_slam", GateboundClass.WARRIOR, null, 13, WarriorSkills.LEAP_COST, 200, WarriorSkills::leapSlam));
+    public static final Skill RENDING_STRIKE = add(new Skill("rending_strike", GateboundClass.WARRIOR, null, 16, WarriorSkills.RENDING_COST, 160, WarriorSkills::rendingStrike));
+    public static final Skill BULWARK = add(new Skill("bulwark", GateboundClass.WARRIOR, null, 20, WarriorSkills.BULWARK_COST, 400, WarriorSkills::bulwark));
+    public static final Skill WHIRLWIND = add(new Skill("whirlwind", GateboundClass.WARRIOR, null, 27, WarriorSkills.WHIRLWIND_COST, 240, WarriorSkills::whirlwind));
+    public static final Skill SECOND_WIND = add(new Skill("second_wind", GateboundClass.WARRIOR, null, 35, WarriorSkills.SECOND_WIND_COST, 600, WarriorSkills::secondWind));
+    public static final Skill CRUSHING_BLOW = add(new Skill("crushing_blow", GateboundClass.WARRIOR, null, 45, WarriorSkills.CRUSHING_COST, 200, WarriorSkills::crushingBlow));
+    public static final Skill BERSERKER_RAGE = add(new Skill("berserker_rage", GateboundClass.WARRIOR, null, 60, WarriorSkills.RAGE_COST, 0, WarriorSkills::berserkerRage));
+    public static final Skill EARTHBREAKER = add(new Skill("earthbreaker", GateboundClass.WARRIOR, null, 80, WarriorSkills.EARTHBREAKER_COST, 0, WarriorSkills::earthbreaker));
+    public static final Skill AVATAR_OF_WAR = add(new Skill("avatar_of_war", GateboundClass.WARRIOR, null, 100, WarriorSkills.AVATAR_COST, 0, WarriorSkills::avatarOfWar));
     // Rogue
-    public static final Skill SHADOW_STEP = add(new Skill("shadow_step", GateboundClass.ROGUE, null, 1, 8, 100, Skills::shadowStep));
-    public static final Skill VANISH = add(new Skill("vanish", GateboundClass.ROGUE, null, 5, 18, 360, Skills::vanish));
+    public static final Skill SHADOW_STEP = add(new Skill("shadow_step", GateboundClass.ROGUE, null, 1, RogueSkills.STEP_COST, 0, RogueSkills::shadowStep));
+    public static final Skill THROWING_KNIVES = add(new Skill("throwing_knives", GateboundClass.ROGUE, null, 3, RogueSkills.KNIVES_COST, 0, RogueSkills::throwingKnives));
+    public static final Skill VANISH = add(new Skill("vanish", GateboundClass.ROGUE, null, 5, RogueSkills.VANISH_COST, 0, RogueSkills::vanish));
+    public static final Skill MARK_FOR_DEATH = add(new Skill("mark_for_death", GateboundClass.ROGUE, null, 8, RogueSkills.MARK_COST, 0, RogueSkills::markForDeath));
+    public static final Skill SHADOW_MELD = add(new Skill("shadow_meld", GateboundClass.ROGUE, null, 10, RogueSkills.MELD_COST, 0, RogueSkills::shadowMeld));
+    public static final Skill VENOM_BLADE = add(new Skill("venom_blade", GateboundClass.ROGUE, null, 11, RogueSkills.VENOM_COST, 0, RogueSkills::venomBlade));
+    public static final Skill BACKSTAB = add(new Skill("backstab", GateboundClass.ROGUE, null, 15, RogueSkills.BACKSTAB_COST, 0, RogueSkills::backstab));
+    public static final Skill SMOKE_BOMB = add(new Skill("smoke_bomb", GateboundClass.ROGUE, null, 20, RogueSkills.SMOKE_COST, 0, RogueSkills::smokeBomb));
+    public static final Skill FAN_OF_KNIVES = add(new Skill("fan_of_knives", GateboundClass.ROGUE, null, 27, RogueSkills.FAN_COST, 0, RogueSkills::fanOfKnives));
+    public static final Skill BLADE_DANCE = add(new Skill("blade_dance", GateboundClass.ROGUE, null, 35, RogueSkills.DANCE_BLADES_COST, 0, RogueSkills::bladeDance));
+    public static final Skill EXECUTE = add(new Skill("execute", GateboundClass.ROGUE, null, 45, RogueSkills.EXECUTE_COST, 0, RogueSkills::execute));
+    public static final Skill SHADOW_DANCE = add(new Skill("shadow_dance", GateboundClass.ROGUE, null, 60, RogueSkills.SHADOW_DANCE_COST, 0, RogueSkills::shadowDance));
+    public static final Skill THOUSAND_CUTS = add(new Skill("thousand_cuts", GateboundClass.ROGUE, null, 80, RogueSkills.CUTS_COST, 0, RogueSkills::thousandCuts));
+    public static final Skill SHADOW_POSSESSION = add(new Skill("shadow_possession", GateboundClass.ROGUE, null, 100, RogueSkills.POSSESSION_COST, 0, RogueSkills::shadowPossession));
     // Ranger
-    public static final Skill EAGLE_EYE = add(new Skill("eagle_eye", GateboundClass.RANGER, null, 1, 8, 300, Skills::eagleEye));
-    public static final Skill PIERCING_SHOT = add(new Skill("piercing_shot", GateboundClass.RANGER, null, 5, 16, 120, Skills::piercingShot));
+    public static final Skill EAGLE_EYE = add(new Skill("eagle_eye", GateboundClass.RANGER, null, 1, RangerSkills.EAGLE_COST, 300, RangerSkills::eagleEye));
+    public static final Skill HOMING_SHOT = add(new Skill("homing_shot", GateboundClass.RANGER, null, 3, RangerSkills.HOMING_COST, 60, RangerSkills::homingShot));
+    public static final Skill PIERCING_SHOT = add(new Skill("piercing_shot", GateboundClass.RANGER, null, 5, RangerSkills.PIERCING_COST, 120, RangerSkills::piercingShot));
+    public static final Skill HUNTERS_QUARRY = add(new Skill("hunters_quarry", GateboundClass.RANGER, null, 8, RangerSkills.QUARRY_COST, 60, RangerSkills::huntersQuarry));
+    public static final Skill EVASIVE_ROLL = add(new Skill("evasive_roll", GateboundClass.RANGER, null, 10, RangerSkills.ROLL_COST, 100, RangerSkills::evasiveRoll));
+    public static final Skill POISON_ARROW = add(new Skill("poison_arrow", GateboundClass.RANGER, null, 13, RangerSkills.POISON_COST, 100, RangerSkills::poisonArrow));
+    public static final Skill SNARE_ARROW = add(new Skill("snare_arrow", GateboundClass.RANGER, null, 16, RangerSkills.SNARE_COST, 140, RangerSkills::snareArrow));
+    public static final Skill MULTISHOT = add(new Skill("multishot", GateboundClass.RANGER, null, 20, RangerSkills.MULTISHOT_COST, 120, RangerSkills::multishot));
+    public static final Skill RICOCHET = add(new Skill("ricochet", GateboundClass.RANGER, null, 27, RangerSkills.RICOCHET_COST, 140, RangerSkills::ricochet));
+    public static final Skill RAIN_OF_ARROWS = add(new Skill("rain_of_arrows", GateboundClass.RANGER, null, 35, RangerSkills.RAIN_COST, 300, RangerSkills::rainOfArrows));
+    public static final Skill HEADSHOT = add(new Skill("headshot", GateboundClass.RANGER, null, 45, RangerSkills.HEADSHOT_COST, 200, RangerSkills::headshot));
+    public static final Skill HUNTERS_TRANCE = add(new Skill("hunters_trance", GateboundClass.RANGER, null, 60, RangerSkills.TRANCE_COST, 0, RangerSkills::huntersTrance));
+    public static final Skill ARROW_BARRAGE = add(new Skill("arrow_barrage", GateboundClass.RANGER, null, 80, RangerSkills.BARRAGE_COST, 0, RangerSkills::arrowBarrage));
+    public static final Skill APEX_PREDATOR = add(new Skill("apex_predator", GateboundClass.RANGER, null, 100, RangerSkills.APEX_COST, 0, RangerSkills::apexPredator));
     // Summoner
     public static final Skill SPIRIT_WARD = add(new Skill("spirit_ward", GateboundClass.SUMMONER, null, 1, 14, 240, Skills::spiritWard));
     public static final Skill SCOUTS_EYE = add(new Skill("scouts_eye", GateboundClass.SUMMONER, null, 3, 12, 0, dev.gatebound.echo.EchoView::cast));
@@ -53,23 +97,75 @@ public final class Skills {
     public static final Skill SOVEREIGNS_DOMAIN = add(new Skill("sovereigns_domain", GateboundClass.SUMMONER, null, 100, dev.gatebound.echo.EchoSkills.DOMAIN_COST, 0, dev.gatebound.echo.EchoSkills::sovereignsDomain));
 
     // Mage: Fire
-    public static final Skill FIREBALL = add(new Skill("fireball", GateboundClass.MAGE, Element.FIRE, 1, 10, 60, Skills::fireball));
-    public static final Skill FLAME_BURST = add(new Skill("flame_burst", GateboundClass.MAGE, Element.FIRE, 5, 22, 220, Skills::flameBurst));
+    public static final Skill FIREBALL = add(new Skill("fireball", GateboundClass.MAGE, Element.FIRE, 1, FireSkills.FIREBALL_COST, 0, FireSkills::fireball));
+    public static final Skill FLAME_BURST = add(new Skill("flame_burst", GateboundClass.MAGE, Element.FIRE, 5, FireSkills.BURST_COST, 0, FireSkills::flameBurst));
+    public static final Skill IGNITE = add(new Skill("ignite", GateboundClass.MAGE, Element.FIRE, 10, FireSkills.IGNITE_COST, 0, FireSkills::ignite));
+    public static final Skill FLAME_WALL = add(new Skill("flame_wall", GateboundClass.MAGE, Element.FIRE, 18, FireSkills.WALL_COST, 0, FireSkills::flameWall));
+    public static final Skill IMMOLATE = add(new Skill("immolate", GateboundClass.MAGE, Element.FIRE, 28, FireSkills.IMMOLATE_COST, 0, FireSkills::immolate));
+    public static final Skill COMBUSTION = add(new Skill("combustion", GateboundClass.MAGE, Element.FIRE, 40, FireSkills.COMBUSTION_COST, 0, FireSkills::combustion));
+    public static final Skill METEOR = add(new Skill("meteor", GateboundClass.MAGE, Element.FIRE, 60, FireSkills.METEOR_COST, 0, FireSkills::meteor));
+    public static final Skill INFERNO = add(new Skill("inferno", GateboundClass.MAGE, Element.FIRE, 85, FireSkills.INFERNO_COST, 0, FireSkills::inferno));
+    public static final Skill IFRIT_FORM = add(new Skill("ifrit_form", GateboundClass.MAGE, Element.FIRE, 100, FireSkills.IFRIT_COST, 0, FireSkills::ifritForm));
     // Mage: Ice
-    public static final Skill FROST_SHARD = add(new Skill("frost_shard", GateboundClass.MAGE, Element.ICE, 1, 9, 50, Skills::frostShard));
-    public static final Skill FROST_NOVA = add(new Skill("frost_nova", GateboundClass.MAGE, Element.ICE, 5, 22, 240, Skills::frostNova));
+    public static final Skill FROST_SHARD = add(new Skill("frost_shard", GateboundClass.MAGE, Element.ICE, 1, IceSkills.SHARD_COST, 0, IceSkills::frostShard));
+    public static final Skill FROST_NOVA = add(new Skill("frost_nova", GateboundClass.MAGE, Element.ICE, 5, IceSkills.NOVA_COST, 0, IceSkills::frostNova));
+    public static final Skill ICE_ARMOR = add(new Skill("ice_armor", GateboundClass.MAGE, Element.ICE, 10, IceSkills.ARMOR_COST, 0, IceSkills::iceArmor));
+    public static final Skill GLACIAL_PATH = add(new Skill("glacial_path", GateboundClass.MAGE, Element.ICE, 18, IceSkills.PATH_COST, 0, IceSkills::glacialPath));
+    public static final Skill ICICLE_BARRAGE = add(new Skill("icicle_barrage", GateboundClass.MAGE, Element.ICE, 28, IceSkills.BARRAGE_COST, 0, IceSkills::icicleBarrage));
+    public static final Skill SHATTER = add(new Skill("shatter", GateboundClass.MAGE, Element.ICE, 40, IceSkills.SHATTER_COST, 0, IceSkills::shatter));
+    public static final Skill BLIZZARD = add(new Skill("blizzard", GateboundClass.MAGE, Element.ICE, 60, IceSkills.BLIZZARD_COST, 0, IceSkills::blizzard));
+    public static final Skill ABSOLUTE_ZERO = add(new Skill("absolute_zero", GateboundClass.MAGE, Element.ICE, 85, IceSkills.ZERO_COST, 0, IceSkills::absoluteZero));
+    public static final Skill FROST_SOVEREIGN = add(new Skill("frost_sovereign", GateboundClass.MAGE, Element.ICE, 100, IceSkills.SOVEREIGN_COST, 0, IceSkills::frostSovereign));
     // Mage: Lightning
-    public static final Skill ARC_BOLT = add(new Skill("arc_bolt", GateboundClass.MAGE, Element.LIGHTNING, 1, 10, 60, Skills::arcBolt));
-    public static final Skill THUNDER_STORM = add(new Skill("thunder_storm", GateboundClass.MAGE, Element.LIGHTNING, 5, 24, 260, Skills::thunderStorm));
+    public static final Skill ARC_BOLT = add(new Skill("arc_bolt", GateboundClass.MAGE, Element.LIGHTNING, 1, LightningSkills.ARC_COST, 0, LightningSkills::arcBolt));
+    public static final Skill THUNDER_STORM = add(new Skill("thunder_storm", GateboundClass.MAGE, Element.LIGHTNING, 5, LightningSkills.STORM_COST, 0, LightningSkills::thunderStorm));
+    public static final Skill STATIC_STEP = add(new Skill("static_step", GateboundClass.MAGE, Element.LIGHTNING, 10, LightningSkills.STEP_COST, 0, LightningSkills::staticStep));
+    public static final Skill OVERCHARGE = add(new Skill("overcharge", GateboundClass.MAGE, Element.LIGHTNING, 18, LightningSkills.OVERCHARGE_COST, 0, LightningSkills::overcharge));
+    public static final Skill CHAIN_LIGHTNING = add(new Skill("chain_lightning", GateboundClass.MAGE, Element.LIGHTNING, 28, LightningSkills.CHAIN_COST, 0, LightningSkills::chainLightning));
+    public static final Skill LIGHTNING_ROD = add(new Skill("lightning_rod", GateboundClass.MAGE, Element.LIGHTNING, 40, LightningSkills.ROD_COST, 0, LightningSkills::lightningRod));
+    public static final Skill THUNDERSTRIKE = add(new Skill("thunderstrike", GateboundClass.MAGE, Element.LIGHTNING, 60, LightningSkills.STRIKE_COST, 0, LightningSkills::thunderstrike));
+    public static final Skill STORM_SURGE = add(new Skill("storm_surge", GateboundClass.MAGE, Element.LIGHTNING, 85, LightningSkills.SURGE_COST, 0, LightningSkills::stormSurge));
+    public static final Skill THUNDER_GOD = add(new Skill("thunder_god", GateboundClass.MAGE, Element.LIGHTNING, 100, LightningSkills.GOD_COST, 0, LightningSkills::thunderGod));
     // Mage: Wind
-    public static final Skill GUST = add(new Skill("gust", GateboundClass.MAGE, Element.WIND, 1, 8, 70, Skills::gust));
-    public static final Skill CYCLONE = add(new Skill("cyclone", GateboundClass.MAGE, Element.WIND, 5, 20, 220, Skills::cyclone));
+    public static final Skill GUST = add(new Skill("gust", GateboundClass.MAGE, Element.WIND, 1, WindSkills.GUST_COST, 0, WindSkills::gust));
+    public static final Skill CYCLONE = add(new Skill("cyclone", GateboundClass.MAGE, Element.WIND, 5, WindSkills.CYCLONE_COST, 0, WindSkills::cyclone));
+    public static final Skill AIR_DASH = add(new Skill("air_dash", GateboundClass.MAGE, Element.WIND, 10, WindSkills.DASH_COST, 0, WindSkills::airDash));
+    public static final Skill UPDRAFT = add(new Skill("updraft", GateboundClass.MAGE, Element.WIND, 18, WindSkills.UPDRAFT_COST, 0, WindSkills::updraft));
+    public static final Skill WIND_BLADES = add(new Skill("wind_blades", GateboundClass.MAGE, Element.WIND, 28, WindSkills.BLADES_COST, 0, WindSkills::windBlades));
+    public static final Skill WIND_BARRIER = add(new Skill("wind_barrier", GateboundClass.MAGE, Element.WIND, 40, WindSkills.BARRIER_COST, 0, WindSkills::windBarrier));
+    public static final Skill TORNADO = add(new Skill("tornado", GateboundClass.MAGE, Element.WIND, 60, WindSkills.TORNADO_COST, 0, WindSkills::tornado));
+    public static final Skill TEMPEST_FLIGHT = add(new Skill("tempest_flight", GateboundClass.MAGE, Element.WIND, 85, WindSkills.FLIGHT_COST, 0, WindSkills::tempestFlight));
+    public static final Skill WIND_AVATAR = add(new Skill("wind_avatar", GateboundClass.MAGE, Element.WIND, 100, WindSkills.AVATAR_COST, 0, WindSkills::windAvatar));
     // Mage: Earth
-    public static final Skill STONE_SPIKE = add(new Skill("stone_spike", GateboundClass.MAGE, Element.EARTH, 1, 10, 70, Skills::stoneSpike));
-    public static final Skill STONE_SKIN = add(new Skill("stone_skin", GateboundClass.MAGE, Element.EARTH, 5, 18, 360, Skills::stoneSkin));
+    public static final Skill STONE_SPIKE = add(new Skill("stone_spike", GateboundClass.MAGE, Element.EARTH, 1, EarthSkills.SPIKE_COST, 0, EarthSkills::stoneSpike));
+    public static final Skill STONE_SKIN = add(new Skill("stone_skin", GateboundClass.MAGE, Element.EARTH, 5, EarthSkills.SKIN_COST, 0, EarthSkills::stoneSkin));
+    public static final Skill STONE_WALL = add(new Skill("stone_wall", GateboundClass.MAGE, Element.EARTH, 10, EarthSkills.WALL_COST, 0, EarthSkills::stoneWall));
+    public static final Skill TREMOR = add(new Skill("tremor", GateboundClass.MAGE, Element.EARTH, 18, EarthSkills.TREMOR_COST, 0, EarthSkills::tremor));
+    public static final Skill BOULDER = add(new Skill("boulder", GateboundClass.MAGE, Element.EARTH, 28, EarthSkills.BOULDER_COST, 0, EarthSkills::boulder));
+    public static final Skill BEDROCK = add(new Skill("bedrock", GateboundClass.MAGE, Element.EARTH, 40, EarthSkills.BEDROCK_COST, 0, EarthSkills::bedrock));
+    public static final Skill EARTHQUAKE = add(new Skill("earthquake", GateboundClass.MAGE, Element.EARTH, 60, EarthSkills.QUAKE_COST, 0, EarthSkills::earthquake));
+    public static final Skill LANDSLIDE = add(new Skill("landslide", GateboundClass.MAGE, Element.EARTH, 85, EarthSkills.LANDSLIDE_COST, 0, EarthSkills::landslide));
+    public static final Skill TITAN_FORM = add(new Skill("titan_form", GateboundClass.MAGE, Element.EARTH, 100, EarthSkills.TITAN_COST, 0, EarthSkills::titanForm));
     // Mage: Light
-    public static final Skill RADIANT_BOLT = add(new Skill("radiant_bolt", GateboundClass.MAGE, Element.LIGHT, 1, 10, 60, Skills::radiantBolt));
-    public static final Skill SANCTUARY = add(new Skill("sanctuary", GateboundClass.MAGE, Element.LIGHT, 5, 20, 300, Skills::sanctuary));
+    public static final Skill RADIANT_BOLT = add(new Skill("radiant_bolt", GateboundClass.MAGE, Element.LIGHT, 1, LightSkills.BOLT_COST, 0, LightSkills::radiantBolt));
+    public static final Skill SANCTUARY = add(new Skill("sanctuary", GateboundClass.MAGE, Element.LIGHT, 5, LightSkills.SANCTUARY_COST, 0, LightSkills::sanctuary));
+    public static final Skill MENDING_LIGHT = add(new Skill("mending_light", GateboundClass.MAGE, Element.LIGHT, 10, LightSkills.MENDING_COST, 0, LightSkills::mendingLight));
+    public static final Skill BLINDING_FLASH = add(new Skill("blinding_flash", GateboundClass.MAGE, Element.LIGHT, 18, LightSkills.FLASH_COST, 0, LightSkills::blindingFlash));
+    public static final Skill HOLY_SMITE = add(new Skill("holy_smite", GateboundClass.MAGE, Element.LIGHT, 28, LightSkills.SMITE_COST, 0, LightSkills::holySmite));
+    public static final Skill AEGIS = add(new Skill("aegis", GateboundClass.MAGE, Element.LIGHT, 40, LightSkills.AEGIS_COST, 0, LightSkills::aegis));
+    public static final Skill JUDGEMENT = add(new Skill("judgement", GateboundClass.MAGE, Element.LIGHT, 60, LightSkills.JUDGEMENT_COST, 0, LightSkills::judgement));
+    public static final Skill RESURRECTION = add(new Skill("resurrection", GateboundClass.MAGE, Element.LIGHT, 85, LightSkills.RESURRECTION_COST, 0, LightSkills::resurrection));
+    public static final Skill SERAPH_FORM = add(new Skill("seraph_form", GateboundClass.MAGE, Element.LIGHT, 100, LightSkills.SERAPH_COST, 0, LightSkills::seraphForm));
+    // Mage: Dark
+    public static final Skill SHADOW_BOLT = add(new Skill("shadow_bolt", GateboundClass.MAGE, Element.DARK, 1, DarkSkills.BOLT_COST, 0, DarkSkills::shadowBolt));
+    public static final Skill VOID_GRASP = add(new Skill("void_grasp", GateboundClass.MAGE, Element.DARK, 5, DarkSkills.GRASP_COST, 0, DarkSkills::voidGrasp));
+    public static final Skill HEX = add(new Skill("hex", GateboundClass.MAGE, Element.DARK, 10, DarkSkills.HEX_COST, 0, DarkSkills::hex));
+    public static final Skill LIFE_SIPHON = add(new Skill("life_siphon", GateboundClass.MAGE, Element.DARK, 18, DarkSkills.SIPHON_COST, 0, DarkSkills::lifeSiphon));
+    public static final Skill DREAD = add(new Skill("dread", GateboundClass.MAGE, Element.DARK, 28, DarkSkills.DREAD_COST, 0, DarkSkills::dread));
+    public static final Skill SOUL_HARVEST = add(new Skill("soul_harvest", GateboundClass.MAGE, Element.DARK, 40, DarkSkills.HARVEST_COST, 0, DarkSkills::soulHarvest));
+    public static final Skill BLACK_HOLE = add(new Skill("black_hole", GateboundClass.MAGE, Element.DARK, 60, DarkSkills.HOLE_COST, 0, DarkSkills::blackHole));
+    public static final Skill ECLIPSE = add(new Skill("eclipse", GateboundClass.MAGE, Element.DARK, 85, DarkSkills.ECLIPSE_COST, 0, DarkSkills::eclipse));
+    public static final Skill VOID_LORD = add(new Skill("void_lord", GateboundClass.MAGE, Element.DARK, 100, DarkSkills.VOID_COST, 0, DarkSkills::voidLord));
 
     private Skills() {
     }
@@ -92,7 +188,7 @@ public final class Skills {
      * Skills the given class, elements and level can use, in slot order.
      * Mages: grouped by element in the order the elements were gained, lowest level first within each.
      */
-    public static List<Skill> available(String classId, List<String> elements, int level) {
+    public static List<Skill> available(String classId, List<String> elements, List<String> picks, int level) {
         GateboundClass cls = GateboundClass.byId(classId);
         List<Skill> out = new ArrayList<>();
         if (cls == null) {
@@ -109,7 +205,8 @@ public final class Skills {
         for (String elementId : elements) {
             Element element = Element.byId(elementId);
             for (Skill s : ALL) {
-                if (s.owner() == GateboundClass.MAGE && s.element() == element && level >= s.minLevel()) {
+                if (s.owner() == GateboundClass.MAGE && s.element() == element && level >= s.minLevel()
+                        && SpellPicks.unlocked(s, elements.size(), picks)) {
                     out.add(s);
                 }
             }
@@ -131,86 +228,19 @@ public final class Skills {
         return (float) (base + scale * data.get(Stat.INTELLECT));
     }
 
-    // Warrior
-
-    private static boolean shockwave(ServerPlayer player, ServerLevel level, PlayerData data) {
-        float damage = (float) (4 + 0.5 * data.get(Stat.STRENGTH));
-        for (LivingEntity e : SkillTargeting.enemiesAround(player, level, 4)) {
-            e.hurtServer(level, magic(player, level), damage);
-            Vec3 away = e.position().subtract(player.position());
-            Vec3 dir = new Vec3(away.x, 0, away.z).normalize();
-            e.push(dir.x * 0.9, 0.35, dir.z * 0.9);
-            e.needsSync = true;
-        }
-        level.sendParticles(ParticleTypes.EXPLOSION, player.getX(), player.getY() + 0.2, player.getZ(), 4, 1.5, 0.1, 1.5, 0);
-        level.sendParticles(ParticleTypes.CRIT, player.getX(), player.getY() + 0.3, player.getZ(), 30, 2, 0.2, 2, 0.3);
-        sound(player, level, SoundEvents.GENERIC_EXPLODE.value(), 1.2f);
-        return true;
-    }
-
-    private static boolean warCry(ServerPlayer player, ServerLevel level, PlayerData data) {
-        player.addEffect(new MobEffectInstance(MobEffects.STRENGTH, 200, 0));
-        player.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 200, 0));
-        level.sendParticles(ParticleTypes.ANGRY_VILLAGER, player.getX(), player.getY() + 1.8, player.getZ(), 8, 0.5, 0.3, 0.5, 0);
-        sound(player, level, SoundEvents.RAVAGER_ROAR, 1.0f);
-        return true;
-    }
-
-    // Rogue
-
-    private static boolean shadowStep(ServerPlayer player, ServerLevel level, PlayerData data) {
-        Vec3 look = player.getLookAngle();
-        Vec3 flat = new Vec3(look.x, 0, look.z).normalize();
-        player.setDeltaMovement(flat.x * 1.9, 0.2, flat.z * 1.9);
-        player.connection.send(new ClientboundSetEntityMotionPacket(player));
-        player.addEffect(new MobEffectInstance(MobEffects.SPEED, 60, 1));
-        level.sendParticles(ParticleTypes.LARGE_SMOKE, player.getX(), player.getY() + 0.5, player.getZ(), 15, 0.3, 0.4, 0.3, 0.02);
-        sound(player, level, SoundEvents.ENDERMAN_TELEPORT, 1.4f);
-        return true;
-    }
-
-    private static boolean vanish(ServerPlayer player, ServerLevel level, PlayerData data) {
-        player.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, 100, 0));
-        player.addEffect(new MobEffectInstance(MobEffects.SPEED, 100, 1));
-        level.sendParticles(ParticleTypes.LARGE_SMOKE, player.getX(), player.getY() + 1, player.getZ(), 25, 0.4, 0.6, 0.4, 0.02);
-        sound(player, level, SoundEvents.ENDERMAN_TELEPORT, 0.8f);
-        return true;
-    }
-
-    // Ranger
-
-    private static boolean eagleEye(ServerPlayer player, ServerLevel level, PlayerData data) {
-        for (LivingEntity e : SkillTargeting.enemiesAround(player, level, 24)) {
-            e.addEffect(new MobEffectInstance(MobEffects.GLOWING, 160, 0));
-        }
-        level.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 1.8, player.getZ(), 10, 0.3, 0.2, 0.3, 0.02);
-        sound(player, level, SoundEvents.ARROW_HIT_PLAYER, 0.7f);
-        return true;
-    }
-
-    private static boolean piercingShot(ServerPlayer player, ServerLevel level, PlayerData data) {
-        List<LivingEntity> hits = SkillTargeting.ray(player, level, 40, 3, ParticleTypes.CRIT);
-        float damage = (float) (6 + 0.6 * data.get(Stat.AGILITY));
-        for (LivingEntity e : hits) {
-            e.hurtServer(level, magic(player, level), damage);
-        }
-        sound(player, level, SoundEvents.ARROW_SHOOT, 0.8f);
-        return !hits.isEmpty();
-    }
-
     // Summoner
 
     private static boolean spiritWard(ServerPlayer player, ServerLevel level, PlayerData data) {
         player.heal(intel(data, 6, 0.5));
         player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 200, 0));
         level.sendParticles(ParticleTypes.HAPPY_VILLAGER, player.getX(), player.getY() + 1, player.getZ(), 20, 0.5, 0.8, 0.5, 0);
-        sound(player, level, SoundEvents.AMETHYST_BLOCK_CHIME, 1.0f);
+        sound(player, level, GateboundSounds.of(SoundEvents.AMETHYST_BLOCK_CHIME), 1.0f);
         return true;
     }
 
     private static boolean soulDrain(ServerPlayer player, ServerLevel level, PlayerData data) {
         List<LivingEntity> hits = SkillTargeting.ray(player, level, 16, 1, ParticleTypes.SOUL);
-        sound(player, level, SoundEvents.SOUL_ESCAPE.value(), 1.0f);
+        sound(player, level, GateboundSounds.of(SoundEvents.SOUL_ESCAPE.value()), 1.0f);
         if (hits.isEmpty()) {
             return false;
         }
@@ -220,147 +250,4 @@ public final class Skills {
         return true;
     }
 
-    // Mage: Fire
-
-    private static boolean fireball(ServerPlayer player, ServerLevel level, PlayerData data) {
-        List<LivingEntity> hits = SkillTargeting.ray(player, level, 24, 1, ParticleTypes.FLAME);
-        sound(player, level, SoundEvents.BLAZE_SHOOT, 1.0f);
-        if (hits.isEmpty()) {
-            return false;
-        }
-        LivingEntity target = hits.get(0);
-        target.hurtServer(level, magic(player, level), intel(data, 5, 0.7));
-        target.setRemainingFireTicks(80);
-        level.sendParticles(ParticleTypes.EXPLOSION, target.getX(), target.getY(0.5), target.getZ(), 1, 0, 0, 0, 0);
-        return true;
-    }
-
-    private static boolean flameBurst(ServerPlayer player, ServerLevel level, PlayerData data) {
-        float damage = intel(data, 3, 0.4);
-        for (LivingEntity e : SkillTargeting.enemiesAround(player, level, 5)) {
-            e.hurtServer(level, magic(player, level), damage);
-            e.setRemainingFireTicks(100);
-        }
-        level.sendParticles(ParticleTypes.FLAME, player.getX(), player.getY() + 0.8, player.getZ(), 70, 2.5, 0.5, 2.5, 0.08);
-        sound(player, level, SoundEvents.FIRECHARGE_USE, 0.8f);
-        return true;
-    }
-
-    // Mage: Ice
-
-    private static boolean frostShard(ServerPlayer player, ServerLevel level, PlayerData data) {
-        List<LivingEntity> hits = SkillTargeting.ray(player, level, 24, 1, ParticleTypes.SNOWFLAKE);
-        sound(player, level, SoundEvents.GLASS_BREAK, 1.6f);
-        if (hits.isEmpty()) {
-            return false;
-        }
-        LivingEntity target = hits.get(0);
-        target.hurtServer(level, magic(player, level), intel(data, 4, 0.6));
-        target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 60, 1));
-        return true;
-    }
-
-    private static boolean frostNova(ServerPlayer player, ServerLevel level, PlayerData data) {
-        float damage = intel(data, 3, 0.4);
-        for (LivingEntity e : SkillTargeting.enemiesAround(player, level, 5)) {
-            e.hurtServer(level, magic(player, level), damage);
-            e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 80, 2));
-        }
-        level.sendParticles(ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + 0.8, player.getZ(), 60, 2.5, 0.5, 2.5, 0.05);
-        sound(player, level, SoundEvents.GLASS_BREAK, 0.6f);
-        return true;
-    }
-
-    // Mage: Lightning
-
-    private static boolean arcBolt(ServerPlayer player, ServerLevel level, PlayerData data) {
-        List<LivingEntity> hits = SkillTargeting.ray(player, level, 24, 1, ParticleTypes.ELECTRIC_SPARK);
-        sound(player, level, SoundEvents.LIGHTNING_BOLT_THUNDER, 2.0f);
-        if (hits.isEmpty()) {
-            return false;
-        }
-        hits.get(0).hurtServer(level, magic(player, level), intel(data, 5, 0.8));
-        return true;
-    }
-
-    private static boolean thunderStorm(ServerPlayer player, ServerLevel level, PlayerData data) {
-        float damage = intel(data, 4, 0.5);
-        for (LivingEntity e : SkillTargeting.enemiesAround(player, level, 6)) {
-            e.hurtServer(level, magic(player, level), damage);
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, e.getX(), e.getY(0.5), e.getZ(), 25, 0.3, 0.8, 0.3, 0.3);
-        }
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, player.getX(), player.getY() + 1, player.getZ(), 60, 3, 1, 3, 0.2);
-        sound(player, level, SoundEvents.LIGHTNING_BOLT_THUNDER, 1.4f);
-        return true;
-    }
-
-    // Mage: Wind
-
-    private static boolean gust(ServerPlayer player, ServerLevel level, PlayerData data) {
-        List<LivingEntity> hits = SkillTargeting.ray(player, level, 10, 3, ParticleTypes.CLOUD);
-        sound(player, level, SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), 1.0f);
-        Vec3 dir = player.getLookAngle();
-        for (LivingEntity e : hits) {
-            e.hurtServer(level, magic(player, level), intel(data, 2, 0.3));
-            e.push(dir.x * 1.6, 0.4, dir.z * 1.6);
-            e.needsSync = true;
-        }
-        return !hits.isEmpty();
-    }
-
-    private static boolean cyclone(ServerPlayer player, ServerLevel level, PlayerData data) {
-        float damage = intel(data, 3, 0.4);
-        for (LivingEntity e : SkillTargeting.enemiesAround(player, level, 5)) {
-            e.hurtServer(level, magic(player, level), damage);
-            e.push(0, 1.1, 0);
-            e.needsSync = true;
-        }
-        level.sendParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 0.5, player.getZ(), 80, 2.5, 1.2, 2.5, 0.1);
-        sound(player, level, SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), 0.7f);
-        return true;
-    }
-
-    // Mage: Earth
-
-    private static boolean stoneSpike(ServerPlayer player, ServerLevel level, PlayerData data) {
-        List<LivingEntity> hits = SkillTargeting.ray(player, level, 16, 1, ParticleTypes.CAMPFIRE_COSY_SMOKE);
-        sound(player, level, SoundEvents.STONE_BREAK, 0.7f);
-        if (hits.isEmpty()) {
-            return false;
-        }
-        LivingEntity target = hits.get(0);
-        target.hurtServer(level, magic(player, level), intel(data, 5, 0.5));
-        target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 80, 3));
-        level.sendParticles(ParticleTypes.CRIT, target.getX(), target.getY(0.2), target.getZ(), 15, 0.3, 0.3, 0.3, 0.2);
-        return true;
-    }
-
-    private static boolean stoneSkin(ServerPlayer player, ServerLevel level, PlayerData data) {
-        player.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 200, 1));
-        player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 200, 1));
-        level.sendParticles(ParticleTypes.CRIT, player.getX(), player.getY() + 1, player.getZ(), 20, 0.5, 0.8, 0.5, 0.1);
-        sound(player, level, SoundEvents.STONE_PLACE, 0.8f);
-        return true;
-    }
-
-    // Mage: Light
-
-    private static boolean radiantBolt(ServerPlayer player, ServerLevel level, PlayerData data) {
-        List<LivingEntity> hits = SkillTargeting.ray(player, level, 20, 1, ParticleTypes.END_ROD);
-        sound(player, level, SoundEvents.AMETHYST_BLOCK_CHIME, 0.7f);
-        if (hits.isEmpty()) {
-            return false;
-        }
-        hits.get(0).hurtServer(level, magic(player, level), intel(data, 4, 0.6));
-        player.heal(2.0f);
-        return true;
-    }
-
-    private static boolean sanctuary(ServerPlayer player, ServerLevel level, PlayerData data) {
-        player.heal(intel(data, 8, 0.6));
-        player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 100, 1));
-        level.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 1, player.getZ(), 30, 0.6, 0.9, 0.6, 0.03);
-        sound(player, level, SoundEvents.BEACON_ACTIVATE, 1.4f);
-        return true;
-    }
 }

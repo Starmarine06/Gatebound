@@ -1,5 +1,6 @@
 package dev.gatebound.dungeon;
 
+import dev.gatebound.compat.MobTypes;
 import dev.gatebound.registry.GateboundRegistries;
 import dev.gatebound.trade.TradeItems;
 import net.minecraft.ChatFormatting;
@@ -43,7 +44,9 @@ public final class FloorPopulator {
 
     public static Mob spawnRegular(ServerLevel level, BlockPos spot, FloorPlan plan, int popLevel, RandomSource rng, double mult) {
         GateRank rank = Spire.rank(plan.floor, plan.total);
-        List<EntityType<? extends Mob>> pool = plan.theme.mobPool(rank);
+        List<EntityType<? extends Mob>> pool = Spire.scaleFloor(plan.floor, plan.total) > DungeonConfig.customMobFloor
+                ? dev.gatebound.mob.SpireMobs.regulars(rank.ordinal())
+                : plan.theme.mobPool(rank);
         EntityType<? extends Mob> type = pool.get(rng.nextInt(pool.size()));
         Mob mob = type.spawn(level, spot, EntitySpawnReason.EVENT);
         if (mob == null) {
@@ -61,7 +64,7 @@ public final class FloorPopulator {
     public static Mob spawnBoss(ServerLevel level, FloorPlan plan, int popLevel) {
         boolean fin = plan.kind == Spire.Kind.FINAL;
         GateRank rank = Spire.rank(plan.floor, plan.total);
-        EntityType<? extends Mob> type = fin ? net.minecraft.world.entity.EntityTypes.WITHER_SKELETON : rank.bossType();
+        EntityType<? extends Mob> type = dev.gatebound.mob.SpireMobs.boss(rank.ordinal(), fin);
         Mob boss = type.spawn(level, plan.boss, EntitySpawnReason.EVENT);
         if (boss == null) {
             return null;
@@ -74,6 +77,7 @@ public final class FloorPopulator {
             size.setBaseValue(fin ? 2.4 : rank.bossScale());
         }
         boss.addTag(TAG_BOSS);
+        level.playSound(null, boss.blockPosition(), dev.gatebound.sound.GateboundSounds.custom("boss.spawn"), net.minecraft.sounds.SoundSource.HOSTILE, 2f, 1f);
         boss.addTag(TAG_MOB);
         boss.setPersistenceRequired();
         Component name = fin
@@ -161,6 +165,9 @@ public final class FloorPopulator {
             } else {
                 out.add(new ItemStack(TradeItems.GATE_SHARD.get(), 1 + r / 2));
             }
+        }
+        if (rng.nextInt(3) == 0) {
+            out.add(new ItemStack(dev.gatebound.mob.MobMaterials.ofBand(r), 2 + rng.nextInt(3)));
         }
         if (r >= 5 && rng.nextInt(3) == 0) {
             out.add(new ItemStack(Items.ENCHANTED_GOLDEN_APPLE, 1));

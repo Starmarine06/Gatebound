@@ -1,5 +1,7 @@
 package dev.gatebound.echo;
 
+import dev.gatebound.compat.Compat;
+import dev.gatebound.compat.ClientCompat;
 import dev.architectury.event.events.client.ClientTickEvent;
 import dev.architectury.networking.NetworkManager;
 import dev.architectury.registry.client.keymappings.KeyMappingRegistry;
@@ -24,9 +26,7 @@ final class EchoClient {
 
     /** True while the select key is physically held (read from the keyboard, not from repeating key events). */
     static boolean selectHeld() {
-        com.mojang.blaze3d.platform.InputConstants.Key key = com.mojang.blaze3d.platform.InputConstants.getKey(SELECT.saveString());
-        return key.getType() == com.mojang.blaze3d.platform.InputConstants.Type.KEYBOARD
-                ? com.mojang.blaze3d.platform.InputConstants.isKeyDown(key.getValue()) : SELECT.isDown();
+        return dev.gatebound.compat.ClientCompat.keyHeld(SELECT);
     }
 
     static void onWheel(EchoWheelPayload payload) {
@@ -36,7 +36,7 @@ final class EchoClient {
     /** Opens the Echoes screen, or refreshes it when it is already showing. */
     static void onRoster(EchoRosterPayload payload) {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        if (mc.gui.screen() instanceof EchoScreen screen) {
+        if (ClientCompat.screen(mc) instanceof EchoScreen screen) {
             screen.update(payload);
         } else if (payload.open()) {
             mc.setScreenAndShow(new EchoScreen(payload));
@@ -66,19 +66,19 @@ final class EchoClient {
         dev.architectury.registry.client.level.entity.EntityRendererRegistry.register(EchoEntities.CORPSE, EchoRenderer::new);
         ClientTickEvent.CLIENT_POST.register(mc -> {
             while (MENU.consumeClick()) {
-                if (mc.gui.screen() == null && mc.player != null && NetworkManager.canServerReceive(EchoMenuPayload.TYPE)) {
+                if (ClientCompat.screen(mc) == null && mc.player != null && NetworkManager.canServerReceive(EchoMenuPayload.TYPE)) {
                     NetworkManager.sendToServer(new EchoMenuPayload());
                 }
             }
             while (SELECT.consumeClick()) {
-                if (mc.gui.screen() == null && mc.player != null && NetworkManager.canServerReceive(EchoSelectPayload.TYPE)) {
+                if (ClientCompat.screen(mc) == null && mc.player != null && NetworkManager.canServerReceive(EchoSelectPayload.TYPE)) {
                     NetworkManager.sendToServer(new EchoSelectPayload());
                 }
             }
             while (TOGGLE.consumeClick()) {
-                if (mc.gui.screen() == null && mc.player != null) {
+                if (ClientCompat.screen(mc) == null && mc.player != null) {
                     if (!NetworkManager.canServerReceive(EchoTogglePayload.TYPE)) {
-                        mc.player.sendOverlayMessage(net.minecraft.network.chat.Component.literal(
+                        Compat.overlay(mc.player, net.minecraft.network.chat.Component.literal(
                                 "Echoes: the server does not accept the echo packet"));
                         continue;
                     }

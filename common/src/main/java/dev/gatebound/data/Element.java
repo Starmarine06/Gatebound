@@ -4,7 +4,7 @@ import java.util.Locale;
 
 /** Magic attributes a Mage can awaken to. Each unlocks its own pair of skills. */
 public enum Element {
-    FIRE, ICE, LIGHTNING, WIND, EARTH, LIGHT;
+    FIRE, ICE, LIGHTNING, WIND, EARTH, LIGHT, DARK;
 
     public String id() {
         return name().toLowerCase(Locale.ROOT);

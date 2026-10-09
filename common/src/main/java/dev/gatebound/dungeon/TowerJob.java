@@ -1,5 +1,6 @@
 package dev.gatebound.dungeon;
 
+import dev.gatebound.compat.Compat;
 import dev.gatebound.Gatebound;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -255,22 +256,11 @@ public final class TowerJob extends WorkQueue.Job {
     }
 
     private void finish(MinecraftServer server, ServerLevel level, DungeonStore store) {
-        BlockState pane = DungeonRegistries.GATE.get().defaultBlockState()
-                .setValue(GateBlock.RANK, GateRank.S).setValue(GateBlock.FACING, Direction.SOUTH);
-        int gz = cz + radius - 2;
-        for (int dx = -4; dx <= 4; dx++) {
-            for (int y = 0; y <= 11; y++) {
-                if (inOpening(dx, y)) {
-                    level.setBlock(new BlockPos(cx + dx, y0 + y, gz), pane, 3);
-                }
-            }
-        }
+        // The entrance arch stays open; the tower's gate stands on the dais in the middle of the hall (see TowerHall).
         store.towerBuilt = true;
         store.towerPos = new BlockPos(cx, y0, cz);
         store.towerRadius = radius;
         store.towerTop = y0 + height + 10;
-        store.entranceMin = new BlockPos(cx - 4, y0, gz);
-        store.entranceMax = new BlockPos(cx + 4, y0 + 11, gz);
         store.towerExit = new BlockPos(cx, y0, cz + radius + 3);
         store.setDirty();
         TowerHall.ensure(server, store);
@@ -393,7 +383,7 @@ public final class TowerJob extends WorkQueue.Job {
                 return b(Blocks.BEACON);
             }
             if (yy == 3) {
-                return b(Blocks.STAINED_GLASS.purple());
+                return b(Compat.PURPLE_STAINED_GLASS);
             }
         }
         if (yy == 1 && d >= 2.0 && d <= 3.0) {

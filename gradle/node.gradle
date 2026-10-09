@@ -1,0 +1,60 @@
+// Shared setup for every Stonecutter node (module x Minecraft version). Applied first by each module's build.gradle.
+apply from: rootProject.file("gradle/versions.gradle")
+
+def mcVer = stonecutter.current.version
+ext.vd = versionData[mcVer]
+if (vd == null) throw new GradleException("No entry for Minecraft ${mcVer} in gradle/versions.gradle")
+ext.mcVer = mcVer
+ext.remap = vd.remap
+
+apply plugin: "java-library"
+apply plugin: "architectury-plugin"
+apply plugin: remap ? "dev.architectury.loom" : "dev.architectury.loom-no-remap"
+
+architectury {
+    minecraft = vd.mc
+}
+
+group = "${rootProject.maven_group}.${project.parent.name}" // unique per module: every node project is just named after its version
+version = "${rootProject.mod_version}+${vd.mc}"
+
+base {
+    archivesName = rootProject.archives_base_name + "-${project.parent.name}"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+    options.release = vd.java
+    options.compilerArgs << "-Xmaxerrs" << "2000"
+}
+
+java {
+    withSourcesJar()
+}
+
+repositories {
+    maven { url "https://maven.architectury.dev/" }
+    maven { url "https://maven.neoforged.net/releases/" }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${vd.mc}"
+    if (remap) {
+        mappings loom.officialMojangMappings()
+    }
+}
+
+// modImplementation on remapped versions, plain implementation otherwise.
+ext.modImpl = remap ? "modImplementation" : "implementation"
+ext.commonCfg = remap ? "namedElements" : "default"
+
+// Plain renames between versions: see gradle/renames.gradle.
+if (remap) {
+    apply from: rootProject.file("gradle/renames.gradle")
+    oldRenames.eachWithIndex { rule, i ->
+        stonecutter.replacements.regex(true) {
+            // No reverse mapping (the active version stays on 26.3), so the reverse pattern never matches.
+            replace(rule[0].pattern(), rule[1], "NO_REVERSE_${i}", "NO_REVERSE_${i}")
+        }
+    }
+}

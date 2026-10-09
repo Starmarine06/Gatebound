@@ -1,5 +1,6 @@
 package dev.gatebound.echo;
 
+import dev.gatebound.compat.Compat;
 import dev.architectury.networking.NetworkManager;
 import dev.gatebound.data.PlayerData;
 import dev.gatebound.data.PlayerDataStore;
@@ -30,7 +31,7 @@ public class EchoCorpse extends EchoEntity {
 
     public EchoCorpse(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
-        this.setPermanentlyInvulnerable(true);
+        Compat.setPermanentlyInvulnerable(this, true);
     }
 
     public void setOwner(UUID id, String name) {

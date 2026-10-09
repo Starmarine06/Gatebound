@@ -1,9 +1,22 @@
+apply from: rootProject.file("gradle/node.gradle")
+
 architectury {
     common(rootProject.platforms.split(","))
 }
 
 dependencies {
     // Fabric loader is only here for the @Environment annotations. Use nothing else from it.
-    implementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
-    implementation "dev.architectury:architectury:${rootProject.architectury_api_version}"
+    add(modImpl, "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
+    add(modImpl, "dev.architectury:architectury:${vd.arch}")
+}
+
+// Older versions read different data formats (recipe ingredients, dimension types). The 26.x files are the
+// source of truth; files under common/legacy/<version>/resources overwrite the same paths.
+def legacyDir = rootProject.file("common/legacy/${mcVer}/resources")
+if (legacyDir.exists()) {
+    processResources {
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE // the legacy copy is added last, so it wins
+        exclude "data/gatebound/recipe/copper_*" // no copper tier before 1.21.4
+        from(legacyDir)
+    }
 }

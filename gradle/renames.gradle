@@ -1,0 +1,103 @@
+// Plain text renames applied to the shared source when building obfuscated-era versions (1.21.x).
+// The source is written against the newest API (26.3); each entry rewrites it for the old one.
+// Entries are [pattern, replacement] with Java regex syntax. They only run one way: keep the active
+// Stonecutter version on 26.3, never switch it to an old version, or the source would not map back.
+//
+// For anything that is not a pure rename, use dev.gatebound.compat.Compat / ClientCompat instead.
+ext.oldRenames = [
+        // --- names ---
+        [~/\bIdentifier\b/, "ResourceLocation"],
+        [~/\bEntitySpawnReason\b/, "MobSpawnType"],
+        [~/\bentity\.projectile\.arrow\./, "entity.projectile."],
+        [~/\bentity\.npc\.villager\./, "entity.npc."],
+        [~/\.entityTags\(\)/, ".getTags()"],
+        [~/\.needsSync\b/, ".hurtMarked"],
+        [~/\.snapTo\(/, ".moveTo("],
+        [~/\.setScreenAndShow\(/, ".setScreen("],
+        [~/\bGuiGraphicsExtractor\b/, "GuiGraphics"],
+        [~/\bgetRespawnData\(\)\.pos\(\)/, "getSharedSpawnPos()"],
+        // --- entities and levels ---
+        [~/\bServerLevel (\w+) = (\w+)\.level\(\);/, 'ServerLevel $1 = (net.minecraft.server.level.ServerLevel) $2.level();'],
+        [~/\.level\(\)\.getEntity\(s\.echo\)/, '.level().getServer().overworld().getEntity(s.echo)'],
+        [~/\.teleportTo\(([^;]*?),\s*Set\.of\(\),\s*([^,;]+),\s*([^,;]+),\s*(?:true|false)\)/, '.teleportTo($1, Set.of(), $2, $3)'],
+        [~/\.hurtServer\([^,;]+, /, '.hurt('],
+        [~/\.doHurtTarget\(\w+, /, '.doHurtTarget('],
+        [~/\.typeHolder\(\)/, '.getType()'],
+        [~/\.create\(([\w.()]+), (?:[\w.]*\.)?(?:EntitySpawnReason|MobSpawnType)\.\w+\)/, '.create($1)'],
+        [~/InteractionResult\.SUCCESS_SERVER\b/, 'InteractionResult.SUCCESS'],
+        [~/\.getMinY\(\)/, '.getMinBuildHeight()'],
+        // --- nbt getters with the default we always pass ---
+        [~/\.getIntOr\(([^,()]+), 0\)/, '.getInt($1)'],
+        [~/\.getBooleanOr\(([^,()]+), false\)/, '.getBoolean($1)'],
+        [~/\.getStringOr\(([^,()]+), ""\)/, '.getString($1)'],
+        // --- properties that do not exist yet ---
+        [~/\.setId\((?=ResourceKey\.create|\w*[kK]ey\()(?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)/, '/**/'],
+        [~/\s*\.useBlockDescriptionPrefix\(\)/, ' '],
+        [~/ \| Block\.UPDATE_SKIP_ON_PLACE/, ' '],
+        // --- more server-level casts and signature changes ---
+        [~/\b(cast\(player, |tryVillageGate\(server, DungeonStore\.get\(server\), |sound\(\w+, )(\w+)\.level\(\)/, '$1(net.minecraft.server.level.ServerLevel) $2.level()'],
+        [~/\b(\w+)\.level\(\)\.sendParticles\(/, '((net.minecraft.server.level.ServerLevel) $1.level()).sendParticles('],
+        [~/\bp\.level\(\)\.getEntity\(id\)/, '((net.minecraft.server.level.ServerLevel) p.level()).getEntity(id)'],
+        [~/\.spawnAtLocation\(\s*(?:\w+|\w+\.level\(\)), /, '.spawnAtLocation('],
+        [~/\.build\(ResourceKey\.create\(Registries\.ENTITY_TYPE, (?:Identifier|ResourceLocation)\.fromNamespaceAndPath\(Gatebound\.MOD_ID, ("[^"]+")\)\)\)/, '.build($1)'],
+        [~/\.noCollision\(\)/, '.noCollission()'],
+        [~/dimension\(\)\.identifier\(\)/, 'dimension().location()'],
+        [~/getInventory\(\)\.getNonEquipmentItems\(\)/, 'getInventory().items'],
+        [~/\.addTicketWithRadius\(TicketType\.FORCED, (new ChunkPos\([^)]*\)), 0\)/, '.addRegionTicket(TicketType.FORCED, $1, 0, $1)'],
+        [~/\.removeTicketWithRadius\(TicketType\.FORCED, (new ChunkPos\([^)]*\)), 0\)/, '.removeRegionTicket(TicketType.FORCED, $1, 0, $1)'],
+        [~/\.enchantable\(\d+\)/, '/**/'],
+        [~/hurtAndBreak\((\w+), (\w+), hand\)/, 'hurtAndBreak($1, $2, hand == InteractionHand.MAIN_HAND ? net.minecraft.world.entity.EquipmentSlot.MAINHAND : net.minecraft.world.entity.EquipmentSlot.OFFHAND)'],
+        // --- Item.use returned a plain InteractionResult from 1.21.2; before that a holder around the stack ---
+        [~/public InteractionResult use\(Level (\w+), Player (\w+), InteractionHand (\w+)\) \{/, 'public net.minecraft.world.InteractionResultHolder<net.minecraft.world.item.ItemStack> use(Level $1, Player $2, InteractionHand $3) { return dev.gatebound.compat.Compat.holder(useResult($1, $2, $3), $2.getItemInHand($3)); }\n    public InteractionResult useResult(Level $1, Player $2, InteractionHand $3) {'],
+        // --- saved data: codec + SavedDataType from 26.1, factory + save() before ---
+        [~/public static final SavedDataType<(\w+)> TYPE = new SavedDataType<>\(\s*(?:Identifier|ResourceLocation)\.fromNamespaceAndPath\(Gatebound\.MOD_ID, ("[^"]+")\),\s*\w+::new,\s*CODEC,\s*DataFixTypes\.SAVED_DATA_COMMAND_STORAGE\);/, 'public static final String NAME = "gatebound_" + $2; public static final net.minecraft.world.level.saveddata.SavedData.Factory<$1> TYPE = new net.minecraft.world.level.saveddata.SavedData.Factory<>($1::new, (tag, lookup) -> CODEC.parse(net.minecraft.nbt.NbtOps.INSTANCE, tag).getOrThrow(), DataFixTypes.SAVED_DATA_COMMAND_STORAGE); @Override public net.minecraft.nbt.CompoundTag save(net.minecraft.nbt.CompoundTag tag, net.minecraft.core.HolderLookup.Provider lookup) { return (net.minecraft.nbt.CompoundTag) CODEC.encodeStart(net.minecraft.nbt.NbtOps.INSTANCE, this).getOrThrow(); }'],
+        [~/getDataStorage\(\)\.computeIfAbsent\(TYPE\)/, 'getDataStorage().computeIfAbsent(TYPE, NAME)'],
+        [~/import net\.minecraft\.world\.level\.saveddata\.SavedDataType;/, 'import net.minecraft.world.level.saveddata.SavedData;'],
+        // --- overrides whose signature lost the level / applier parameters ---
+        [~/Entity entity,\s*InsideBlockEffectApplier applier, boolean intersects\)/, 'Entity entity)'],
+        [~/import net\.minecraft\.world\.entity\.InsideBlockEffectApplier;/, 'import java.lang.Object;'],
+        [~/@Override\s+protected VoxelShape getEntityInsideCollisionShape/, 'protected VoxelShape getEntityInsideCollisionShape'],
+        [~/protected void customServerAiStep\(ServerLevel level\) \{/, 'protected void customServerAiStep() { ServerLevel level = (ServerLevel) this.level();'],
+        [~/super\.customServerAiStep\(level\)/, 'super.customServerAiStep()'],
+        [~/\bhurtServer\(ServerLevel level, DamageSource source, float amount\)/, 'hurt(DamageSource source, float amount)'],
+        [~/\bisInvulnerableTo\(ServerLevel level, DamageSource source\)/, 'isInvulnerableTo(DamageSource source)'],
+        [~/import net\.minecraft\.world\.item\.component\.SwingAnimation;/, 'import java.lang.Object;'],
+        [~/\.repairable\(net\.minecraft\.world\.item\.Items\.\w+\)/, '/**/'],
+        // --- gui drawing (GuiGraphicsExtractor in 26 is GuiGraphics here) ---
+        [~/\bextractRenderState\(/, 'render('],
+        [~/\bextractBackground\(/, 'renderBackground('],
+        [~/\b(g|graphics)\.outline\(/, '$1.renderOutline('],
+        [~/\b(g|graphics)\.text\(/, '$1.drawString('],
+        [~/\b(g|graphics)\.centeredText\(/, '$1.drawCenteredString('],
+        [~/\bg\.fakeItem\(/, 'g.renderFakeItem('],
+        [~/\bg\.itemDecorations\(/, 'g.renderItemDecorations('],
+        [~/\bg\.setTooltipForNextFrame\(/, 'g.renderTooltip('],
+        // --- input events: objects from 1.21.9, raw ints before ---
+        [~/import net\.minecraft\.client\.input\.(?:MouseButtonEvent|KeyEvent|InputWithModifiers);/, 'import java.lang.Object;'],
+        [~/mouseClicked\(MouseButtonEvent event, boolean doubleClick\)/, 'mouseClicked(double eventX, double eventY, int eventButton)'],
+        [~/\bevent\.x\(\)/, 'eventX'],
+        [~/\bevent\.y\(\)/, 'eventY'],
+        [~/keyPressed\(KeyEvent event\) \{/, 'keyPressed(int keyCode, int scanCode, int modifiers) {'],
+        [~/\.matches\(event\)/, '.matches(keyCode, scanCode)'],
+        [~/super\.keyPressed\(event\)/, 'super.keyPressed(keyCode, scanCode, modifiers)'],
+        [~/public void onPress\(InputWithModifiers input\)/, 'public void onPress()'],
+        [~/\bextractContents\(/, 'renderWidget('],
+        [~/InputConstants\.MOUSE_BUTTON_5/, 'org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_5'],
+        [~/new User\(NAME, id, token, Optional\.empty\(\), Optional\.empty\(\)\)/, 'new User(NAME, id, token, Optional.empty(), Optional.empty(), User.Type.LEGACY)'],
+        [~/\.getMaxY\(\)/, '.getMaxBuildHeight() - 1'],
+        [~/entity\.monster\.(?:illager|skeleton|spider|zombie)\./, 'entity.monster.'],
+        [~/\b((?:Fx\.\w+|circle)\()(\w+)\.level\(\)/, '$1(net.minecraft.server.level.ServerLevel) $2.level()'],
+        [~/\bvanilla\.location\(\)/, 'vanilla.getLocation()'],
+        [~/\.build\(key\(id\)\)/, '.build(id)'],
+        // --- mob effects (renamed in 1.21.3) ---
+        [~/\bMobEffects\.SLOWNESS\b/, "MobEffects.MOVEMENT_SLOWDOWN"],
+        [~/\bMobEffects\.RESISTANCE\b/, "MobEffects.DAMAGE_RESISTANCE"],
+        [~/\bMobEffects\.SPEED\b/, "MobEffects.MOVEMENT_SPEED"],
+        [~/\bMobEffects\.STRENGTH\b/, "MobEffects.DAMAGE_BOOST"],
+        [~/\bMobEffects\.HASTE\b/, "MobEffects.DIG_SPEED"],
+        [~/\bMobEffects\.INSTANT_HEALTH\b/, "MobEffects.HEAL"],
+        // --- commands ---
+        [~/Commands\.hasPermission\(Commands\.LEVEL_GAMEMASTERS\)/, "src -> src.hasPermission(2)"],
+        // --- sounds: a few constants are plain SoundEvents here but Holders in 26 ---
+        [~/\b(SoundEvents\.(?:SHIELD_BLOCK|GENERIC_DRINK))\.value\(\)/, '$1'],
+]

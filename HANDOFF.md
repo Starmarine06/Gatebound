@@ -15,7 +15,7 @@ dungeon / leak change.
 - IntelliJ run configs live in `.run/`.
 - **Close the game client before building.** A running client locks `common/build/libs/gatebound-common-0.1.0-dev.jar`
   and the build fails with "Failed to modify jar manifest". `./gradlew :common:compileJava` still works while the game is open.
-- The dev client username is pinned to **Player989** (`loom.runs.client.programArgs` in `fabric/build.gradle` and `neoforge/build.gradle`).
+- The dev client username is pinned to **Player896** (`loom.runs.client.programArgs` in `fabric/build.gradle` and `neoforge/build.gradle`).
   Offline UUIDs come from the name, so a stable name keeps the same player data between runs.
 - Progress is flushed to disk about once a second (`PlayerDataStore.initAutoFlush`), so stopping the client from the IDE no longer loses it.
 - Minecraft 26.3 is unobfuscated (Mojang names). Verify APIs with `javap` against
@@ -140,6 +140,54 @@ This is the template for the other classes. Skills live in `Skills.java`; Summon
 - **Not done:** real projectiles, non-humanoid attack animations, echo tier scaling (stats already copy the bound mob, so a Warden is strong by itself), swap-prompt when slots are full.
 - **Decision for the other classes:** every class needs a ladder like this out to level 100 (about 14 skills), with the same scaling pattern, plus its own signature system.
 
+## Rogue (feature-complete pass, untested in play)
+Logic in `skill/RogueSkills.java`, tunables in `skill/RogueConfig.java` (section `rogue` in `config/gatebound.json`; string fields are boss blacklists). Hooks: `CombatHandler.onHurt` calls `RogueSkills.onHurt` first.
+- **Ladder** (level: skill, mana): 1 Shadow Step 8 (+4 ticks i-frames via `PlayerCombat.grantIFrames`), 3 Throwing Knives 10, 5 Vanish 18, 8 Mark for Death 12, 10 Shadow Meld 16, 11 Venom Blade 14,
+  15 Backstab 14, 20 Smoke Bomb 20, 27 Fan of Knives 22, 35 Blade Dance 30, 45 Execute 35, 60 Shadow Dance 45, 80 Thousand Cuts 60, 100 Shadow Possession 80.
+- **Mana:** Rogue max mana = 20 + 4*Agility (`RogueConfig.agilityMana`, switch off to restore Intellect for everyone).
+- **Shadow:** invisibility plus a tick that clears mob targets. Broken by taking damage or attacking. The first attack out of it is an **Ambush**: x(2.5 + 0.01*lvl), x1.5 more from behind, x1.5 more from inside a meld. Shadow Dance: never breaks, every hit is an Ambush at x2.
+- **Marks:** +25% damage from the marker, Glowing. An Ambush on a marked enemy is a guaranteed crit and refunds 6 mana. Passive (Rogue only): crit chance 0.5% per Luck, crit damage 1.5 + 1% per Agility.
+- **Melee bonus damage** is applied one tick later as a second hit (damage inside the hurt event would be eaten by invulnerability frames). Skill hits go through `RogueSkills.hit` (guarded by `applying`).
+- **Shadow Meld:** look at any living entity (players included) or nothing (own shadow). Each tick the Rogue is placed behind the host. Exits: sneak (after 5 ticks), attack, damage, host dies/leaves, mana out (1/s), cap 12 + lvl/10 s. Dance and Possession make upkeep free. Wither, Ender Dragon, Warden refused (config).
+- **Shadow Walk:** while in any Shadow/Meld, holding W (`ServerPlayer.getLastClientInput().forward()`, no packet needed) hops to the best entity in a 25 degree cone (<= 24 blocks, line of sight), else a dark floor spot (light <= 4) found by a ray fan. 4 mana per hop, 8 tick delay, walls stop the hop.
+- **Execute:** the mark jumps to the nearest other enemy on a kill (my reading of "resets Mark"). **Blade Dance** returns you to your start point.
+- **Shadow Possession:** binds up to 5 enemies in a 35 degree cone (plus marked ones in range): `setNoAi(true)` + Slowness 255; bosses get Slowness/Weakness only. Bound >= 2 s means possessed (they strike neighbours).
+  Controls (the plan had conflicting wording, resolved like this): **cast again = pull** (free), **sneak + cast again = leap to nearest bound enemy**, **hold sneak 1 s = end**, **melee a bound enemy = all arms strike**, **melee a possessed enemy = throw it** at the nearest other enemy.
+  4 arms auto-strike every 10 ticks for attack*(1 + 0.01*lvl). Arms deflect projectiles aimed at you (2 mana). Kills add 1 s (max +10 s). Duration 10 + lvl/20 s.
+  **Safety:** frozen mobs carry the tag `gatebound_shadow_bound`; release on end/quit/death/mob death, on server stopping, and any tagged mob that loads without an owner is unfrozen (`EntityEvent.ADD`).
+- **Not done:** Night's Embrace (named in the plan but not in the ladder), `ShadowSyncPayload` / HUD vignette, a client fallback input packet (not needed, the server input record exists), mixed-version testing. Nothing here has been played yet: check Meld jitter (per-tick teleport of the player), Walk feel, and arm/particle visuals.
+
+## Warrior (first pass, compiles, untested in play)
+Logic in `skill/WarriorSkills.java`, tunables in `skill/WarriorConfig.java` (section `warrior`). Mana = 20 + 4*Strength (`strengthMana`). Damage = (base + 0.5*Str) * (1 + 0.012*lvl).
+- **Ladder** (level: skill, mana): 1 Shockwave 12, 3 Charge 10, 5 War Cry 20, 8 Cleave 14, 10 Iron Skin 16, 13 Leap Slam 18, 16 Rending Strike 16, 20 Bulwark 18,
+  27 Whirlwind 24, 35 Second Wind 30, 45 Crushing Blow 35, 60 Berserker Rage 45, 80 Earthbreaker 60, 100 Avatar of War 80.
+- **Signature = Rage + Bulwark:** Berserker Rage / Avatar of War heal 15% / 25% of damage dealt (LIVING_HURT in WarriorSkills); Bulwark reflects 30% of melee damage taken. Avatar pulses every second and ends with a slam.
+- Charge, Leap Slam and Earthbreaker are tick-polled (landing detected by `onGround`). Bleed and Whirlwind use a small delayed-task list.
+- **Not done:** Warrior gear rules (heavy armour/weapon requirement), HUD for Rage, Warrior passives (like the Rogue's crit), real testing of landing detection and stun feel.
+
+## Ranger (first pass, compiles, untested in play)
+Logic in `skill/RangerSkills.java`, tunables in `skill/RangerConfig.java` (section `ranger`). Mana = 20 + 4*Agility. Attack skills need a bow or crossbow in the main hand (no bow: refused and mana refunded).
+- **Ladder** (level: skill, mana): 1 Eagle Eye 8, 3 Power Shot 8, 5 Piercing Shot 16 (ray), 8 Hunter's Quarry 12, 10 Evasive Roll 10, 13 Poison Arrow 14, 16 Snare Arrow 16, 20 Multishot 18,
+  27 Ricochet 22 (ray), 35 Rain of Arrows 30, 45 Headshot 35 (ray), 60 Hunter's Trance 45, 80 Arrow Barrage 60, 100 Apex Predator 80.
+- **Real arrows:** skill arrows are `Arrow` entities tagged `gatebound_ranger_arrow`, no pickup, removed after 15 s or 2 s on the ground. They cost no ammo. Seeking arrows (Trance, Apex, Barrage) steer toward the quarry or nearest enemy each tick.
+- **Quarry / range:** +30% damage to the quarry and up to +50% with distance. For arrows this is a second hit one tick later (hurt-event damage would hit i-frames); rays apply it directly. The Ranger's own normal bow shots get the range, quarry and +1%/Agility bonus too.
+- **Imbue flow:** Power/Piercing/Poison/Snare/Multishot/Rain/Ricochet/Headshot/Barrage only *prime* the next shot (30 s, mana spent on cast). The Ranger's next arrow (`EntityEvent.ADD`) becomes the skill: arrow skills glow and leave a particle trail; Piercing/Ricochet/Headshot/Barrage cancel the arrow and fire instantly. Rain triggers where the imbued arrow lands: 8 waves of 4 arrows from a low ring (radius 8, height 5) all around the spot.
+- **Aiming:** Rangers draw faster (`drawExtraTicks`, reflection on `LivingEntity.useItemRemaining`, run on server and client; the pull animation timing is only approximately matched). While drawing, enemies within 24 get Slowness 6, enemy missiles lose half their speed each tick, and the Ranger takes no damage (`bulletTime`). It is bullet-time for everyone watching, since mobs are really slowed; other players are not.
+- **Compound Bow** (`item/CompoundBow.java`, id `gatebound:compound_bow`, recipe: bow + 2 iron + 2 string): zero spread, no arrow drop, 15% faster arrows, 1000 durability, takes Unbreaking, Mending and the bow enchantments, repairs with iron ingots. Crouch + right-click anchors the grapple on the block you look at (range 48, 1 durability) and you hang from the line: gravity is switched off while anchored (entity tag `gatebound_hanging`, cleared on release, quit, death and next join) and a grounded player is lifted 0.75 blocks; the rope length is the distance at anchoring, WASD swings you within it; crouch + right-click again reels you in and you keep hanging where you arrive; jump lets go; in the dungeon dimension the hang ends by itself after 15 s (`DUNGEON_HANG_SECONDS`, warning at 5 s left), elsewhere it is permanent; a pull that never arrives is dropped after 5 s. It uses the real crouch state (`isShiftKeyDown`), so it follows whatever key the player bound to crouch. Uses the vanilla bow textures/models for now (needs its own art).
+- **Compound arrows** keep their launch speed for 40 ticks (flying straight), then gravity returns; arrows that stop or stick get gravity back at once (`CompoundBow.tickFlights`). This fixed arrows hanging in the air (a gravity-free arrow loses 1% speed per tick and crawls forever).
+- **Quiver** (`item/QuiverItem.java`, `gatebound:quiver`, recipe: 5 leather + string): holds 640 arrows (10 stacks), count in item custom data and shown as lore. Right-click packs all plain arrows from the inventory; sneak + right-click takes out a stack of 64. Holding a bow with no arrows in the inventory lends a stack (marked `quiver_loan`), packed back when the bow is put away.
+- **3D models:** hand-built element models, generated by a PowerShell script (palette texture `textures/item/palette.png`, 16 colour swatches; models `compound_bow` + `_pulling_0/1/2`, `quiver`). Not seen in game yet: check hand angles, string/arrow placement while pulling, and the quiver tilt.
+- **Bow damage for everyone:** every player's arrows get +3% per Strength (`strengthBowBonus`) and the distance bonus (up to +50% at 24 blocks). Quarry and Agility bonuses stay Ranger-only.
+- **Aim visuals (client, `client/RangerAimFx`):** while a Ranger draws, the screen goes greyscale (post effect `assets/gatebound/post_effect/focus.json` using vanilla `color_convolve`, switched on through `LocalPlayer.setActivePostEffects`), the FOV option is eased down to 55% and restored after (never left changed), and the vanilla use-item slow-walk is undone by setting ground speed to normal walking pace. Untested: check the greyscale actually renders, that FOV restores after dying/disconnecting mid-draw, and that the server does not rubber-band the faster walk.
+- **Quiver with a full inventory:** holding a bow with no arrows turns the quiver into an arrow stack *in its own slot* (tagged `quiver_loan`, the rest of the arrows stored in its `quiver_reserve` tag and fed in as you shoot), so no free slot is needed. Putting the bow away, logging out or dying turns it back (`QuiverItem.restore`). If the last arrow is shot the quiver reappears in that slot with whatever was left.
+- **Quiver on the back (`item/QuiverBack`):** a vanilla `item_display` entity rides the player (so all clients render it with no client code), its yaw follows `yBodyRot`, and it exists while the player carries a quiver and is visible. Tagged `gatebound_quiver_display`; stray ones are discarded on load. Untested: the back offset and the quiver's facing (translation in `spawn`), and that riding a player does not cause side effects (dismount on teleport re-attaches within 10 ticks).
+- **Quiver on the back (rewritten):** players cannot carry passengers on the server (the log showed `riding=false`), so the floating-entity approaches are gone. Now the server sends the list of quiver carriers (`QuiverSyncPayload`, `data/ClientQuiverData`) and a client render layer (`client/QuiverBackLayer`, attached to the player model's body part like armour) draws the quiver model. It is registered per loader: `fabric/GateboundFabricClient` (`LivingEntityRenderLayerRegistrationCallback`, new `client` entrypoint in fabric.mod.json) and `neoforge/GateboundNeoForgeClient` (`EntityRenderersEvent.AddLayers`). Both modules compile; untested in game: check position (`translate(0, 0.40, 0.36)` + `scale 1.1` in the layer), crouching, and that it shows on other players.
+- **Homing Shot (rewritten):** casting raycasts up to 96 blocks (walls block it) for a living entity (mob or player) or a wooden button / target block / bell, and locks onto it; nothing valid = nothing primed and the mana comes back. The imbued arrow steers at the lock from any distance and keeps its launch speed (air drag no longer makes far shots crawl). Unlocked seekers (Trance, Barrage, Apex) also keep their speed now.
+- **Grapple line is a vanilla lead:** the server broadcasts every anchored line (`GrappleSyncPayload`: player, anchor, rope length; `data/ClientGrappleData`) and `client/GrappleLeashLayer` (registered next to the quiver layer for both loaders) calls the game's own `submitLeash` from the player's chest to the anchor. The layer undoes the player model's pose (body yaw, flip, 0.9375 scale) to get the entity-space pose the leash renderer expects. It sags while the player is closer than the rope length (`slack`) and runs straight when taut. The server pull is now an elastic spring (0.35 per block of stretch, max 0.7). Untested: check the rope really starts at the chest and ends on the anchor from all angles; if it is offset or rotated, the pose undo in `GrappleLeashLayer.submit` is the place to fix. The old particle line is gone.
+- **Ladder change:** Power Shot (L3) was replaced by **Homing Shot** (L3, 10 mana): imbues the next arrow so it curves to the quarry or the nearest enemy; with nothing to chase it drops gravity-free flight after 1 s.
+- **Trance** refunds the mana cost of every cast. Cooldowns are not bypassed. The "instant draw" idea was dropped.
+- **Not done:** Ranger gear rules, quarry HUD marker, a client-side check of how homing arrows look, and play-testing (arrow damage = base damage * speed, so check the numbers).
+
 ## Test checklist for next session (nothing from the last several changes has been played yet)
 1. Launch Fabric then NeoForge clients. Controls list, Awakening, Tab status, spending points.
 2. **Persistence:** pick a class, wait 2 s, stop the client from the IDE, relaunch: you should keep your class.
@@ -189,3 +237,64 @@ This is the template for the other classes. Skills live in `Skills.java`; Summon
 - A selected echo glows gold (`gatebound_echo_sel` team) and has a `>` in the HUD list. Giving an echo an order from the wheel selects it. Personal orders sit between Scout's Eye and the group order in `EchoManager.effectiveMode`, per roster slot, session only, cleared on release. The H screen shows the selected echo's panel too.
 - **Rally:** the first gate a seeker finds (`announce`) becomes the rally point (`EchoManager.setRally/rallyPoint`): every Seek echo on that floor/dimension stops searching and walks there and waits; only the finder keeps announcing. Guides then work as before (right-click).
 - **Dungeon routing:** `FloorPlan.distancesTo/hop` give a walkable route over the plan's open cells; `EchoBrain.routeInDungeon` walks ~14 blocks at a time along it. Used by Guide, rally and far Seek waypoints, because the pathfinder alone cannot path across a whole floor.
+
+### Compound bow grapple flow (current, supersedes the older grapple wording above)
+1. **Crouch** (the player's own crouch key) with the bow and **keep aiming at the same block for 12 ticks** (`AIM_TICKS`): particles mark the spot, then "Anchor set" and the lead appears. The anchor is dropped after 20 s, if the bow is put away, or if the player gets 72 blocks away.
+2. **Shoot** (crouch + right-click) with an anchor set: reels the player in (1 durability; gravity off; a grounded player is lifted 0.75 blocks).
+3. On arrival the player **hangs there until jump** (inside the dungeon dimension the line gives way after 15 s; elsewhere there is no time limit; death, dimension change and logout also release). Crouch + right-click without an anchor just shows a hint. A plain right-click still draws the bow.
+
+## Mage (in progress)
+Element-based ladders, 9 skills each at levels 1/5/10/18/28/40/60/85/100, in `skill/mage/`. `MageCore` holds the shared machinery
+(damage `(base+0.5*Int)*(1+0.012*lvl)`, tick-driven bolts, zones, buffs, 100-level forms, temp blocks restored on expiry/server stop).
+- Done: Fire (Scorch: burning takes +25% fire damage, mage-ignited enemies explode on death) and Ice (Chill: 3 stacks freeze; Shatter spends frozen).
+- Dark element added to `Element` (lang done) but has no skills yet, so a Dark-only Mage has an empty wheel until `DarkSkills` exists.
+- Still old 2-skill versions in `Skills.java`: Lightning, Wind, Earth, Light. Next batches: Lightning + Wind, then Earth + Light + Dark.
+- Untested in game. Skill wheel with up to 27 skills (3 elements) still to be checked.
+
+### Mage staffs
+`item/StaffItems.java`: one staff per element (`<element>_staff`, 7 incl. Dark), 2 melee damage, orb colour per element
+(`textures/item/staff_palette.png`, models/items/recipes generated for all 7). A Mage deals melee damage only with a staff or bare
+hands (`MageCore.onHurt`, mirrors the Rogue knife rule). Staffs are not yet required to cast and give no spell bonus.
+
+### Mage: all seven elements, strain, spell picks
+- All elements now have 9-skill ladders (Fire, Ice, Lightning, Wind, Earth, Light, Dark) in `skill/mage/*Skills.java`. Resurrection
+  (Light 85) is a 60 s blessing that turns the next killing blow into half health (cancels death via LIVING_DEATH).
+- Strain (`MageCore.strain`, called from `SkillHandler.use`): one cast per second (`MageConfig.castGapTicks`), each cast spends
+  15% of max stamina, stamina under 40% slows, under 15% slows harder, a cast at 0 stamina costs health (15% max, never lethal).
+- Multi-element Mages (`SpellPicks`): nine spells in total, one per unlock level (1,5,...,100), chosen from the k elements' spells at that level, on
+  elements' spells, chosen on `SpellPickScreen` (opens on join/level-up/element grant, `/gatebound spells` reopens). Picks live in
+  `PlayerData.picks` (saved + synced). Single-element Mages get everything.
+- Untested in game: all new spells, strain feel, picker screen, flight (uses last client input, may jitter), wall/path restore.
+
+## Stonecutter (multi-version)
+- Versions: `1.21.1`, `26.1.2`, `26.2`, `26.3` (settings.gradle `shared { versions ... }`). Each module (common/fabric/neoforge) has one node per version, e.g. `:fabric:26.3`.
+- **Write code against 26.3** (the active/VCS version; never switch `stonecutter.active` in `<module>/stonecutter.gradle`). Older versions are produced from it:
+  - `common/.../compat/Compat.java`, `ClientCompat.java`, `MobTypes.java`: API differences behind `//? if >=26.x {` ... `//?} else {` `/* old */` `//?}` blocks. Use these for anything that is not a pure rename.
+  - `gradle/renames.gradle`: regex rewrites applied only when building 1.21.x (names like `Identifier`->`ResourceLocation`, `MobEffects.SLOWNESS`->`MOVEMENT_SLOWDOWN`, `Item.use` wrapper, SavedData factory, gui draw calls, input events). One match per span: rules must not overlap, or only one applies.
+  - Whole-class variants (EchoRenderer, QuiverBackLayer, GrappleLeashLayer, the loader client classes) hold the 1.21.1 version in the commented `else` branch of a conditional.
+  - `common/legacy/<mc>/resources`: data files for old formats (recipes, dimension type). Copper knife is skipped on 1.21.1 (no copper tier).
+- Per-version dependency versions (Architectury API, Fabric API, NeoForge, Java, remap) live in `gradle/versions.gradle`. Shared node setup is `gradle/node.gradle`. Add a version in both places plus settings.gradle.
+- Build/run one version: `./gradlew :fabric:26.3:runClient`, `:neoforge:1.21.1:runServer`, `:fabric:26.2:build`. Root `./gradlew build` builds everything (heavy: close the game first, and build one version at a time if memory is tight).
+- Run dirs are per version (`fabric/versions/26.3/run`, ...). The old `fabric/run` and `neoforge/run` are no longer used.
+- Smoke test: `:<loader>:<ver>:runServer` loads the mod, then stops at the EULA prompt.
+- **After adding code, compile every version** (`./gradlew :common:1.21.1:compileJava :common:26.1.2:compileJava :common:26.2:compileJava`). Errors for the active 26.3 node print paths under `common/src`, the others under `common/versions/<v>/build/generated/stonecutter`.
+- 1.21.1 differences that have no equivalent are degraded: Ranger focus post effect (also on 26.1/26.2), Rogue/Mage input reads use movement fields, no copper knife.
+
+### Skill visuals (server-side only)
+Toolkit in `skill/fx/`: `Palette` (per-element particles/colours/sounds), `Fx` (rings, shockwaves, spirals, pillars, runes, arcs, projectile trails, impacts),
+`Props` (block-display props created/updated by commands, tag `gatebound_fx`, swept on join/start/stop; command failures are logged as "Prop command failed"),
+`CastFx` (arm swing + rune + orbiting sparks for every Mage cast, `transform` for the level 100 forms). `MageCore.bolt` has a `Trail` overload.
+Done: Fire and Ice. Next: Lightning + Wind, then Earth + Light + Dark, then the other classes. Cast animation is not delayed (spell fires at once).
+Untested in game: prop NBT/transform syntax (meteor rock, frost spikes, ice shells), particle load.
+
+## Sounds
+- `sound/GateboundSounds`: every vanilla sound the mod plays has a gatebound twin (`SoundPaths`, same path) via `GateboundSounds.of(vanilla)`; extra events with no vanilla twin are in `CustomPaths` (`item.*`, `grave.open`, `chest.smash`, `boss.spawn`, `boss.death`, `gate.ambient`, `skill.<id>` for ~20 signature skills, played by `SkillHandler.use` on a connected cast).
+- Real audio: `python tools/gen_sounds.py` synthesizes every event (numpy/scipy + ffmpeg) into two mono `.ogg` variants under `assets/gatebound/sounds/<path>/` and points `sounds.json` at them. Edit the recipe for a path in `RECIPES` and rerun, or drop a hand-made .ogg over a file (Minecraft cannot play mp3). Old note, now superseded: entries were pitch variants of vanilla clips (`"type":"event"`), with `subtitles.gatebound.*` lang keys. To give one a real sound, point its entry at an .ogg; no code change. To add a skill sound, add a path to `CustomPaths` plus a sounds.json entry and subtitle.
+
+### Effect models and textures
+`tools/gen_fx_assets.ps1` draws the textures (`textures/item/fx/*.png`) and writes the item models/definitions (`models/item/fx`, `items/fx`):
+inscribed magic circle per element (`circle_<element>`), shockwave ring per element, `fireball`, `ice_shard`, `ice_spike`, `meteor`.
+Replace any png with hand-made art of the same name. They are shown by `Props.sprite` (item_display + `item_model` component on a paper item, no item registered)
+and animated by `Circles` (`ground`, `castCircle` upright in front of the caster, `onTarget` upright in front of the enemy facing the caster, `ring`).
+Every Mage cast now plays a ground circle and an upright cast circle; Fire/Ice hits show a circle in front of the target. Still particle-only: Lightning, Wind, Earth, Light, Dark (next batches).
+Untested in game: item_display model rendering/transparency, circle orientation and spin, the "Prop command failed" log lines.

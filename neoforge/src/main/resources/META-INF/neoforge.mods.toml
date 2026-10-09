@@ -12,20 +12,20 @@ description = "Pick a class, level up, and conquer dungeon gates."
 [[dependencies.gatebound]]
 modId = "minecraft"
 type = "required"
-versionRange = "[26.3,)"
+versionRange = "[${minecraft},)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.gatebound]]
 modId = "neoforge"
 type = "required"
-versionRange = "[26.3.0.0-beta,)"
+versionRange = "[${neoforge},)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.gatebound]]
 modId = "architectury"
 type = "required"
-versionRange = "[22.0.3,)"
+versionRange = "[${architectury},)"
 ordering = "NONE"
 side = "BOTH"

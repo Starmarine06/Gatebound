@@ -15,6 +15,7 @@ public final class ClientPlayerData {
     public static final int[] STATS = new int[Stat.values().length];
     public static String classId = "";
     public static List<String> elements = new ArrayList<>();
+    public static List<String> picks = new ArrayList<>();
 
     static {
         Arrays.fill(STATS, Stat.BASE_VALUE);
@@ -33,5 +34,6 @@ public final class ClientPlayerData {
         }
         classId = p.classId();
         elements = new ArrayList<>(p.elements());
+        picks = new ArrayList<>(p.picks());
     }
 }

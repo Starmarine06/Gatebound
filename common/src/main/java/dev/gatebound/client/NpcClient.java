@@ -1,5 +1,6 @@
 package dev.gatebound.client;
 
+import dev.gatebound.compat.ClientCompat;
 import dev.architectury.registry.client.level.entity.EntityRendererRegistry;
 import dev.gatebound.trade.NpcEntities;
 import dev.gatebound.trade.NpcOffersPayload;
@@ -19,7 +20,7 @@ public final class NpcClient {
     /** Opens the trade screen, or refreshes it when it is already open for the same NPC. */
     public static void handle(NpcOffersPayload payload) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.gui.screen() instanceof NpcTradeScreen screen && screen.npcId() == payload.entityId()) {
+        if (ClientCompat.screen(mc) instanceof NpcTradeScreen screen && screen.npcId() == payload.entityId()) {
             screen.update(payload);
         } else {
             mc.setScreenAndShow(new NpcTradeScreen(payload));

@@ -12,7 +12,7 @@ import java.util.List;
 
 /** Server to client snapshot of the player progression. */
 public record SyncDataPayload(int level, int xp, int xpToNext, int statPoints, List<Integer> stats, String classId,
-                              List<String> elements) implements CustomPacketPayload {
+                              List<String> elements, List<String> picks) implements CustomPacketPayload {
     public static final Type<SyncDataPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, "sync_data"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, SyncDataPayload> CODEC = new StreamCodec<>() {
@@ -33,7 +33,12 @@ public record SyncDataPayload(int level, int xp, int xpToNext, int statPoints, L
             for (int i = 0; i < elementCount; i++) {
                 elements.add(buf.readUtf());
             }
-            return new SyncDataPayload(level, xp, xpToNext, points, stats, classId, elements);
+            int pickCount = buf.readVarInt();
+            List<String> picks = new ArrayList<>(pickCount);
+            for (int i = 0; i < pickCount; i++) {
+                picks.add(buf.readUtf());
+            }
+            return new SyncDataPayload(level, xp, xpToNext, points, stats, classId, elements, picks);
         }
 
         @Override
@@ -51,6 +56,10 @@ public record SyncDataPayload(int level, int xp, int xpToNext, int statPoints, L
             for (String e : p.elements) {
                 buf.writeUtf(e);
             }
+            buf.writeVarInt(p.picks.size());
+            for (String s : p.picks) {
+                buf.writeUtf(s);
+            }
         }
     };
 
@@ -60,7 +69,7 @@ public record SyncDataPayload(int level, int xp, int xpToNext, int statPoints, L
             stats.add(v);
         }
         return new SyncDataPayload(data.level, data.xp, data.xpToNext(), data.statPoints, stats, data.classId,
-                new ArrayList<>(data.elements));
+                new ArrayList<>(data.elements), new ArrayList<>(data.picks));
     }
 
     @Override

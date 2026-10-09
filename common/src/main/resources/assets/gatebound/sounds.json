@@ -1,0 +1,1224 @@
+{
+  "block.amethyst_block.break": {
+    "subtitle": "subtitles.gatebound.block.amethyst_block.break",
+    "sounds": [
+      {
+        "name": "gatebound:block/amethyst_block/break_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/amethyst_block/break_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.amethyst_block.chime": {
+    "subtitle": "subtitles.gatebound.block.amethyst_block.chime",
+    "sounds": [
+      {
+        "name": "gatebound:block/amethyst_block/chime_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/amethyst_block/chime_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.amethyst_block.place": {
+    "subtitle": "subtitles.gatebound.block.amethyst_block.place",
+    "sounds": [
+      {
+        "name": "gatebound:block/amethyst_block/place_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/amethyst_block/place_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.amethyst_block.resonate": {
+    "subtitle": "subtitles.gatebound.block.amethyst_block.resonate",
+    "sounds": [
+      {
+        "name": "gatebound:block/amethyst_block/resonate_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/amethyst_block/resonate_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.anvil.land": {
+    "subtitle": "subtitles.gatebound.block.anvil.land",
+    "sounds": [
+      {
+        "name": "gatebound:block/anvil/land_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/anvil/land_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.anvil.place": {
+    "subtitle": "subtitles.gatebound.block.anvil.place",
+    "sounds": [
+      {
+        "name": "gatebound:block/anvil/place_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/anvil/place_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.beacon.activate": {
+    "subtitle": "subtitles.gatebound.block.beacon.activate",
+    "sounds": [
+      {
+        "name": "gatebound:block/beacon/activate_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/beacon/activate_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.beacon.ambient": {
+    "subtitle": "subtitles.gatebound.block.beacon.ambient",
+    "sounds": [
+      {
+        "name": "gatebound:block/beacon/ambient_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/beacon/ambient_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.beacon.deactivate": {
+    "subtitle": "subtitles.gatebound.block.beacon.deactivate",
+    "sounds": [
+      {
+        "name": "gatebound:block/beacon/deactivate_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/beacon/deactivate_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.beacon.power_select": {
+    "subtitle": "subtitles.gatebound.block.beacon.power_select",
+    "sounds": [
+      {
+        "name": "gatebound:block/beacon/power_select_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/beacon/power_select_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.brewing_stand.brew": {
+    "subtitle": "subtitles.gatebound.block.brewing_stand.brew",
+    "sounds": [
+      {
+        "name": "gatebound:block/brewing_stand/brew_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/brewing_stand/brew_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.chain.place": {
+    "subtitle": "subtitles.gatebound.block.chain.place",
+    "sounds": [
+      {
+        "name": "gatebound:block/chain/place_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/chain/place_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.enchantment_table.use": {
+    "subtitle": "subtitles.gatebound.block.enchantment_table.use",
+    "sounds": [
+      {
+        "name": "gatebound:block/enchantment_table/use_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/enchantment_table/use_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.end_portal.spawn": {
+    "subtitle": "subtitles.gatebound.block.end_portal.spawn",
+    "sounds": [
+      {
+        "name": "gatebound:block/end_portal/spawn_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/end_portal/spawn_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.glass.break": {
+    "subtitle": "subtitles.gatebound.block.glass.break",
+    "sounds": [
+      {
+        "name": "gatebound:block/glass/break_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/glass/break_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.glass.place": {
+    "subtitle": "subtitles.gatebound.block.glass.place",
+    "sounds": [
+      {
+        "name": "gatebound:block/glass/place_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/glass/place_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.portal.ambient": {
+    "subtitle": "subtitles.gatebound.block.portal.ambient",
+    "sounds": [
+      {
+        "name": "gatebound:block/portal/ambient_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/portal/ambient_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.portal.travel": {
+    "subtitle": "subtitles.gatebound.block.portal.travel",
+    "sounds": [
+      {
+        "name": "gatebound:block/portal/travel_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/portal/travel_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.stone.break": {
+    "subtitle": "subtitles.gatebound.block.stone.break",
+    "sounds": [
+      {
+        "name": "gatebound:block/stone/break_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/stone/break_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.stone.place": {
+    "subtitle": "subtitles.gatebound.block.stone.place",
+    "sounds": [
+      {
+        "name": "gatebound:block/stone/place_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/stone/place_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "block.wood.break": {
+    "subtitle": "subtitles.gatebound.block.wood.break",
+    "sounds": [
+      {
+        "name": "gatebound:block/wood/break_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:block/wood/break_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.arrow.hit_player": {
+    "subtitle": "subtitles.gatebound.entity.arrow.hit_player",
+    "sounds": [
+      {
+        "name": "gatebound:entity/arrow/hit_player_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/arrow/hit_player_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.arrow.shoot": {
+    "subtitle": "subtitles.gatebound.entity.arrow.shoot",
+    "sounds": [
+      {
+        "name": "gatebound:entity/arrow/shoot_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/arrow/shoot_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.blaze.ambient": {
+    "subtitle": "subtitles.gatebound.entity.blaze.ambient",
+    "sounds": [
+      {
+        "name": "gatebound:entity/blaze/ambient_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/blaze/ambient_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.blaze.shoot": {
+    "subtitle": "subtitles.gatebound.entity.blaze.shoot",
+    "sounds": [
+      {
+        "name": "gatebound:entity/blaze/shoot_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/blaze/shoot_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.breeze.wind_burst": {
+    "subtitle": "subtitles.gatebound.entity.breeze.wind_burst",
+    "sounds": [
+      {
+        "name": "gatebound:entity/breeze/wind_burst_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/breeze/wind_burst_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.ender_dragon.growl": {
+    "subtitle": "subtitles.gatebound.entity.ender_dragon.growl",
+    "sounds": [
+      {
+        "name": "gatebound:entity/ender_dragon/growl_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/ender_dragon/growl_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.enderman.teleport": {
+    "subtitle": "subtitles.gatebound.entity.enderman.teleport",
+    "sounds": [
+      {
+        "name": "gatebound:entity/enderman/teleport_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/enderman/teleport_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.evoker.cast_spell": {
+    "subtitle": "subtitles.gatebound.entity.evoker.cast_spell",
+    "sounds": [
+      {
+        "name": "gatebound:entity/evoker/cast_spell_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/evoker/cast_spell_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.evoker.prepare_summon": {
+    "subtitle": "subtitles.gatebound.entity.evoker.prepare_summon",
+    "sounds": [
+      {
+        "name": "gatebound:entity/evoker/prepare_summon_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/evoker/prepare_summon_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.firework_rocket.blast": {
+    "subtitle": "subtitles.gatebound.entity.firework_rocket.blast",
+    "sounds": [
+      {
+        "name": "gatebound:entity/firework_rocket/blast_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/firework_rocket/blast_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.generic.drink": {
+    "subtitle": "subtitles.gatebound.entity.generic.drink",
+    "sounds": [
+      {
+        "name": "gatebound:entity/generic/drink_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/generic/drink_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.generic.explode": {
+    "subtitle": "subtitles.gatebound.entity.generic.explode",
+    "sounds": [
+      {
+        "name": "gatebound:entity/generic/explode_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/generic/explode_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.lightning_bolt.impact": {
+    "subtitle": "subtitles.gatebound.entity.lightning_bolt.impact",
+    "sounds": [
+      {
+        "name": "gatebound:entity/lightning_bolt/impact_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/lightning_bolt/impact_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.lightning_bolt.thunder": {
+    "subtitle": "subtitles.gatebound.entity.lightning_bolt.thunder",
+    "sounds": [
+      {
+        "name": "gatebound:entity/lightning_bolt/thunder_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/lightning_bolt/thunder_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.player.attack.crit": {
+    "subtitle": "subtitles.gatebound.entity.player.attack.crit",
+    "sounds": [
+      {
+        "name": "gatebound:entity/player/attack/crit_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/player/attack/crit_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.player.attack.knockback": {
+    "subtitle": "subtitles.gatebound.entity.player.attack.knockback",
+    "sounds": [
+      {
+        "name": "gatebound:entity/player/attack/knockback_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/player/attack/knockback_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.player.attack.strong": {
+    "subtitle": "subtitles.gatebound.entity.player.attack.strong",
+    "sounds": [
+      {
+        "name": "gatebound:entity/player/attack/strong_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/player/attack/strong_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.player.attack.sweep": {
+    "subtitle": "subtitles.gatebound.entity.player.attack.sweep",
+    "sounds": [
+      {
+        "name": "gatebound:entity/player/attack/sweep_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/player/attack/sweep_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.player.hurt_freeze": {
+    "subtitle": "subtitles.gatebound.entity.player.hurt_freeze",
+    "sounds": [
+      {
+        "name": "gatebound:entity/player/hurt_freeze_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/player/hurt_freeze_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.player.levelup": {
+    "subtitle": "subtitles.gatebound.entity.player.levelup",
+    "sounds": [
+      {
+        "name": "gatebound:entity/player/levelup_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/player/levelup_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.ravager.roar": {
+    "subtitle": "subtitles.gatebound.entity.ravager.roar",
+    "sounds": [
+      {
+        "name": "gatebound:entity/ravager/roar_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/ravager/roar_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.ravager.step": {
+    "subtitle": "subtitles.gatebound.entity.ravager.step",
+    "sounds": [
+      {
+        "name": "gatebound:entity/ravager/step_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/ravager/step_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.splash_potion.break": {
+    "subtitle": "subtitles.gatebound.entity.splash_potion.break",
+    "sounds": [
+      {
+        "name": "gatebound:entity/splash_potion/break_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/splash_potion/break_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.warden.emerge": {
+    "subtitle": "subtitles.gatebound.entity.warden.emerge",
+    "sounds": [
+      {
+        "name": "gatebound:entity/warden/emerge_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/warden/emerge_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.warden.roar": {
+    "subtitle": "subtitles.gatebound.entity.warden.roar",
+    "sounds": [
+      {
+        "name": "gatebound:entity/warden/roar_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/warden/roar_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.warden.sonic_boom": {
+    "subtitle": "subtitles.gatebound.entity.warden.sonic_boom",
+    "sounds": [
+      {
+        "name": "gatebound:entity/warden/sonic_boom_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/warden/sonic_boom_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.warden.sonic_charge": {
+    "subtitle": "subtitles.gatebound.entity.warden.sonic_charge",
+    "sounds": [
+      {
+        "name": "gatebound:entity/warden/sonic_charge_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/warden/sonic_charge_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.witch.throw": {
+    "subtitle": "subtitles.gatebound.entity.witch.throw",
+    "sounds": [
+      {
+        "name": "gatebound:entity/witch/throw_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/witch/throw_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.wither.ambient": {
+    "subtitle": "subtitles.gatebound.entity.wither.ambient",
+    "sounds": [
+      {
+        "name": "gatebound:entity/wither/ambient_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/wither/ambient_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.wither.shoot": {
+    "subtitle": "subtitles.gatebound.entity.wither.shoot",
+    "sounds": [
+      {
+        "name": "gatebound:entity/wither/shoot_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/wither/shoot_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.wither.spawn": {
+    "subtitle": "subtitles.gatebound.entity.wither.spawn",
+    "sounds": [
+      {
+        "name": "gatebound:entity/wither/spawn_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:entity/wither/spawn_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "item.book.page_turn": {
+    "subtitle": "subtitles.gatebound.item.book.page_turn",
+    "sounds": [
+      {
+        "name": "gatebound:item/book/page_turn_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:item/book/page_turn_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "item.crossbow.shoot": {
+    "subtitle": "subtitles.gatebound.item.crossbow.shoot",
+    "sounds": [
+      {
+        "name": "gatebound:item/crossbow/shoot_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:item/crossbow/shoot_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "item.firecharge.use": {
+    "subtitle": "subtitles.gatebound.item.firecharge.use",
+    "sounds": [
+      {
+        "name": "gatebound:item/firecharge/use_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:item/firecharge/use_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "item.mace.smash_air": {
+    "subtitle": "subtitles.gatebound.item.mace.smash_air",
+    "sounds": [
+      {
+        "name": "gatebound:item/mace/smash_air_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:item/mace/smash_air_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "item.mace.smash_ground": {
+    "subtitle": "subtitles.gatebound.item.mace.smash_ground",
+    "sounds": [
+      {
+        "name": "gatebound:item/mace/smash_ground_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:item/mace/smash_ground_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "item.shield.block": {
+    "subtitle": "subtitles.gatebound.item.shield.block",
+    "sounds": [
+      {
+        "name": "gatebound:item/shield/block_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:item/shield/block_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "item.totem.use": {
+    "subtitle": "subtitles.gatebound.item.totem.use",
+    "sounds": [
+      {
+        "name": "gatebound:item/totem/use_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:item/totem/use_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "item.trident.thunder": {
+    "subtitle": "subtitles.gatebound.item.trident.thunder",
+    "sounds": [
+      {
+        "name": "gatebound:item/trident/thunder_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:item/trident/thunder_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "particle.soul_escape": {
+    "subtitle": "subtitles.gatebound.particle.soul_escape",
+    "sounds": [
+      {
+        "name": "gatebound:particle/soul_escape_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:particle/soul_escape_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "ui.toast.challenge_complete": {
+    "subtitle": "subtitles.gatebound.ui.toast.challenge_complete",
+    "sounds": [
+      {
+        "name": "gatebound:ui/toast/challenge_complete_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:ui/toast/challenge_complete_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "item.mana_potion": {
+    "subtitle": "subtitles.gatebound.item.mana_potion",
+    "sounds": [
+      {
+        "name": "gatebound:item/mana_potion_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:item/mana_potion_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "item.scroll": {
+    "subtitle": "subtitles.gatebound.item.scroll",
+    "sounds": [
+      {
+        "name": "gatebound:item/scroll_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:item/scroll_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "item.tome": {
+    "subtitle": "subtitles.gatebound.item.tome",
+    "sounds": [
+      {
+        "name": "gatebound:item/tome_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:item/tome_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "item.echo_shard": {
+    "subtitle": "subtitles.gatebound.item.echo_shard",
+    "sounds": [
+      {
+        "name": "gatebound:item/echo_shard_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:item/echo_shard_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "item.respec_token": {
+    "subtitle": "subtitles.gatebound.item.respec_token",
+    "sounds": [
+      {
+        "name": "gatebound:item/respec_token_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:item/respec_token_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "item.trail_marker": {
+    "subtitle": "subtitles.gatebound.item.trail_marker",
+    "sounds": [
+      {
+        "name": "gatebound:item/trail_marker_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:item/trail_marker_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "grave.open": {
+    "subtitle": "subtitles.gatebound.grave.open",
+    "sounds": [
+      {
+        "name": "gatebound:grave/open_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:grave/open_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "chest.smash": {
+    "subtitle": "subtitles.gatebound.chest.smash",
+    "sounds": [
+      {
+        "name": "gatebound:chest/smash_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:chest/smash_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "boss.spawn": {
+    "subtitle": "subtitles.gatebound.boss.spawn",
+    "sounds": [
+      {
+        "name": "gatebound:boss/spawn_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:boss/spawn_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "boss.death": {
+    "subtitle": "subtitles.gatebound.boss.death",
+    "sounds": [
+      {
+        "name": "gatebound:boss/death_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:boss/death_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "gate.ambient": {
+    "subtitle": "subtitles.gatebound.gate.ambient",
+    "sounds": [
+      {
+        "name": "gatebound:gate/ambient_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:gate/ambient_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.shockwave": {
+    "subtitle": "subtitles.gatebound.skill.shockwave",
+    "sounds": [
+      {
+        "name": "gatebound:skill/shockwave_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/shockwave_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.war_cry": {
+    "subtitle": "subtitles.gatebound.skill.war_cry",
+    "sounds": [
+      {
+        "name": "gatebound:skill/war_cry_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/war_cry_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.leap_slam": {
+    "subtitle": "subtitles.gatebound.skill.leap_slam",
+    "sounds": [
+      {
+        "name": "gatebound:skill/leap_slam_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/leap_slam_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.earthbreaker": {
+    "subtitle": "subtitles.gatebound.skill.earthbreaker",
+    "sounds": [
+      {
+        "name": "gatebound:skill/earthbreaker_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/earthbreaker_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.shadow_step": {
+    "subtitle": "subtitles.gatebound.skill.shadow_step",
+    "sounds": [
+      {
+        "name": "gatebound:skill/shadow_step_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/shadow_step_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.vanish": {
+    "subtitle": "subtitles.gatebound.skill.vanish",
+    "sounds": [
+      {
+        "name": "gatebound:skill/vanish_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/vanish_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.thousand_cuts": {
+    "subtitle": "subtitles.gatebound.skill.thousand_cuts",
+    "sounds": [
+      {
+        "name": "gatebound:skill/thousand_cuts_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/thousand_cuts_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.rain_of_arrows": {
+    "subtitle": "subtitles.gatebound.skill.rain_of_arrows",
+    "sounds": [
+      {
+        "name": "gatebound:skill/rain_of_arrows_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/rain_of_arrows_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.apex_predator": {
+    "subtitle": "subtitles.gatebound.skill.apex_predator",
+    "sounds": [
+      {
+        "name": "gatebound:skill/apex_predator_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/apex_predator_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.fireball": {
+    "subtitle": "subtitles.gatebound.skill.fireball",
+    "sounds": [
+      {
+        "name": "gatebound:skill/fireball_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/fireball_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.meteor": {
+    "subtitle": "subtitles.gatebound.skill.meteor",
+    "sounds": [
+      {
+        "name": "gatebound:skill/meteor_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/meteor_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.inferno": {
+    "subtitle": "subtitles.gatebound.skill.inferno",
+    "sounds": [
+      {
+        "name": "gatebound:skill/inferno_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/inferno_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.absolute_zero": {
+    "subtitle": "subtitles.gatebound.skill.absolute_zero",
+    "sounds": [
+      {
+        "name": "gatebound:skill/absolute_zero_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/absolute_zero_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.thunderstrike": {
+    "subtitle": "subtitles.gatebound.skill.thunderstrike",
+    "sounds": [
+      {
+        "name": "gatebound:skill/thunderstrike_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/thunderstrike_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.tornado": {
+    "subtitle": "subtitles.gatebound.skill.tornado",
+    "sounds": [
+      {
+        "name": "gatebound:skill/tornado_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/tornado_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.earthquake": {
+    "subtitle": "subtitles.gatebound.skill.earthquake",
+    "sounds": [
+      {
+        "name": "gatebound:skill/earthquake_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/earthquake_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.holy_smite": {
+    "subtitle": "subtitles.gatebound.skill.holy_smite",
+    "sounds": [
+      {
+        "name": "gatebound:skill/holy_smite_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/holy_smite_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.resurrection": {
+    "subtitle": "subtitles.gatebound.skill.resurrection",
+    "sounds": [
+      {
+        "name": "gatebound:skill/resurrection_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/resurrection_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.black_hole": {
+    "subtitle": "subtitles.gatebound.skill.black_hole",
+    "sounds": [
+      {
+        "name": "gatebound:skill/black_hole_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/black_hole_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.soul_storm": {
+    "subtitle": "subtitles.gatebound.skill.soul_storm",
+    "sounds": [
+      {
+        "name": "gatebound:skill/soul_storm_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/soul_storm_2",
+        "volume": 1.0
+      }
+    ]
+  },
+  "skill.legion_call": {
+    "subtitle": "subtitles.gatebound.skill.legion_call",
+    "sounds": [
+      {
+        "name": "gatebound:skill/legion_call_1",
+        "volume": 1.0
+      },
+      {
+        "name": "gatebound:skill/legion_call_2",
+        "volume": 1.0
+      }
+    ]
+  }
+}

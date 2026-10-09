@@ -201,7 +201,9 @@ final class SelfTestBot {
                 log("killing the bot on {} with lastRest={}", where(bot), prog.lastRest);
                 ServerLevel dl = server.getLevel(DungeonRegistries.DUNGEON);
                 // Players are invulnerable until their client reports the level as loaded; the bot has no client.
+                //? if >=26.1 {
                 bot.connection.handleAcceptPlayerLoad(new net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket());
+                //?}
                 boolean hurt = bot.hurtServer(dl, bot.damageSources().genericKill(), 1000f);
                 if (!hurt) {
                     bot.setHealth(0f);

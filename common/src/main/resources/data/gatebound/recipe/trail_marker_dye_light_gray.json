@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "gatebound:trail_marker",
+    "minecraft:light_gray_dye"
+  ],
+  "result": {
+    "id": "gatebound:trail_marker_light_gray",
+    "count": 1
+  }
+}

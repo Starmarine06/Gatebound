@@ -1,11 +1,15 @@
 package dev.gatebound.data;
 
+import dev.gatebound.sound.GateboundSounds;
 import dev.architectury.event.EventResult;
 import dev.architectury.event.events.common.EntityEvent;
 import dev.architectury.event.events.common.PlayerEvent;
 import dev.architectury.networking.NetworkManager;
 import dev.gatebound.network.OpenAwakeningPayload;
 import dev.gatebound.network.OpenElementPayload;
+import dev.gatebound.network.OpenSpellPickPayload;
+import dev.gatebound.skill.Skill;
+import dev.gatebound.skill.SpellPicks;
 import dev.gatebound.skill.MagicConfig;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +29,7 @@ public final class Progression {
         PlayerEvent.PLAYER_JOIN.register(player -> {
             refresh(player);
             openAwakeningIfNeeded(player);
+            openSpellPickIfNeeded(player);
         });
         PlayerEvent.PLAYER_RESPAWN.register((player, conqueredEnd, reason) -> refresh(player));
         EntityEvent.LIVING_DEATH.register((entity, source) -> {
@@ -82,6 +87,7 @@ public final class Progression {
             chance = MagicConfig.thirdElementChance;
         }
         save(player, data);
+        openSpellPickIfNeeded(player);
     }
 
     /** Server-validated stat spending; used by both the GUI packet and the command. */
@@ -100,6 +106,7 @@ public final class Progression {
         PlayerData data = PlayerDataStore.of(player);
         data.classId = "";
         data.elements.clear();
+        data.picks.clear();
         java.util.Arrays.fill(data.stats, Stat.BASE_VALUE);
         data.statPoints = (data.level - 1) * PlayerData.STAT_POINTS_PER_LEVEL;
         save(player, data);
@@ -122,9 +129,12 @@ public final class Progression {
         if (gained > 0) {
             player.sendSystemMessage(Component.literal("[Gatebound] Level up! You are now level " + data.level
                     + " (+" + gained * PlayerData.STAT_POINTS_PER_LEVEL + " stat points)"));
-            player.level().playSound(null, player.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1f, 1f);
+            player.level().playSound(null, player.blockPosition(), GateboundSounds.of(SoundEvents.PLAYER_LEVELUP), SoundSource.PLAYERS, 1f, 1f);
         }
         save(player, data);
+        if (gained > 0) {
+            openSpellPickIfNeeded(player);
+        }
     }
 
     /** Persist, re-apply attribute effects and push a fresh snapshot to the client. */
@@ -133,8 +143,32 @@ public final class Progression {
         refresh(player);
     }
 
+    /** A multi-element Mage's pending spell choice: opens the picker if one is waiting. */
+    public static void openSpellPickIfNeeded(ServerPlayer player) {
+        PlayerData data = PlayerDataStore.of(player);
+        List<Skill> open = SpellPicks.resolve(data);
+        if (!open.isEmpty()) {
+            List<String> ids = new ArrayList<>();
+            for (Skill s : open) {
+                ids.add(s.id());
+            }
+            NetworkManager.sendToPlayer(player, new OpenSpellPickPayload(ids));
+        }
+    }
+
+    public static void chooseSpell(ServerPlayer player, String skillId) {
+        PlayerData data = PlayerDataStore.of(player);
+        if (!SpellPicks.choose(data, skillId)) {
+            player.sendSystemMessage(Component.literal("[Gatebound] That spell is not on offer."));
+            return;
+        }
+        save(player, data);
+        openSpellPickIfNeeded(player); // another tier may be waiting
+    }
+
     public static void refresh(ServerPlayer player) {
         PlayerData data = PlayerDataStore.of(player);
+        SpellPicks.resolve(data); // fills in tiers that need no real choice
         StatEffects.apply(player, data);
         NetworkManager.sendToPlayer(player, SyncDataPayload.of(data));
     }

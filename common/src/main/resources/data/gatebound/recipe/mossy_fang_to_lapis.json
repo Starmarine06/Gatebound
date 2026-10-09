@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "gatebound:mossy_fang",
+    "minecraft:redstone"
+  ],
+  "result": {
+    "id": "minecraft:lapis_lazuli",
+    "count": 4
+  }
+}

@@ -1,5 +1,7 @@
 package dev.gatebound.echo;
 
+import dev.gatebound.sound.GateboundSounds;
+import dev.gatebound.compat.Compat;
 import dev.gatebound.dungeon.DungeonRegistries;
 import dev.gatebound.dungeon.DungeonStore;
 import dev.gatebound.dungeon.FloorPlan;
@@ -217,7 +219,7 @@ final class EchoBrain {
             return;
         }
         e.attackCooldown = kit.cooldown();
-        e.swing(InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, false);
+        Compat.swing(e, InteractionHand.MAIN_HAND, false);
         if (kit.special() == EchoKits.Special.EXPLODER) {
             if (e.abilityCooldown <= 0) {
                 e.abilityCooldown = 120;
@@ -253,9 +255,9 @@ final class EchoBrain {
     }
 
     private static void shoot(EchoEntity e, LivingEntity target, EchoKits.Kit kit, ServerLevel level) {
-        e.swing(InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, false);
+        Compat.swing(e, InteractionHand.MAIN_HAND, false);
         trail(level, e.getEyePosition(), target.getEyePosition(), kit.trail());
-        level.playSound(null, e.blockPosition(), SoundEvents.ARROW_SHOOT, SoundSource.NEUTRAL, 0.8f, 1.0f);
+        level.playSound(null, e.blockPosition(), GateboundSounds.of(SoundEvents.ARROW_SHOOT), SoundSource.NEUTRAL, 0.8f, 1.0f);
         strike(e, target, kit, level);
     }
 
@@ -274,7 +276,7 @@ final class EchoBrain {
     /** Creeper echo: a blast that hurts only enemies and breaks no blocks, and the echo survives it. */
     private static void blast(EchoEntity e, LivingEntity center, ServerLevel level) {
         level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, e.getX(), e.getY() + 0.5, e.getZ(), 1, 0, 0, 0, 0);
-        level.playSound(null, e.blockPosition(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.NEUTRAL, 1.0f, 1.0f);
+        level.playSound(null, e.blockPosition(), GateboundSounds.of(SoundEvents.GENERIC_EXPLODE.value()), SoundSource.NEUTRAL, 1.0f, 1.0f);
         EchoManager.Info info = EchoManager.info(e);
         ServerPlayer owner = info == null ? null : level.getServer().getPlayerList().getPlayer(info.owner);
         for (LivingEntity m : level.getEntitiesOfClass(LivingEntity.class, e.getBoundingBox().inflate(4))) {
@@ -311,10 +313,10 @@ final class EchoBrain {
         }
         if (owner.getHealth() < owner.getMaxHealth() * 0.6f && e.distanceToSqr(owner) < 20 * 20) {
             e.abilityCooldown = 90;
-            e.swing(InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, false);
+            Compat.swing(e, InteractionHand.MAIN_HAND, false);
             trail(level, e.getEyePosition(), owner.getEyePosition(), ParticleTypes.WITCH);
-            level.playSound(null, e.blockPosition(), SoundEvents.WITCH_THROW, SoundSource.NEUTRAL, 1.0f, 1.0f);
-            level.playSound(null, owner.blockPosition(), SoundEvents.SPLASH_POTION_BREAK, SoundSource.NEUTRAL, 1.0f, 1.0f);
+            level.playSound(null, e.blockPosition(), GateboundSounds.of(SoundEvents.WITCH_THROW), SoundSource.NEUTRAL, 1.0f, 1.0f);
+            level.playSound(null, owner.blockPosition(), GateboundSounds.of(SoundEvents.SPLASH_POTION_BREAK), SoundSource.NEUTRAL, 1.0f, 1.0f);
             level.sendParticles(ParticleTypes.HEART, owner.getX(), owner.getY() + 1.2, owner.getZ(), 10, 0.5, 0.6, 0.5, 0.05);
             owner.addEffect(new MobEffectInstance(MobEffects.INSTANT_HEALTH, 1, 1));
             owner.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 100, 1));
@@ -326,7 +328,7 @@ final class EchoBrain {
             EchoEntity ally = hurt.get(0);
             e.abilityCooldown = 90;
             trail(level, e.getEyePosition(), ally.getEyePosition(), ParticleTypes.WITCH);
-            level.playSound(null, e.blockPosition(), SoundEvents.WITCH_THROW, SoundSource.NEUTRAL, 1.0f, 1.0f);
+            level.playSound(null, e.blockPosition(), GateboundSounds.of(SoundEvents.WITCH_THROW), SoundSource.NEUTRAL, 1.0f, 1.0f);
             level.sendParticles(ParticleTypes.HEART, ally.getX(), ally.getY() + 1.0, ally.getZ(), 8, 0.4, 0.5, 0.4, 0.05);
             ally.heal(8f);
         }
@@ -859,7 +861,7 @@ final class EchoBrain {
                 + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + " (open the Echoes screen with H to send guides)")
                 .withStyle(ChatFormatting.LIGHT_PURPLE);
         owner.sendSystemMessage(msg);
-        owner.sendOverlayMessage(msg);
+        Compat.overlay(owner, msg);
         EchoManager.sendRoster(owner, false);
     }
 
@@ -869,7 +871,7 @@ final class EchoBrain {
         if (gate == null || !gate.dim().equals(level.dimension())) {
             if (!e.guideWarned) {
                 e.guideWarned = true;
-                owner.sendOverlayMessage(Component.literal(gate == null
+                Compat.overlay(owner, Component.literal(gate == null
                         ? "No gate selected. Find one first, then pick it on the H screen."
                         : "The selected gate is in another dimension.").withStyle(ChatFormatting.GRAY));
             }
@@ -884,7 +886,7 @@ final class EchoBrain {
             e.getNavigation().stop();
             if (e.seekFound == null) {
                 e.seekFound = gate.pos();
-                owner.sendOverlayMessage(Component.literal(e.mobName() + " reached " + gate.label() + ".")
+                Compat.overlay(owner, Component.literal(e.mobName() + " reached " + gate.label() + ".")
                         .withStyle(ChatFormatting.LIGHT_PURPLE));
             }
         } else if (--e.repath <= 0) {
@@ -972,7 +974,7 @@ final class EchoBrain {
     static void guideSignal(EchoEntity e, ServerPlayer owner, ServerLevel level) {
         EchoManager.Found gate = EchoManager.selectedGate(owner);
         if (gate == null || !gate.dim().equals(level.dimension())) {
-            owner.sendOverlayMessage(Component.literal(e.mobName() + ": no gate has been found yet. I will wait with you.")
+            Compat.overlay(owner, Component.literal(e.mobName() + ": no gate has been found yet. I will wait with you.")
                     .withStyle(ChatFormatting.GRAY));
             return;
         }
@@ -980,7 +982,7 @@ final class EchoBrain {
         e.guideTarget = gate.pos();
         e.guideArrived = false;
         e.repath = 0;
-        owner.sendOverlayMessage(Component.literal(e.guideGo
+        Compat.overlay(owner, Component.literal(e.guideGo
                 ? e.mobName() + ": follow me to the " + gate.label() + "."
                 : e.mobName() + ": I will wait here with you.").withStyle(ChatFormatting.AQUA));
     }
@@ -1023,7 +1025,7 @@ final class EchoBrain {
             e.getNavigation().stop();
             if (!e.guideArrived) {
                 e.guideArrived = true;
-                owner.sendOverlayMessage(Component.literal(e.mobName() + " reached the " + gate.label() + ".")
+                Compat.overlay(owner, Component.literal(e.mobName() + " reached the " + gate.label() + ".")
                         .withStyle(ChatFormatting.AQUA));
             }
         } else if (e.distanceToSqr(owner) > 20 * 20) {
@@ -1046,7 +1048,7 @@ final class EchoBrain {
         }
         if (e.tickCount % 100 == 0 && toGate >= 3) {
             int meters = (int) Math.sqrt(owner.distanceToSqr(gx, gate.pos().getY(), gz));
-            owner.sendOverlayMessage(Component.literal("Following " + e.mobName() + ": " + gate.label() + ", " + meters + " blocks")
+            Compat.overlay(owner, Component.literal("Following " + e.mobName() + ": " + gate.label() + ", " + meters + " blocks")
                     .withStyle(ChatFormatting.AQUA));
         }
     }

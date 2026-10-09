@@ -1,3 +1,4 @@
+apply from: rootProject.file("gradle/node.gradle")
 apply plugin: "com.gradleup.shadow"
 
 architectury {
@@ -14,18 +15,19 @@ configurations {
 }
 
 dependencies {
-    implementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
-    implementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
-    implementation "dev.architectury:architectury-fabric:${rootProject.architectury_api_version}"
+    add(modImpl, "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
+    add(modImpl, "net.fabricmc.fabric-api:fabric-api:${vd.fabricApi}")
+    add(modImpl, "dev.architectury:architectury-fabric:${vd.arch}")
 
-    common(project(path: ":common")) { transitive false }
-    shadowCommon(project(path: ":common", configuration: "transformProductionFabric")) { transitive false }
+    common(project(path: ":common:${mcVer}", configuration: commonCfg)) { transitive false }
+    shadowCommon(project(path: ":common:${mcVer}", configuration: "transformProductionFabric")) { transitive false }
 }
 
 processResources {
-    inputs.property "version", project.version
+    def props = [version: project.version, minecraft: vd.mc, architectury: vd.arch]
+    inputs.properties props
     filesMatching("fabric.mod.json") {
-        expand "version": project.version
+        expand props
     }
 }
 
@@ -48,7 +50,7 @@ loom {
     runs {
         client {
             // Fixed dev username: offline UUIDs come from the name, so a stable name keeps the same player data.
-            programArgs "--username", "Player989"
+            programArgs "--username", "Player896"
         }
     }
 }

@@ -1,5 +1,7 @@
 package dev.gatebound.combat;
 
+import dev.gatebound.sound.GateboundSounds;
+import dev.gatebound.compat.Compat;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -25,7 +27,7 @@ import java.util.EnumSet;
  * the only thing allowed to land hits: PlayerCombat cancels any other melee hit from a mob that has this goal.
  */
 public final class TelegraphGoal extends Goal {
-    private static final DustParticleOptions RED = new DustParticleOptions(0xFF2020, 1.4f);
+    private static final net.minecraft.core.particles.ParticleOptions RED = Compat.dust(0xFF2020, 1.4f);
 
     /** The mob currently inside its strike call, and whether that strike is heavy. */
     private static Mob striking;
@@ -46,14 +48,14 @@ public final class TelegraphGoal extends Goal {
         if (level.isClientSide() || !(entity instanceof Monster monster) || hasGoal(monster)) {
             return;
         }
-        boolean melee = monster.getGoalSelector().getAvailableGoals().stream().anyMatch(w -> w.getGoal() instanceof MeleeAttackGoal);
+        boolean melee = Compat.goals(monster).getAvailableGoals().stream().anyMatch(w -> w.getGoal() instanceof MeleeAttackGoal);
         if (melee) {
-            monster.getGoalSelector().addGoal(1, new TelegraphGoal(monster));
+            Compat.goals(monster).addGoal(1, new TelegraphGoal(monster));
         }
     }
 
     public static boolean hasGoal(Mob mob) {
-        return mob.getGoalSelector().getAvailableGoals().stream().anyMatch(w -> w.getGoal() instanceof TelegraphGoal);
+        return Compat.goals(mob).getAvailableGoals().stream().anyMatch(w -> w.getGoal() instanceof TelegraphGoal);
     }
 
     public static boolean isStriking(Mob mob) {
@@ -110,9 +112,9 @@ public final class TelegraphGoal extends Goal {
         if (mob.level() instanceof ServerLevel level) {
             // Cue: a distinct sound at the start of the wind-up.
             if (heavy) {
-                level.playSound(null, mob.blockPosition(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 0.9f, 1.4f);
+                level.playSound(null, mob.blockPosition(), GateboundSounds.of(SoundEvents.RAVAGER_ROAR), SoundSource.HOSTILE, 0.9f, 1.4f);
             } else {
-                level.playSound(null, mob.blockPosition(), SoundEvents.PLAYER_ATTACK_KNOCKBACK, SoundSource.HOSTILE, 0.8f, 0.7f);
+                level.playSound(null, mob.blockPosition(), GateboundSounds.of(SoundEvents.PLAYER_ATTACK_KNOCKBACK), SoundSource.HOSTILE, 0.8f, 0.7f);
             }
         }
     }
@@ -150,7 +152,7 @@ public final class TelegraphGoal extends Goal {
     }
 
     private void strike(ServerPlayer t, ServerLevel level) {
-        mob.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, true);
+        Compat.swing(mob, InteractionHand.MAIN_HAND, true);
         if (mob.isWithinMeleeAttackRange(t)) {
             striking = mob;
             strikingHeavy = heavy;

@@ -1,0 +1,1 @@
+{"type": "minecraft:crafting_shaped", "category": "equipment", "key": {"O": "minecraft:glowstone", "S": "minecraft:stick"}, "pattern": [" O ", " S ", " S "], "result": {"id": "gatebound:light_staff"}}

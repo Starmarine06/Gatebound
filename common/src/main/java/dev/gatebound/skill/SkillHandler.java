@@ -1,9 +1,13 @@
 package dev.gatebound.skill;
 
+import dev.gatebound.compat.Compat;
 import dev.architectury.event.events.common.PlayerEvent;
 import dev.architectury.event.events.common.TickEvent;
 import dev.architectury.networking.NetworkManager;
+import dev.gatebound.data.GateboundClass;
 import dev.gatebound.data.PlayerData;
+import dev.gatebound.skill.mage.MageConfig;
+import dev.gatebound.skill.mage.MageCore;
 import dev.gatebound.data.PlayerDataStore;
 import dev.gatebound.network.ManaSyncPayload;
 import dev.gatebound.network.SkillCooldownPayload;
@@ -18,6 +22,8 @@ import java.util.UUID;
 /** Mana regeneration, skill casting, cooldowns and syncing them to the client. */
 public final class SkillHandler {
     private static final Map<UUID, Map<String, Integer>> COOLDOWN_END = new HashMap<>();
+    /** The tick each Mage last cast, for the one-spell-per-second limit. */
+    private static final Map<UUID, Integer> LAST_CAST = new HashMap<>();
 
     private SkillHandler() {
     }
@@ -35,7 +41,7 @@ public final class SkillHandler {
                     // A night's sleep restores the whole pool.
                     ManaState.set(player, ManaState.max(data));
                     sendMana(player, true);
-                    player.sendOverlayMessage(Component.literal("You wake with your mana restored."));
+                    Compat.overlay(player, Component.literal("You wake with your mana restored."));
                 }
                 if (tick % 5 == 0) {
                     sendMana(player, false);
@@ -53,6 +59,7 @@ public final class SkillHandler {
             PlayerDataStore.markDirty(player);
             ManaState.forget(player.getUUID());
             COOLDOWN_END.remove(player.getUUID());
+            LAST_CAST.remove(player.getUUID());
         });
     }
 
@@ -81,21 +88,41 @@ public final class SkillHandler {
     /** Casts the skill in the given 0-based slot. Mana and cooldown are spent the moment it is cast, hit or miss. */
     public static void use(ServerPlayer player, int slot) {
         PlayerData data = PlayerDataStore.of(player);
-        List<Skill> skills = Skills.available(data.classId, data.elements, data.level);
+        List<Skill> skills = Skills.available(data.classId, data.elements, data.picks, data.level);
         if (slot < 0 || slot >= skills.size() || !player.isAlive()) {
             return;
         }
         Skill skill = skills.get(slot);
+        boolean mage = GateboundClass.MAGE.id().equals(data.classId);
+        int now = player.level().getServer().getTickCount();
+        if (mage) {
+            Integer last = LAST_CAST.get(player.getUUID());
+            if (last != null && now - last < MageConfig.castGapTicks) {
+                Compat.overlay(player, Component.literal("Your magic is still settling."));
+                return;
+            }
+        }
         // Skills have no cooldowns: mana is the only limit.
         if (!ManaState.spend(player, skill.manaCost())) {
-            player.sendOverlayMessage(Component.translatable("skill.gatebound.not_enough_mana"));
+            Compat.overlay(player, Component.translatable("skill.gatebound.not_enough_mana"));
             return;
         }
         sendMana(player, true);
+        if (mage) {
+            LAST_CAST.put(player.getUUID(), now);
+            MageCore.strain(player);
+            if (skill.element() != null && skill.minLevel() < 100) { // the level 100 forms play their own transformation
+                dev.gatebound.skill.fx.CastFx.cast(player, skill.element());
+            }
+        }
 
         boolean connected = skill.effect().cast(player, player.level(), data);
+        net.minecraft.sounds.SoundEvent signature = dev.gatebound.sound.GateboundSounds.skill(skill.id());
+        if (signature != null && connected) {
+            player.level().playSound(null, player.blockPosition(), signature, net.minecraft.sounds.SoundSource.PLAYERS, 1f, 1f);
+        }
         if (!connected) {
-            player.sendOverlayMessage(Component.translatable("skill.gatebound.no_target"));
+            Compat.overlay(player, Component.translatable("skill.gatebound.no_target"));
         }
         PlayerDataStore.markDirty(player);
     }

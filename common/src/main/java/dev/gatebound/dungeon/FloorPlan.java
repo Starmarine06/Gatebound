@@ -1,5 +1,6 @@
 package dev.gatebound.dungeon;
 
+import dev.gatebound.compat.Compat;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
@@ -946,9 +947,9 @@ public final class FloorPlan {
             double ang = Math.PI * 2 * (k + 0.5) / 8;
             int bx = cx + (int) Math.round(Math.cos(ang) * 9);
             int bz = cz + (int) Math.round(Math.sin(ang) * 7);
-            deco(bx, Spire.FY + 1, bz, Blocks.CARPET.red().defaultBlockState());
-            deco(bx + 1, Spire.FY + 1, bz, Blocks.CARPET.red().defaultBlockState());
-            deco(bx - 1, Spire.FY + 1, bz, Blocks.CARPET.white().defaultBlockState());
+            deco(bx, Spire.FY + 1, bz, Compat.RED_CARPET.defaultBlockState());
+            deco(bx + 1, Spire.FY + 1, bz, Compat.RED_CARPET.defaultBlockState());
+            deco(bx - 1, Spire.FY + 1, bz, Compat.WHITE_CARPET.defaultBlockState());
         }
         // Lantern posts along the hall.
         for (int k = 0; k < 10; k++) {

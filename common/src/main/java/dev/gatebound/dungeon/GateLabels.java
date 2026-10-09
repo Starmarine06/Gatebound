@@ -1,5 +1,7 @@
 package dev.gatebound.dungeon;
 
+import dev.gatebound.compat.MobTypes;
+import dev.gatebound.compat.Compat;
 import dev.architectury.event.events.common.TickEvent;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -8,7 +10,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -155,7 +156,7 @@ public final class GateLabels {
             found.get(i).discard();
         }
         if (stand == null) {
-            stand = EntityTypes.ARMOR_STAND.create(level, EntitySpawnReason.COMMAND);
+            stand = MobTypes.ARMOR_STAND.create(level, EntitySpawnReason.COMMAND);
             if (stand == null) {
                 return;
             }
@@ -164,7 +165,7 @@ public final class GateLabels {
             stand.addTag(lineTag);
             stand.setInvisible(true);
             stand.setNoGravity(true);
-            stand.setPermanentlyInvulnerable(true);
+            Compat.setPermanentlyInvulnerable(stand, true);
             stand.setSilent(true);
             stand.setCustomNameVisible(true);
             stand.setCustomName(text);
