@@ -61,7 +61,7 @@ public final class Props {
     /** A prop in the world. Move and reshape it with {@link #to}; it removes itself after its lifetime. */
     public static final class Prop {
         private final ServerLevel level;
-        private final Vec3 origin;
+        private Vec3 origin;
         private final UUID id = UUID.randomUUID();
         private boolean gone;
 
@@ -102,6 +102,21 @@ public final class Props {
                     + num(rotation.y) + "," + num(rotation.z) + "," + num(rotation.w) + "],right_rotation:[0f,0f,0f,1f],scale:["
                     + num(sx) + "," + num(sy) + "," + num(sz) + "],translation:[" + num(offset.x) + "," + num(offset.y) + "," + num(offset.z)
                     + "]},start_interpolation:0,interpolation_duration:" + ticks + "}");
+        }
+
+        /**
+         * Poses a model prop so its middle ends up at the world position {@code target}. A prop that has drifted far from
+         * where it was placed is moved there first, so it never leaves the range the client draws it in.
+         */
+        public void pin(Vec3 target, Quaternionf rotation, double sx, double sy, double sz, int ticks) {
+            if (gone) {
+                return;
+            }
+            if (target.distanceToSqr(origin) > 20 * 20) {
+                origin = target;
+                run(level.getServer(), level, target, "tp " + id + " ~ ~ ~");
+            }
+            pose(target.subtract(origin), rotation, sx, sy, sz, ticks);
         }
 
         public Vec3 origin() {

@@ -14,6 +14,7 @@ import dev.gatebound.data.PlayerData;
 import dev.gatebound.data.PlayerDataStore;
 import dev.gatebound.data.Stat;
 import dev.gatebound.echo.EchoManager;
+import dev.gatebound.skill.fx.WarriorFx;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.server.MinecraftServer;
@@ -208,8 +209,7 @@ public final class WarriorSkills {
                 stun(e, stunTicks);
             }
         }
-        level.sendParticles(ParticleTypes.EXPLOSION, p.getX(), p.getY() + 0.2, p.getZ(), 6, radius / 3, 0.1, radius / 3, 0);
-        level.sendParticles(ParticleTypes.CRIT, p.getX(), p.getY() + 0.3, p.getZ(), 40, radius / 2, 0.2, radius / 2, 0.3);
+        WarriorFx.slam(p, level, radius, stunTicks > 0 || radius >= 5);
         sound(p, level, GateboundSounds.of(SoundEvents.GENERIC_EXPLODE.value()), 0.9f);
     }
 
@@ -229,7 +229,7 @@ public final class WarriorSkills {
                 } finally {
                     applying = false;
                 }
-                level.sendParticles(ParticleTypes.CRIT, attacker.getX(), attacker.getY(0.5), attacker.getZ(), 8, 0.2, 0.3, 0.2, 0.2);
+                WarriorFx.bulwarkReflect(level, p, attacker);
             }
             return EventResult.pass();
         }
@@ -289,11 +289,13 @@ public final class WarriorSkills {
                     strike(p, level, e, dmg(data, 3));
                     knock(e, p.position(), 1.2, 0.3);
                     stun(e, 20);
-                    level.sendParticles(ParticleTypes.CRIT, e.getX(), e.getY(0.5), e.getZ(), 10, 0.3, 0.4, 0.3, 0.2);
+                    WarriorFx.hitSlash(level, e, p.position());
                     sound(p, level, GateboundSounds.of(SoundEvents.PLAYER_ATTACK_KNOCKBACK), 1.0f);
                 }
             }
-            level.sendParticles(ParticleTypes.CLOUD, p.getX(), p.getY() + 0.2, p.getZ(), 3, 0.3, 0.1, 0.3, 0.02);
+            if (now % 2 == 0) {
+                WarriorFx.streak(p);
+            }
         }
     }
 
@@ -307,6 +309,9 @@ public final class WarriorSkills {
             }
             boolean landed = now - leap.start() > 4 && p.onGround();
             if (!landed && now - leap.start() < 60) {
+                if (!leap.earth() && now % 2 == 0) {
+                    WarriorFx.streak(p);
+                }
                 continue;
             }
             LEAP.remove(id);
@@ -335,14 +340,13 @@ public final class WarriorSkills {
                 slamEffects(p, level, WarriorConfig.avatarPulseRadius + 2, dmg(data, 10), 1.6, 0.6, 40);
                 continue;
             }
-            level.sendParticles(ParticleTypes.FLAME, p.getX(), p.getY() + 1, p.getZ(), 2, 0.4, 0.8, 0.4, 0.01);
             if (now >= a.nextPulse) {
                 a.nextPulse = now + 20;
                 for (LivingEntity e : foes(p, level, WarriorConfig.avatarPulseRadius)) {
                     strike(p, level, e, dmg(data, 3));
                     knock(e, p.position(), 0.5, 0.15);
                 }
-                level.sendParticles(ParticleTypes.CRIT, p.getX(), p.getY() + 0.3, p.getZ(), 25, 3, 0.2, 3, 0.3);
+                WarriorFx.avatarPulse(p, WarriorConfig.avatarPulseRadius);
                 sound(p, level, GateboundSounds.of(SoundEvents.PLAYER_ATTACK_STRONG), 0.8f);
             }
         }
@@ -375,7 +379,7 @@ public final class WarriorSkills {
                 mob.setTarget(p);
             }
         }
-        level.sendParticles(ParticleTypes.ANGRY_VILLAGER, p.getX(), p.getY() + 1.8, p.getZ(), 10, 0.5, 0.3, 0.5, 0);
+        WarriorFx.warCry(p);
         sound(p, level, GateboundSounds.of(SoundEvents.RAVAGER_ROAR), 1.0f);
         return true;
     }
@@ -392,9 +396,11 @@ public final class WarriorSkills {
             strike(p, level, e, dmg(data, 5));
             knock(e, p.position(), 0.4, 0.1);
             hits++;
+            if (hits <= 6) {
+                WarriorFx.hitSlash(level, e, p.position());
+            }
         }
-        Vec3 c = p.position().add(look.scale(2));
-        level.sendParticles(ParticleTypes.SWEEP_ATTACK, c.x, p.getY() + 1, c.z, 3, 0.8, 0.2, 0.8, 0);
+        WarriorFx.cleave(p);
         sound(p, level, GateboundSounds.of(SoundEvents.PLAYER_ATTACK_SWEEP), 0.9f);
         return hits > 0;
     }
@@ -403,7 +409,7 @@ public final class WarriorSkills {
         int ticks = (8 + data.level / 8) * 20;
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, ticks, 1));
         p.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, ticks, 1 + data.level / 50));
-        level.sendParticles(ParticleTypes.CRIT, p.getX(), p.getY() + 1, p.getZ(), 20, 0.5, 0.8, 0.5, 0.1);
+        WarriorFx.ironSkin(p, ticks);
         sound(p, level, GateboundSounds.of(SoundEvents.ANVIL_PLACE), 1.2f);
         return true;
     }
@@ -414,6 +420,7 @@ public final class WarriorSkills {
         send(p);
         PlayerCombat.grantIFrames(p, 4);
         LEAP.put(p.getUUID(), new Leap(now(p), false));
+        WarriorFx.leapStart(p);
         sound(p, level, GateboundSounds.of(SoundEvents.PLAYER_ATTACK_KNOCKBACK), 0.7f);
         return true;
     }
@@ -426,12 +433,13 @@ public final class WarriorSkills {
         }
         LivingEntity target = hits.get(0);
         strike(p, level, target, dmg(data, 7));
+        WarriorFx.rending(p, target, 100);
         float bleed = dmg(data, 1.5);
         for (int i = 1; i <= 5; i++) {
             after(p, i * 20, server -> {
                 if (target.isAlive()) {
                     strike(p, target.level() instanceof ServerLevel sl ? sl : level, target, bleed);
-                    level.sendParticles(ParticleTypes.DAMAGE_INDICATOR, target.getX(), target.getY(0.6), target.getZ(), 4, 0.2, 0.3, 0.2, 0.1);
+                    WarriorFx.bleedTick(level, target);
                 }
             });
         }
@@ -442,12 +450,13 @@ public final class WarriorSkills {
         int ticks = (WarriorConfig.bulwarkSeconds + data.level / 20) * 20;
         BULWARK.put(p.getUUID(), now(p) + ticks);
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, ticks, 2));
-        level.sendParticles(ParticleTypes.ENCHANTED_HIT, p.getX(), p.getY() + 1, p.getZ(), 25, 0.6, 0.8, 0.6, 0.1);
+        WarriorFx.bulwark(p, ticks);
         sound(p, level, GateboundSounds.of(SoundEvents.SHIELD_BLOCK.value()), 0.8f);
         return true;
     }
 
     public static boolean whirlwind(ServerPlayer p, ServerLevel level, PlayerData data) {
+        WarriorFx.whirlwind(p);
         for (int i = 0; i < 4; i++) {
             after(p, i * 5, server -> {
                 if (!p.isAlive()) {
@@ -458,7 +467,6 @@ public final class WarriorSkills {
                     strike(p, l, e, dmg(data, 3));
                     knock(e, p.position(), 0.5, 0.1);
                 }
-                l.sendParticles(ParticleTypes.SWEEP_ATTACK, p.getX(), p.getY() + 1, p.getZ(), 6, 1.6, 0.2, 1.6, 0);
                 sound(p, l, GateboundSounds.of(SoundEvents.PLAYER_ATTACK_SWEEP), 0.8f);
             });
         }
@@ -469,7 +477,7 @@ public final class WarriorSkills {
         p.heal((float) (p.getMaxHealth() * (0.3 + data.level / 500.0)));
         cleanse(p);
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, 100, 1));
-        level.sendParticles(ParticleTypes.HAPPY_VILLAGER, p.getX(), p.getY() + 1, p.getZ(), 25, 0.5, 0.8, 0.5, 0);
+        WarriorFx.secondWind(p);
         sound(p, level, GateboundSounds.of(SoundEvents.PLAYER_LEVELUP), 1.2f);
         return true;
     }
@@ -487,7 +495,7 @@ public final class WarriorSkills {
         }
         strike(p, level, target, amount);
         stun(target, 30);
-        level.sendParticles(ParticleTypes.EXPLOSION, target.getX(), target.getY(0.5), target.getZ(), 2, 0.2, 0.2, 0.2, 0);
+        WarriorFx.crushing(p, target);
         return true;
     }
 
@@ -496,7 +504,7 @@ public final class WarriorSkills {
         RAGE.put(p.getUUID(), now(p) + ticks);
         p.addEffect(new MobEffectInstance(MobEffects.STRENGTH, ticks, 1));
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 0));
-        level.sendParticles(ParticleTypes.ANGRY_VILLAGER, p.getX(), p.getY() + 1.8, p.getZ(), 12, 0.5, 0.4, 0.5, 0);
+        WarriorFx.rage(p, ticks);
         sound(p, level, GateboundSounds.of(SoundEvents.RAVAGER_ROAR), 0.7f);
         return true;
     }
@@ -506,6 +514,7 @@ public final class WarriorSkills {
         send(p);
         PlayerCombat.grantIFrames(p, 6);
         LEAP.put(p.getUUID(), new Leap(now(p), true));
+        WarriorFx.earthbreakStart(p);
         sound(p, level, GateboundSounds.of(SoundEvents.MACE_SMASH_AIR), 1.0f);
         return true;
     }
@@ -515,6 +524,7 @@ public final class WarriorSkills {
         for (int wave = 0; wave < 3; wave++) {
             double radius = r * (wave + 1) / 3.0;
             float pitch = 0.7f + wave * 0.2f;
+            int waveNo = wave;
             after(p, wave * 4, server -> {
                 if (!p.isAlive()) {
                     return;
@@ -528,8 +538,7 @@ public final class WarriorSkills {
                     knock(e, p.position(), 0.7, 0.8);
                     stun(e, 40);
                 }
-                l.sendParticles(ParticleTypes.EXPLOSION, p.getX(), p.getY() + 0.2, p.getZ(), 4, radius / 2, 0.1, radius / 2, 0);
-                l.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, p.getX(), p.getY() + 0.3, p.getZ(), 30, radius / 2, 0.1, radius / 2, 0.05);
+                WarriorFx.earthbreakWave(p, l, radius, waveNo);
                 sound(p, l, GateboundSounds.of(SoundEvents.GENERIC_EXPLODE.value()), pitch);
             });
         }
@@ -543,7 +552,7 @@ public final class WarriorSkills {
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, ticks, 1));
         p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, ticks, 1));
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 1));
-        level.sendParticles(ParticleTypes.FLAME, p.getX(), p.getY() + 1, p.getZ(), 60, 0.8, 1.0, 0.8, 0.05);
+        WarriorFx.avatarStart(p, ticks);
         sound(p, level, GateboundSounds.of(SoundEvents.ENDER_DRAGON_GROWL), 0.8f);
         return true;
     }

@@ -100,7 +100,6 @@ public final class Circles {
         prop.pose(Vec3.ZERO, flat, size * 0.15, size * 0.15, size * 0.15, 0);
         double[] spin = {0};
         int[] t = {0};
-        Vec3 origin = prop.origin();
         Tasks.run((server, now) -> {
             boolean gone = !entity.isAlive() || entity.isRemoved();
             if (gone || t[0] >= life) {
@@ -110,8 +109,7 @@ public final class Circles {
             }
             if (t[0] % STEP == 0) {
                 spin[0] += 0.35;
-                Vec3 offset = entity.position().add(0, lift, 0).subtract(origin);
-                prop.pose(offset, face(new Vec3(0, 1, 0), spin[0]), size, size, size, STEP);
+                prop.pin(entity.position().add(0, lift, 0), face(new Vec3(0, 1, 0), spin[0]), size, size, size, STEP);
             }
             t[0]++;
             return false;
