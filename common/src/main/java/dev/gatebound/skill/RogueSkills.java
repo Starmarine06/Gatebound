@@ -582,11 +582,22 @@ public final class RogueSkills {
         if (now % 5 == 0) {
             enforceArmor(server);
         }
+        if (now % 4 == 0) {
+            hideFromWardens(server);
+        }
         if (now % 40 == 0) {
             // Rogues see well in the dark: a hidden, permanent-feeling Night Vision (no icon, no particles).
             for (ServerPlayer p : server.getPlayerList().getPlayers()) {
                 if (p.isAlive() && isRogue(p)) {
                     p.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 440, 0, true, false, false));
+                }
+                // From level 10 a Rogue's steps make no sound.
+                boolean quiet = isRogue(p) && PlayerDataStore.of(p).level >= 10;
+                if (quiet) {
+                    p.setSilent(true);
+                    QUIET.add(p.getUUID());
+                } else if (QUIET.remove(p.getUUID())) {
+                    p.setSilent(false);
                 }
             }
         }
@@ -617,6 +628,22 @@ public final class RogueSkills {
         }
     }
 
+    /** From level 10 a Rogue is invisible to Wardens whatever they do: no anger, no target, no matter the noise. */
+    private static void hideFromWardens(MinecraftServer server) {
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            if (!p.isAlive() || p.isSpectator() || !isRogue(p) || PlayerDataStore.of(p).level < 10) {
+                continue;
+            }
+            for (net.minecraft.world.entity.monster.warden.Warden warden : p.level().getEntitiesOfClass(
+                    net.minecraft.world.entity.monster.warden.Warden.class, p.getBoundingBox().inflate(64))) {
+                warden.clearAnger(p);
+                if (warden.getTarget() == p) {
+                    warden.getBrain().eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET);
+                }
+            }
+        }
+    }
+
     /** Rogues can only wear chainmail: anything else they put on is handed straight back. */
     private static void enforceArmor(MinecraftServer server) {
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
@@ -638,6 +665,7 @@ public final class RogueSkills {
 
     /** Players we made invulnerable so mobs cannot target them (vanilla targeting skips invulnerable players). */
     private static final Set<UUID> HIDDEN = new HashSet<>();
+    private static final Set<UUID> QUIET = new HashSet<>();
     private static final String HIDDEN_TAG = "gatebound_hidden";
 
     private static void setHidden(ServerPlayer p, boolean hidden) {
@@ -724,8 +752,6 @@ public final class RogueSkills {
         }
         WALK.remove(p.getUUID());
         SHADOW.put(p.getUUID(), now(p) + 20);
-        level.sendParticles(ParticleTypes.SQUID_INK, p.getX(), p.getY() + 1, p.getZ(), 20, 0.4, 0.6, 0.4, 0.04);
-        sound(p, level, GateboundSounds.of(SoundEvents.ENDERMAN_TELEPORT), 1.1f);
         if (message != null) {
             Compat.overlay(p, Component.literal(message).withStyle(ChatFormatting.GRAY));
         }
@@ -795,7 +821,6 @@ public final class RogueSkills {
         Walk next = findNode(p, level, currentHost, now);
         if (next == null) {
             HOP_READY.put(id, now + 10);
-            level.sendParticles(ParticleTypes.SMOKE, p.getX(), p.getY() + 1, p.getZ(), 3, 0.2, 0.2, 0.2, 0.0);
             return;
         }
         if (!isFree(p, now)) {
@@ -999,8 +1024,6 @@ public final class RogueSkills {
         int ticks = (6 + data.level / 10) * 20;
         enterShadow(p, level, ticks);
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 1));
-        RogueFx.vanish(p);
-        sound(p, level, GateboundSounds.of(SoundEvents.ENDERMAN_TELEPORT), 0.8f);
         Compat.overlay(p, Component.literal("Shadow: your next strike is an Ambush.").withStyle(ChatFormatting.DARK_PURPLE));
         return true;
     }
