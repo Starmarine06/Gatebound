@@ -918,6 +918,26 @@ public final class EchoManager {
 
     // ---------------------------------------------------------------- tick
 
+    private static final Map<UUID, Vec3> LAST_POS = new HashMap<>();
+    private static final Map<UUID, Integer> MOVED_AT = new HashMap<>();
+    private static final Map<UUID, Integer> SEEN_AT = new HashMap<>();
+
+    /** True once the owner has stood still for half a second (tracked once per tick, however many echoes ask). */
+    private static boolean standingStill(ServerPlayer owner, int tick) {
+        UUID id = owner.getUUID();
+        Integer seen = SEEN_AT.get(id);
+        if (seen == null || seen != tick) {
+            Vec3 last = LAST_POS.get(id);
+            Vec3 now = owner.position();
+            if (last == null || last.distanceToSqr(now) > 0.0004) {
+                MOVED_AT.put(id, tick);
+            }
+            LAST_POS.put(id, now);
+            SEEN_AT.put(id, tick);
+        }
+        return tick - MOVED_AT.getOrDefault(id, tick) >= 10;
+    }
+
     private static void tick(int tick, net.minecraft.server.MinecraftServer server) {
         if (ACTIVE.isEmpty()) {
             return;
@@ -961,7 +981,8 @@ public final class EchoManager {
             }
             int curMode = effectiveMode(owner, e.getKey(), info.slot);
             boolean seeker = curMode == EchoRoster.SEEK || curMode == EchoRoster.GOTO;
-            boolean holding = curMode == EchoRoster.HOLD;
+            // A parked owner does not drag the far non-guard echoes to them: they are working elsewhere.
+            boolean holding = curMode == EchoRoster.HOLD || (curMode != EchoRoster.GUARD && standingStill(owner, tick));
             double leash = seeker ? 150 : EchoConfig.teleportDistance;
             // A commanded echo stays on its target until that target is dead (no pulling it back across the map).
             boolean commanded = false;
