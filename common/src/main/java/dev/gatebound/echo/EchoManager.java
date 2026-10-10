@@ -534,7 +534,6 @@ public final class EchoManager {
         PlayerData data = PlayerDataStore.of(player);
         if (!isSummoner(data)) {
             Gatebound.LOGGER.info("[echo] summon for {} refused: class is '{}'", who, data.classId);
-            tell(player, msg("gatebound.echo.not_summoner", "Only Summoners can command echoes."));
             return 0;
         }
         if (data.echo.entries.isEmpty()) {

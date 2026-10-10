@@ -646,9 +646,29 @@ public final class RogueSkills {
             HIDDEN.add(id);
             p.addTag(HIDDEN_TAG);
             Compat.setPermanentlyInvulnerable(p, true);
+            sendGear(p, true);
         } else if (!hidden && HIDDEN.remove(id)) {
             p.removeTag(HIDDEN_TAG);
             Compat.setPermanentlyInvulnerable(p, false);
+            sendGear(p, false);
+        } else if (hidden && p.tickCount % 10 == 0) {
+            sendGear(p, true); // vanilla resends the real gear whenever it changes or someone new starts tracking
+        }
+    }
+
+    /** Tells everyone else the player holds and wears nothing (or the real thing again), so a hidden Rogue is fully gone. */
+    private static void sendGear(ServerPlayer p, boolean empty) {
+        java.util.List<com.mojang.datafixers.util.Pair<net.minecraft.world.entity.EquipmentSlot, net.minecraft.world.item.ItemStack>> list = new java.util.ArrayList<>();
+        for (net.minecraft.world.entity.EquipmentSlot slot : net.minecraft.world.entity.EquipmentSlot.values()) {
+            if (slot.getType() == net.minecraft.world.entity.EquipmentSlot.Type.HUMANOID_ARMOR || slot.getType() == net.minecraft.world.entity.EquipmentSlot.Type.HAND) {
+                list.add(com.mojang.datafixers.util.Pair.of(slot, empty ? net.minecraft.world.item.ItemStack.EMPTY : p.getItemBySlot(slot).copy()));
+            }
+        }
+        net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket packet = new net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket(p.getId(), list);
+        for (ServerPlayer other : p.level().getServer().getPlayerList().getPlayers()) {
+            if (other != p && other.level() == p.level() && other.distanceToSqr(p) < 160 * 160) {
+                other.connection.send(packet);
+            }
         }
     }
 
