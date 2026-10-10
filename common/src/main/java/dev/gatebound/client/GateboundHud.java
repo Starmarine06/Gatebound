@@ -4,8 +4,6 @@ import dev.gatebound.data.ClientCombatData;
 import dev.gatebound.data.ClientPlayerData;
 import dev.gatebound.data.ClientSkillData;
 import dev.gatebound.skill.Skill;
-import dev.gatebound.skill.Skills;
-import java.util.List;
 import dev.gatebound.data.GateboundClass;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;

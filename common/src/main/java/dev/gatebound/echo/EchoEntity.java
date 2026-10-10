@@ -13,10 +13,8 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
-import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.level.Level;
 
-import java.util.EnumSet;
 
 /**
  * An Echo. A custom entity with its own AI (follow the owner, fight the owner's targets, stay on the guard post).

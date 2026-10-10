@@ -1,9 +1,7 @@
 package dev.gatebound.client;
 
-import dev.architectury.networking.NetworkManager;
 import dev.gatebound.data.ClientPlayerData;
 import dev.gatebound.data.ClientSkillData;
-import dev.gatebound.network.UseSkillPayload;
 import dev.gatebound.skill.Skill;
 import dev.gatebound.skill.Skills;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
