@@ -663,24 +663,30 @@ public final class RogueSkills {
             p.removeTag(HIDDEN_TAG);
             Compat.setPermanentlyInvulnerable(p, false);
             sendGear(p, false);
-        } else if (hidden && p.tickCount % 10 == 0) {
-            sendGear(p, true); // vanilla resends the real gear whenever it changes or someone new starts tracking
+        } else if (hidden && p.tickCount % 4 == 0) {
+            sendGear(p, true); // the server re-pairs the entity whenever someone new comes into range
         }
     }
 
-    /** Tells everyone else the player holds and wears nothing (or the real thing again), so a hidden Rogue is fully gone. */
-    private static void sendGear(ServerPlayer p, boolean empty) {
-        java.util.List<com.mojang.datafixers.util.Pair<net.minecraft.world.entity.EquipmentSlot, net.minecraft.world.item.ItemStack>> list = new java.util.ArrayList<>();
-        for (net.minecraft.world.entity.EquipmentSlot slot : net.minecraft.world.entity.EquipmentSlot.values()) {
-            if (slot.getType() == net.minecraft.world.entity.EquipmentSlot.Type.HUMANOID_ARMOR || slot.getType() == net.minecraft.world.entity.EquipmentSlot.Type.HAND) {
-                list.add(com.mojang.datafixers.util.Pair.of(slot, empty ? net.minecraft.world.item.ItemStack.EMPTY : p.getItemBySlot(slot).copy()));
+    /**
+     * Hides the Rogue from every other player completely, the way vanish plugins do: their clients are told the entity is gone, so
+     * no model, held item, armour, nametag or ground shadow is drawn (vanilla only skips the shadow of an invisible entity, and
+     * the invisibility effect alone still leaves everything else). Repeated while hidden because the server re-pairs the entity
+     * whenever a new player comes into range. {@code hide == false} makes the server track the Rogue again, which re-sends them.
+     */
+    private static void sendGear(ServerPlayer p, boolean hide) {
+        ServerLevel level = p.level();
+        if (hide) {
+            net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket packet =
+                    new net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket(p.getId());
+            for (ServerPlayer other : level.getServer().getPlayerList().getPlayers()) {
+                if (other != p && other.level() == level && other.distanceToSqr(p) < 160 * 160) {
+                    other.connection.send(packet);
+                }
             }
-        }
-        net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket packet = new net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket(p.getId(), list);
-        for (ServerPlayer other : p.level().getServer().getPlayerList().getPlayers()) {
-            if (other != p && other.level() == p.level() && other.distanceToSqr(p) < 160 * 160) {
-                other.connection.send(packet);
-            }
+        } else if (p.isAlive()) {
+            level.getChunkSource().removeEntity(p);
+            level.getChunkSource().addEntity(p);
         }
     }
 
