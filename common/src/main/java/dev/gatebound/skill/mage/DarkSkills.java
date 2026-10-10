@@ -74,7 +74,7 @@ public final class DarkSkills {
 
     private static void curse(ServerPlayer p, ServerLevel level, LivingEntity e) {
         CURSED.put(e.getUUID(), new Curse(p.getUUID(), (long) level.getServer().getTickCount() + CURSE_TICKS));
-        MageCore.particles(level, ParticleTypes.SQUID_INK, e.position().add(0, e.getBbHeight() + 0.3, 0), 4, 0.2, 0.02);
+        dev.gatebound.skill.fx.SpellFx.curse(e, CURSE_TICKS);
     }
 
     /** Dark damage; a cursed target takes 20% more. */
@@ -130,10 +130,16 @@ public final class DarkSkills {
     public static boolean shadowBolt(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.DARK, BOLT_COST);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.WITHER_SHOOT), 0.5f, 1.8f);
-        MageCore.bolt(p, level, p.getEyePosition().add(p.getLookAngle().scale(0.5)), p.getLookAngle(), 1.5, 36, 0.6, ParticleTypes.PORTAL,
+        dev.gatebound.skill.fx.Props.Prop[] orb = {null};
+        MageCore.bolt(p, level, p.getEyePosition().add(p.getLookAngle().scale(0.5)), p.getLookAngle(), 1.5, 36, 0.6,
+                (lv, a, b, tick) -> {
+                    dev.gatebound.skill.fx.SpellFx.ride(orb, lv, "void_sphere", a, b, tick, 1.5, 1.5, 1.5, false);
+                    MageCore.particles(lv, ParticleTypes.PORTAL, a, 2, 0.15, 0.2);
+                },
                 (lv, at, target) -> {
-                    MageCore.particles(lv, ParticleTypes.SQUID_INK, at, 14, 0.4, 0.05);
+                    dev.gatebound.skill.fx.SpellFx.stop(orb);
                     if (target != null) {
+                        dev.gatebound.skill.fx.SpellFx.tendrils(lv, target);
                         blight(p, lv, target, MageCore.dmg(data, 5), true);
                     }
                 });
@@ -150,9 +156,9 @@ public final class DarkSkills {
             e.setDeltaMovement(flat.x, 0.1, flat.z);
             e.needsSync = true;
             e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 50, 10));
-            level.sendParticles(ParticleTypes.PORTAL, e.getX(), e.getY(), e.getZ(), 25, 0.3, 0.8, 0.3, 0.4);
+            dev.gatebound.skill.fx.SpellFx.tendrils(level, e);
         }
-        level.sendParticles(ParticleTypes.SQUID_INK, p.getX(), p.getY() + 0.3, p.getZ(), 50, 4, 0.2, 4, 0.05);
+        dev.gatebound.skill.fx.SpellFx.voidPulse(p, 9);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.WARDEN_SONIC_CHARGE), 0.6f, 1.4f);
         return true;
     }
@@ -168,7 +174,8 @@ public final class DarkSkills {
         t.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 200, 2));
         t.addEffect(new MobEffectInstance(MobEffects.GLOWING, 200, 0));
         CURSED.put(t.getUUID(), new Curse(p.getUUID(), level.getServer().getTickCount() + 600L));
-        MageCore.particles(level, ParticleTypes.SQUID_INK, t.position().add(0, t.getBbHeight() * 0.6, 0), 30, 0.5, 0.05);
+        dev.gatebound.skill.fx.SpellFx.tendrils(level, t);
+        dev.gatebound.skill.fx.SpellFx.thread(level, p.getEyePosition().add(0, -0.3, 0), t.position().add(0, t.getBbHeight() * 0.6, 0), 0.6, 8);
         MageCore.sound(level, t.position(), GateboundSounds.of(SoundEvents.EVOKER_CAST_SPELL), 1.0f, 0.6f);
         return true;
     }
@@ -188,7 +195,7 @@ public final class DarkSkills {
                 LivingEntity t = hit.get(0);
                 blight(o, level, t, MageCore.dmg(data, 2.5), true);
                 o.heal(1.2f);
-                MageCore.line(level, ParticleTypes.SOUL, t.position().add(0, t.getBbHeight() * 0.6, 0), o.getEyePosition().add(0, -0.3, 0));
+                dev.gatebound.skill.fx.SpellFx.thread(level, t.position().add(0, t.getBbHeight() * 0.6, 0), o.getEyePosition().add(0, -0.3, 0), 0.5, 5);
                 MageCore.sound(level, t.position(), GateboundSounds.of(SoundEvents.SOUL_ESCAPE.value()), 0.5f, 1.2f);
             });
         }
@@ -219,7 +226,7 @@ public final class DarkSkills {
                 }
             });
         }
-        level.sendParticles(ParticleTypes.SQUID_INK, p.getX(), p.getY() + 1, p.getZ(), 60, 4, 1, 4, 0.1);
+        dev.gatebound.skill.fx.SpellFx.voidPulse(p, 11);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.WARDEN_ROAR), 0.8f, 1.2f);
         return true;
     }
@@ -231,8 +238,8 @@ public final class DarkSkills {
             if (cursedBy(p, e)) {
                 reaped++;
                 Vec3 at = e.position().add(0, e.getBbHeight() * 0.5, 0);
-                MageCore.line(level, ParticleTypes.SOUL, at, p.position().add(0, 1, 0));
-                level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, at.x, at.y, at.z, 20, 0.3, 0.5, 0.3, 0.05);
+                dev.gatebound.skill.fx.SpellFx.thread(level, at, p.position().add(0, 1, 0), 0.7, 8);
+                dev.gatebound.skill.fx.SpellFx.tendrils(level, e);
                 blight(p, level, e, MageCore.dmg(data, 10), false);
             }
         }
@@ -246,6 +253,7 @@ public final class DarkSkills {
         MageCore.freeCast(p, Element.DARK, HOLE_COST);
         MageCore.sacrifice(p, 4.0f);
         Vec3 spot = MageCore.aimSpot(p, level, 25).add(0, 1.2, 0);
+        dev.gatebound.skill.fx.SpellFx.blackHole(level, spot, 120);
         MageCore.zone(p, level, spot, 11, null, 120, 2,
                 in -> {
                     for (LivingEntity e : in) {
@@ -254,19 +262,10 @@ public final class DarkSkills {
                         e.needsSync = true;
                     }
                 },
-                lv -> {
-                    lv.sendParticles(ParticleTypes.SQUID_INK, spot.x, spot.y, spot.z, 10, 0.4, 0.4, 0.4, 0.02);
-                    for (int i = 0; i < 8; i++) {
-                        double a = lv.getRandom().nextDouble() * Math.PI * 2;
-                        double r = 3 + lv.getRandom().nextDouble() * 6;
-                        lv.sendParticles(ParticleTypes.PORTAL, spot.x + Math.cos(a) * r, spot.y + (lv.getRandom().nextDouble() - 0.5) * 3,
-                                spot.z + Math.sin(a) * r, 1, -Math.cos(a), 0, -Math.sin(a), 1.0);
-                    }
-                });
+                lv -> { });
         MageCore.after(122, server -> {
             ServerPlayer o = MageCore.playerOf(server, p.getUUID());
-            level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, spot.x, spot.y, spot.z, 1, 0, 0, 0, 0);
-            level.sendParticles(ParticleTypes.SQUID_INK, spot.x, spot.y, spot.z, 80, 1.5, 1.5, 1.5, 0.3);
+            dev.gatebound.skill.fx.SpellFx.collapse(level, spot);
             MageCore.sound(level, spot, GateboundSounds.of(SoundEvents.GENERIC_EXPLODE.value()), 1.5f, 0.5f);
             if (o != null) {
                 for (LivingEntity e : MageCore.foesAt(o, level, spot, 5)) {
@@ -288,7 +287,7 @@ public final class DarkSkills {
         MageCore.buff(p, ECLIPSE, 240);
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, 240, 1));
         p.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 240, 0));
-        level.sendParticles(ParticleTypes.SQUID_INK, p.getX(), p.getY() + 1, p.getZ(), 200, 10, 3, 10, 0.05);
+        dev.gatebound.skill.fx.SpellFx.eclipse(p, 240);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.WARDEN_SONIC_BOOM), 1.0f, 0.5f);
         Compat.overlay(p, Component.literal("The light dies. For 12 s you drain what you strike."));
         return true;

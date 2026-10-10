@@ -124,9 +124,9 @@ public final class EarthSkills {
         Set<UUID> hit = new HashSet<>();
         for (int i = 1; i <= 12; i++) {
             Vec3 at = p.position().add(flat.scale(i));
+            int idx = i;
             MageCore.after(i, server -> {
-                level.sendParticles(rock(), at.x, at.y + 0.4, at.z, 20, 0.25, 0.5, 0.25, 0.15);
-                level.sendParticles(ParticleTypes.CRIT, at.x, at.y + 0.8, at.z, 4, 0.2, 0.3, 0.2, 0.2);
+                dev.gatebound.skill.fx.SpellFx.spikeAt(level, at, idx);
                 MageCore.sound(level, at, GateboundSounds.of(SoundEvents.STONE_BREAK), 0.5f, 0.8f);
                 ServerPlayer o = MageCore.playerOf(server, p.getUUID());
                 if (o != null) {
@@ -145,7 +145,7 @@ public final class EarthSkills {
         MageCore.freeCast(p, Element.EARTH, SKIN_COST);
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 200, 1));
         gainArmor(p, 2);
-        level.sendParticles(rock(), p.getX(), p.getY() + 1, p.getZ(), 30, 0.5, 0.8, 0.5, 0.1);
+        dev.gatebound.skill.fx.SpellFx.armor(p, 200, 3.4);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.STONE_PLACE), 1.0f, 0.7f);
         return true;
     }
@@ -167,6 +167,7 @@ public final class EarthSkills {
                 }
             }
         }
+        dev.gatebound.skill.fx.SpellFx.wall(level, center, side);
         MageCore.sound(level, center, GateboundSounds.of(SoundEvents.STONE_PLACE), 1.2f, 0.6f);
         return placed > 0;
     }
@@ -178,7 +179,7 @@ public final class EarthSkills {
             smash(p, level, data, e, 3, 0.3, 50);
             e.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 50, 2));
         }
-        level.sendParticles(rock(), p.getX(), p.getY() + 0.2, p.getZ(), 80, 3.5, 0.2, 3.5, 0.2);
+        dev.gatebound.skill.fx.SpellFx.quakeBurst(level, p.position(), 7);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.GENERIC_EXPLODE.value()), 0.6f, 0.5f);
         return true;
     }
@@ -187,9 +188,17 @@ public final class EarthSkills {
         MageCore.freeCast(p, Element.EARTH, BOULDER_COST);
         gainArmor(p, 1);
         Vec3 flat = MageCore.flatLook(p);
-        MageCore.bolt(p, level, p.position().add(0, 1.0, 0).add(flat.scale(1.2)), flat, 0.7, 22, 1.3, rock(),
+        dev.gatebound.skill.fx.Props.Prop[] stone = {null};
+        MageCore.bolt(p, level, p.position().add(0, 1.0, 0).add(flat.scale(1.2)), flat, 0.7, 22, 1.3,
+                (lv, a, b, tick) -> {
+                    dev.gatebound.skill.fx.SpellFx.ride(stone, lv, "boulder", a, b, tick, 2.4, 2.4, 2.4, false);
+                    if (tick % 3 == 0) {
+                        MageCore.particles(lv, rock(), a, 3, 0.3, 0.05);
+                    }
+                },
                 (lv, at, target) -> {
-                    MageCore.particles(lv, rock(), at, 40, 0.8, 0.2);
+                    dev.gatebound.skill.fx.SpellFx.stop(stone);
+                    dev.gatebound.skill.fx.SpellFx.quakeBurst(lv, at, 3.5);
                     MageCore.sound(lv, at, GateboundSounds.of(SoundEvents.GENERIC_EXPLODE.value()), 0.8f, 0.6f);
                     for (LivingEntity e : MageCore.foesAt(p, lv, at, 2.5)) {
                         smash(p, lv, data, e, e == target ? 11 : 6, 0.5, 0);
@@ -205,7 +214,8 @@ public final class EarthSkills {
         gainArmor(p, MAX_STACKS);
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 200, 2));
         p.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 200, 3));
-        level.sendParticles(rock(), p.getX(), p.getY() + 1, p.getZ(), 60, 0.7, 1.0, 0.7, 0.1);
+        dev.gatebound.skill.fx.SpellFx.armor(p, 200, 4.4);
+        dev.gatebound.skill.fx.SpellFx.bedrockRing(p);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.ANVIL_LAND), 0.8f, 0.6f);
         Compat.overlay(p, Component.literal("You are bedrock."));
         return true;
@@ -215,20 +225,16 @@ public final class EarthSkills {
         MageCore.freeCast(p, Element.EARTH, QUAKE_COST);
         gainArmor(p, 2);
         Vec3 center = p.position();
+        dev.gatebound.skill.fx.SpellFx.cracks(level, center, 26, 120);
         MageCore.zone(p, level, center, 13, null, 120, 10,
                 in -> {
                     for (LivingEntity e : in) {
                         smash(p, level, data, e, 4.5, 0.55, 15);
                     }
+                    dev.gatebound.skill.fx.SpellFx.quakePulse(level, center, 12);
                     MageCore.sound(level, center, GateboundSounds.of(SoundEvents.GENERIC_EXPLODE.value()), 0.7f, 0.4f);
                 },
-                lv -> {
-                    for (int i = 0; i < 16; i++) {
-                        double a = lv.getRandom().nextDouble() * Math.PI * 2;
-                        double r = Math.sqrt(lv.getRandom().nextDouble()) * 13;
-                        lv.sendParticles(rock(), center.x + Math.cos(a) * r, center.y + 0.2, center.z + Math.sin(a) * r, 2, 0.2, 0.3, 0.2, 0.1);
-                    }
-                });
+                lv -> { });
         return true;
     }
 
@@ -238,13 +244,16 @@ public final class EarthSkills {
         Vec3 flat = MageCore.flatLook(p);
         Vec3 side = new Vec3(-flat.z, 0, flat.x);
         Set<UUID> hit = new HashSet<>();
+        dev.gatebound.skill.fx.SpellFx.dust(level, p.position().add(flat.scale(2)), 3.0, 3);
         for (int i = 1; i <= 22; i++) {
             int d = i;
             MageCore.after(i, server -> {
                 Vec3 front = p.position().add(flat.scale(d + 1));
                 for (int w = -3; w <= 3; w++) {
                     Vec3 q = front.add(side.scale(w));
-                    level.sendParticles(rock(), q.x, q.y + 0.6, q.z, 8, 0.3, 0.6, 0.3, 0.15);
+                    if (w % 2 == 0 && d % 2 == 0) {
+                        dev.gatebound.skill.fx.SpellFx.roll(level, q, 2.2, 6);
+                    }
                     for (LivingEntity e : MageCore.foesAt(p, level, q, 1.3)) {
                         if (hit.add(e.getUUID())) {
                             smash(p, level, data, e, 11, 0.6, 0);

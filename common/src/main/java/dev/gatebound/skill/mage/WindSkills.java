@@ -69,10 +69,7 @@ public final class WindSkills {
                 MageCore.knock(e, p.position(), 1.7, 0.45);
             }
         }
-        for (int i = 1; i <= 8; i++) {
-            Vec3 q = p.getEyePosition().add(look.scale(i));
-            level.sendParticles(ParticleTypes.CLOUD, q.x, q.y - 0.2, q.z, 3, 0.2 + i * 0.07, 0.2 + i * 0.05, 0.2 + i * 0.07, 0.02);
-        }
+        dev.gatebound.skill.fx.SpellFx.gust(p);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.BREEZE_WIND_CHARGE_BURST.value()), 1.0f, 1.0f);
         return true;
     }
@@ -87,7 +84,7 @@ public final class WindSkills {
             e.setDeltaMovement(flat.x, 0.5, flat.z);
             e.needsSync = true;
         }
-        level.sendParticles(ParticleTypes.CLOUD, p.getX(), p.getY() + 0.6, p.getZ(), 90, 3.5, 1.2, 3.5, 0.15);
+        dev.gatebound.skill.fx.SpellFx.cyclone(p);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.BREEZE_WIND_CHARGE_BURST.value()), 1.2f, 0.6f);
         return true;
     }
@@ -99,7 +96,7 @@ public final class WindSkills {
         p.fallDistance = 0;
         MageCore.send(p);
         PlayerCombat.grantIFrames(p, 8);
-        level.sendParticles(ParticleTypes.CLOUD, p.getX(), p.getY() + 0.5, p.getZ(), 25, 0.3, 0.4, 0.3, 0.1);
+        dev.gatebound.skill.fx.SpellFx.airDash(p, dir);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.BREEZE_WIND_CHARGE_BURST.value()), 0.8f, 1.5f);
         return true;
     }
@@ -111,7 +108,7 @@ public final class WindSkills {
             other.fallDistance = 0;
             other.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 160, 0));
             MageCore.send(other);
-            level.sendParticles(ParticleTypes.CLOUD, other.getX(), other.getY(), other.getZ(), 20, 0.4, 0.1, 0.4, 0.15);
+            dev.gatebound.skill.fx.SpellFx.updraft(level, other);
         }
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.BREEZE_WIND_CHARGE_BURST.value()), 1.0f, 0.8f);
         return true;
@@ -123,8 +120,12 @@ public final class WindSkills {
         Vec3 side = new Vec3(-look.z, 0, look.x).normalize();
         for (int i = -1; i <= 1; i++) {
             Vec3 dir = look.add(side.scale(i * 0.12)).normalize();
-            MageCore.bolt(p, level, p.getEyePosition().add(look.scale(0.5)), dir, 2.2, 30, 0.8, ParticleTypes.SWEEP_ATTACK,
+            dev.gatebound.skill.fx.Props.Prop[] blade = {null};
+            MageCore.bolt(p, level, p.getEyePosition().add(look.scale(0.5)), dir, 2.2, 30, 0.8,
+                    (lv, a, b, tick) -> dev.gatebound.skill.fx.SpellFx.ride(blade, lv, "wind_blade", a, b, tick, 2.2, 2.2, 2.2, false),
                     (lv, at, target) -> {
+                        dev.gatebound.skill.fx.SpellFx.stop(blade);
+                        dev.gatebound.skill.fx.SpellFx.bladeHit(lv, at, dir);
                         if (target != null) {
                             MageCore.strike(p, lv, target, MageCore.dmg(data, 3.5));
                             MageCore.knock(target, p.position(), 0.6, 0.15);
@@ -138,6 +139,7 @@ public final class WindSkills {
     public static boolean windBarrier(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.WIND, BARRIER_COST);
         MageCore.buff(p, BARRIER, 160);
+        dev.gatebound.skill.fx.SpellFx.barrier(p, 160);
         MageCore.run((server, now) -> {
             if (!MageCore.buffed(p, BARRIER) || !p.isAlive() || p.isRemoved()) {
                 return true;
@@ -162,6 +164,7 @@ public final class WindSkills {
         MageCore.freeCast(p, Element.WIND, TORNADO_COST);
         Vec3 spot = MageCore.aimSpot(p, level, 25);
         long[] age = {0};
+        dev.gatebound.skill.fx.SpellFx.tornado(level, spot, 160);
         MageCore.zone(p, level, spot, 5.5, null, 160, 5,
                 in -> {
                     age[0]++;
@@ -177,14 +180,7 @@ public final class WindSkills {
                         }
                     }
                 },
-                lv -> {
-                    for (int i = 0; i < 12; i++) {
-                        double h = lv.getRandom().nextDouble() * 6;
-                        double r = 0.8 + h * 0.5;
-                        double a = lv.getRandom().nextDouble() * Math.PI * 2;
-                        lv.sendParticles(ParticleTypes.CLOUD, spot.x + Math.cos(a) * r, spot.y + h, spot.z + Math.sin(a) * r, 1, 0, 0, 0, 0);
-                    }
-                });
+                lv -> { });
         MageCore.sound(level, spot, GateboundSounds.of(SoundEvents.BREEZE_WIND_CHARGE_BURST.value()), 1.5f, 0.4f);
         return true;
     }
@@ -194,7 +190,7 @@ public final class WindSkills {
         MageCore.flight(p, 200);
         p.setDeltaMovement(p.getDeltaMovement().x, 0.8, p.getDeltaMovement().z);
         MageCore.send(p);
-        level.sendParticles(ParticleTypes.CLOUD, p.getX(), p.getY(), p.getZ(), 40, 0.5, 0.2, 0.5, 0.2);
+        dev.gatebound.skill.fx.SpellFx.flight(p, 200);
         Compat.overlay(p, Component.literal("The wind carries you: look to fly, jump to rise, sneak to sink."));
         return true;
     }

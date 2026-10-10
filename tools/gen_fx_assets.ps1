@@ -1026,6 +1026,125 @@ WriteModel 'wings_ranger' 'wings_ranger' @((PlaneEl 'z'))
 DrawAntlers 'antlers_ranger.png' $gold.glow $gold.core
 WriteModel 'antlers_ranger' 'antlers_ranger' @((PlaneEl 'z'))
 
+
+# ------------------------------------------------------------------ lightning / wind / earth / dark spell set
+$dk = $elements['dark']
+$lt = $elements['lightning']
+$wd = $elements['wind']
+
+# A floating curse sigil: ring, inverted triangle and a watching eye (256x256, lying flat).
+function DrawCurseMark($file, $glow, $core) {
+  $cv = NewCanvas 256; $g = $cv.g; $c = 128
+  GlowCircle $g $c $c 116 $glow $core 1.4
+  GlowCircle $g $c $c 104 $glow $core 0.6
+  PolyStar $g $c $c 96 3 1 ([math]::PI / 2) $glow $core 1.2
+  for ($i = 0; $i -lt 36; $i++) {
+    $a = $i * 2 * [math]::PI / 36
+    GlowLines $g (PtArr @((Pt ($c + [math]::Cos($a) * 116) ($c + [math]::Sin($a) * 116)), (Pt ($c + [math]::Cos($a) * 124) ($c + [math]::Sin($a) * 124)))) $glow $core 0.6
+  }
+  $top = @(); $bot = @()
+  for ($i = 0; $i -le 16; $i++) { $t = $i / 8.0 - 1; $top += , (Pt ($c + $t * 44) ($c - (1 - $t * $t) * 20)); $bot += , (Pt ($c + $t * 44) ($c + (1 - $t * $t) * 20)) }
+  $botRev = @($bot[($bot.Count - 1)..0])
+  $br = New-Object System.Drawing.SolidBrush (C 235 10 4 22); $g.FillPolygon($br, (PtArr ($top + $botRev))); $br.Dispose()
+  GlowLines $g (PtArr $top) $glow $core 0.9
+  GlowLines $g (PtArr $bot) $glow $core 0.9
+  $br = New-Object System.Drawing.SolidBrush (C 255 $glow[0] $glow[1] $glow[2]); $g.FillEllipse($br, $c - 12, $c - 12, 24, 24); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 255 6 2 14); $g.FillEllipse($br, $c - 3, $c - 11, 6, 22); $br.Dispose()
+  SavePng $cv $file
+}
+
+# A black disc with a blazing corona and rays, lying flat (256x256).
+function DrawEclipse($file, $glow, $core) {
+  $cv = NewCanvas 256; $g = $cv.g; $c = 128
+  for ($r = 126; $r -ge 66; $r -= 2) {
+    $f = 1 - ($r - 66) / 60.0
+    $a = [int](235 * $f * $f)
+    $pen = New-Object System.Drawing.Pen (C $a $core[0] $core[1] $core[2]), ([single]2.6)
+    $g.DrawEllipse($pen, $c - $r, $c - $r, $r * 2, $r * 2); $pen.Dispose()
+  }
+  for ($i = 0; $i -lt 24; $i++) {
+    $a = $i * 2 * [math]::PI / 24; $len = if ($i % 2 -eq 0) { 126 } else { 104 }
+    GlowLines $g (PtArr @((Pt ($c + [math]::Cos($a) * 78) ($c + [math]::Sin($a) * 78)), (Pt ($c + [math]::Cos($a) * $len) ($c + [math]::Sin($a) * $len)))) $glow $core 0.8
+  }
+  $br = New-Object System.Drawing.SolidBrush (C 255 4 2 10); $g.FillEllipse($br, $c - 68, $c - 68, 136, 136); $br.Dispose()
+  GlowCircle $g $c $c 68 $glow $core 1.2
+  SavePng $cv $file
+}
+
+# A dark thundercloud with flickers of lightning inside, lying flat (256x256).
+function DrawStormCloud($file, $glow, $core) {
+  $cv = NewCanvas 256; $g = $cv.g
+  $rng = New-Object System.Random 77
+  for ($i = 0; $i -lt 70; $i++) {
+    $a = $rng.NextDouble() * 2 * [math]::PI; $d = [math]::Sqrt($rng.NextDouble()) * 96
+    $x = 128 + [math]::Cos($a) * $d; $y = 128 + [math]::Sin($a) * $d; $r = 20 + $rng.Next(0, 22)
+    $v = $rng.Next(-14, 16)
+    $br = New-Object System.Drawing.SolidBrush (C 150 (54 + $v) (58 + $v) (74 + $v)); $g.FillEllipse($br, $x - $r, $y - $r, $r * 2, $r * 2); $br.Dispose()
+  }
+  for ($k = 0; $k -lt 4; $k++) {
+    $x = 70 + $rng.Next(0, 116); $y = 70 + $rng.Next(0, 116)
+    GlowLines $g (PtArr @((Pt $x $y), (Pt ($x + $rng.Next(-16, 17)) ($y + 18)), (Pt ($x + $rng.Next(-22, 23)) ($y + 36)), (Pt ($x + $rng.Next(-26, 27)) ($y + 52)))) $glow $core 0.7
+  }
+  SavePng $cv $file
+}
+
+# A metal rod with glowing seams and a bright tip (64x64, mapped onto each box face).
+function DrawRod($file, $glow, $core) {
+  $bmp = New-Object System.Drawing.Bitmap 64, 64, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+  for ($y = 0; $y -lt 64; $y++) {
+    for ($x = 0; $x -lt 64; $x++) {
+      $s = 0.5 + 0.5 * [math]::Sin($x * 0.5)
+      $c = Mix @(70, 74, 88) @(190, 196, 212) $s
+      if (($y % 16) -lt 2) { $c = Mix @(60, 40, 10) $glow 0.7 }
+      if ($x -gt 30 -and $x -lt 34) { $c = Mix $c $core 0.6 }
+      $bmp.SetPixel($x, $y, (C 255 [int]$c[0] [int]$c[1] [int]$c[2]))
+    }
+  }
+  $bmp.Save((Join-Path $texDir $file), [System.Drawing.Imaging.ImageFormat]::Png)
+  $bmp.Dispose()
+}
+
+# Grey-brown dust for puffs (64x64).
+function DrawDust($file) {
+  $cv = NewCanvas 64; $g = $cv.g
+  $rng = New-Object System.Random 59
+  $g.Clear((C 255 124 108 90))
+  for ($i = 0; $i -lt 300; $i++) {
+    $x = $rng.Next(0, 64); $y = $rng.Next(0, 64); $v = $rng.Next(-20, 26)
+    $br = New-Object System.Drawing.SolidBrush (C 255 (126 + $v) (110 + $v) (92 + $v)); $g.FillRectangle($br, $x, $y, 4, 4); $br.Dispose()
+  }
+  SavePng $cv $file
+}
+
+# Nested chevrons of wind, the tip toward the top of the texture, lying flat (256x256).
+function DrawGust($file, $glow, $core) {
+  $cv = NewCanvas 256; $g = $cv.g
+  for ($k = 0; $k -lt 4; $k++) {
+    $y = 214 - $k * 52; $w = 56 + $k * 22
+    GlowLines $g (PtArr @((Pt (128 - $w) ($y + 56)), (Pt 128 $y), (Pt (128 + $w) ($y + 56)))) $glow $core (1.6 - $k * 0.25)
+    GlowLines $g (PtArr @((Pt (128 - $w * 0.7) ($y + 70)), (Pt 128 ($y + 16)), (Pt (128 + $w * 0.7) ($y + 70)))) $glow $core 0.6
+  }
+  for ($i = -2; $i -le 2; $i++) { GlowLines $g (PtArr @((Pt (128 + $i * 22) 246), (Pt (128 + $i * 30) 130))) $glow $core 0.4 }
+  SavePng $cv $file
+}
+
+DrawCurseMark 'curse_mark.png' $dk.glow $dk.core
+WriteModel 'curse_mark' 'curse_mark' @((PlaneEl 'y'))
+DrawEclipse 'eclipse_disc.png' $dk.glow $dk.core
+WriteModel 'eclipse_disc' 'eclipse_disc' @((PlaneEl 'y'))
+DrawStormCloud 'storm_cloud.png' $lt.glow $lt.core
+WriteModel 'storm_cloud' 'storm_cloud' @((PlaneEl 'y'))
+DrawRod 'lightning_rod.png' $lt.glow $lt.core
+WriteModel 'lightning_rod' 'lightning_rod' @(
+  (BoxEl @(6.8, 0, 6.8) @(9.2, 3, 9.2) 'y' 0), (BoxEl @(7.4, 3, 7.4) @(8.6, 14, 8.6) 'y' 0), (BoxEl @(5, 9, 7.6) @(11, 10.2, 8.4) 'y' 0),
+  (BoxEl @(7.6, 14, 7.6) @(8.4, 18, 8.4) 'y' 0), (BoxEl @(7.1, 12.6, 7.1) @(8.9, 14.4, 8.9) 'y' 45))
+DrawDust 'dust.png'
+WriteModel 'dust_puff' 'dust' @(
+  (BoxEl @(3, 3, 3) @(13, 13, 13) 'y' 0), (BoxEl @(3.5, 3.5, 3.5) @(12.5, 12.5, 12.5) 'y' 45), (BoxEl @(3.5, 3.5, 3.5) @(12.5, 12.5, 12.5) 'x' 45),
+  (BoxEl @(3.5, 3.5, 3.5) @(12.5, 12.5, 12.5) 'z' 45))
+DrawGust 'gust_cone.png' $wd.glow $wd.core
+WriteModel 'gust_cone' 'gust_cone' @((PlaneEl 'y'))
+
 # ------------------------------------------------------------------ mage form body skins (64x64 player skin layout, 4 animation frames each)
 # Only the base-layer regions are painted; the outer-layer regions stay transparent, so the overlay never hides hats, jackets or sleeves.
 $formDir = Join-Path $root 'textures\entity\form'

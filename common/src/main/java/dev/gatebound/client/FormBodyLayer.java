@@ -240,6 +240,24 @@ public final class FormBodyLayer extends RenderLayer<AvatarRenderState, PlayerMo
                 draw(ps, c, state, owner, m.body, "shield_sigil", 0.0f, 0.35f, -1.05f, 0, 0, 0, pulse, pulse, pulse);
             }
             case "whirlwind" -> draw(ps, c, state, owner, m.body, "blade_ring", 0.0f, 0.55f, 0.0f, 0, t * 63.0f, 0, 7.0f, 7.0f, 7.0f);
+            case "overcharge" -> {
+                for (int i = 0; i < 4; i++) { // bolts circling the arms
+                    float ang = t * 0.35f + i * 1.5708f;
+                    draw(ps, c, state, owner, m.body, "bolt", (float) Math.cos(ang) * 0.9f, 0.35f, (float) Math.sin(ang) * 0.9f, 0, 0, 0, 0.8f, 2.0f, 0.8f);
+                }
+            }
+            case "stone_armor" -> {
+                pauldron(ps, c, state, owner, m, 1);
+                pauldron(ps, c, state, owner, m, -1);
+                for (int i = 0; i < 3; i++) {
+                    float ang = t * 0.08f + i * 2.0944f;
+                    draw(ps, c, state, owner, null, "boulder", (float) Math.cos(ang) * 1.5f, 0.2f + (float) Math.sin(t * 0.09f + i) * 0.2f,
+                            (float) Math.sin(ang) * 1.5f, t * 3.0f, t * 4.0f + i * 60.0f, 0, 0.8f, 0.8f, 0.8f);
+                }
+            }
+            case "wind_wings" -> wings(ps, c, state, owner, m, "wings_wind", 4.0f, t);
+            case "wind_barrier" -> draw(ps, c, state, owner, null, "tornado", 0.0f, 0.75f, 0.0f, 0, t * 22.0f, 0, 3.6f, 2.8f, 3.6f);
+            case "eclipse" -> halo(ps, c, state, owner, m, "halo_dark", 1.2f, t * 4.0f);
             case "avatar" -> {
                 draw(ps, c, state, owner, m.head, "slash", 0.22f, -0.62f, 0.0f, 90.0f, 35.0f, 0, 1.1f, 1.1f, 1.1f);
                 draw(ps, c, state, owner, m.head, "slash", -0.22f, -0.62f, 0.0f, 90.0f, -35.0f, 0, 1.1f, 1.1f, 1.1f);
