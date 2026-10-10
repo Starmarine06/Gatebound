@@ -579,22 +579,25 @@ public final class RogueSkills {
         if (now % 20 == 0 && !MARKS.isEmpty()) {
             MARKS.values().removeIf(m -> m.until() <= now);
         }
-        if (now % 4 == 0) {
+        if (now % 2 == 0) {
             hideFromWardens(server);
+        }
+        if (now % 10 == 0) {
+            for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+                boolean quiet = p.isAlive() && isRogue(p) && PlayerDataStore.of(p).level >= 10;
+                if (quiet) {
+                    p.setSilent(true);
+                    QUIET.add(p.getUUID());
+                } else if (QUIET.remove(p.getUUID())) {
+                    p.setSilent(false);
+                }
+            }
         }
         if (now % 40 == 0) {
             // Rogues see well in the dark: a hidden, permanent-feeling Night Vision (no icon, no particles).
             for (ServerPlayer p : server.getPlayerList().getPlayers()) {
                 if (p.isAlive() && isRogue(p)) {
                     p.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 440, 0, true, false, false));
-                }
-                // From level 10 a Rogue's steps make no sound.
-                boolean quiet = isRogue(p) && PlayerDataStore.of(p).level >= 10;
-                if (quiet) {
-                    p.setSilent(true);
-                    QUIET.add(p.getUUID());
-                } else if (QUIET.remove(p.getUUID())) {
-                    p.setSilent(false);
                 }
             }
         }
@@ -634,9 +637,12 @@ public final class RogueSkills {
             for (net.minecraft.world.entity.monster.warden.Warden warden : p.level().getEntitiesOfClass(
                     net.minecraft.world.entity.monster.warden.Warden.class, p.getBoundingBox().inflate(64))) {
                 warden.clearAnger(p);
-                if (warden.getTarget() == p) {
-                    warden.getBrain().eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET);
-                }
+                // it also forgets the noise it just heard, so it does not walk to where the Rogue was
+                var brain = warden.getBrain();
+                brain.eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET);
+                brain.eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ROAR_TARGET);
+                brain.eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.DISTURBANCE_LOCATION);
+                brain.eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.RECENT_PROJECTILE);
             }
         }
     }
