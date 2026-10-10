@@ -255,6 +255,14 @@ public final class FormBodyLayer extends RenderLayer<AvatarRenderState, PlayerMo
                             (float) Math.sin(ang) * 1.5f, t * 3.0f, t * 4.0f + i * 60.0f, 0, 0.8f, 0.8f, 0.8f);
                 }
             }
+            case "trance" -> {
+                for (int i = 0; i < 5; i++) { // leaves spiralling up the body
+                    float ang = t * 0.12f + i * 1.2566f;
+                    float rise = (t * 0.02f + i * 0.2f) % 1.0f;
+                    draw(ps, c, state, owner, null, "leaf", (float) Math.cos(ang) * 1.4f, 1.2f - rise * 1.8f, (float) Math.sin(ang) * 1.4f,
+                            0, -(float) Math.toDegrees(ang) + t * 6.0f, 0, 1.0f, 1.0f, 1.0f);
+                }
+            }
             case "wind_wings" -> wings(ps, c, state, owner, m, "wings_wind", 4.0f, t);
             case "wind_barrier" -> draw(ps, c, state, owner, null, "tornado", 0.0f, 0.75f, 0.0f, 0, t * 22.0f, 0, 3.6f, 2.8f, 3.6f);
             case "eclipse" -> halo(ps, c, state, owner, m, "halo_dark", 1.2f, t * 4.0f);

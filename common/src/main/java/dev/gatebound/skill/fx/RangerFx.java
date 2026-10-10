@@ -222,23 +222,9 @@ public final class RangerFx {
     public static void trance(ServerPlayer p, int ticks) {
         ServerLevel level = lv(p);
         Circles.ring(level, KEY, p.position(), 18, 14);
-        Circles.follow(p, KEY, 4.0, Math.min(ticks, 80), 0.06);
-        Props.Prop[] leaves = new Props.Prop[5];
-        for (int i = 0; i < leaves.length; i++) {
-            leaves[i] = Props.sprite(level, p.position().add(0, 1.0, 0), "leaf", ticks + 20);
-            leaves[i].pose(Vec3.ZERO, yaw(0), 0.2, 0.2, 0.2, 0);
-        }
-        during(p, ticks, 2, (o, lv, age) -> {
-            for (int i = 0; i < leaves.length; i++) {
-                double a = age * 0.12 + i * Math.PI * 2 / leaves.length;
-                Vec3 pos = o.position().add(Math.cos(a) * 1.5, 0.5 + ((age * 0.02 + i * 0.2) % 1.0) * 1.6, Math.sin(a) * 1.5);
-                leaves[i].pin(pos, yaw(-a + age * 0.1), 1.0, 1.0, 1.0, 2);
-            }
-        }, () -> {
-            for (Props.Prop l : leaves) {
-                fadeOut(l, yaw(0));
-            }
-        });
+        // The circle under the feet and the leaves swirling round the body are drawn by the client so they never lag behind.
+        FxState.set(p, "circle:ranger:4.5", Math.min(ticks, 80));
+        FxState.set(p, "trance", ticks);
     }
 
     /** Arrow Barrage: a big launcher circle stands in front of the Ranger while the volley goes out. */
@@ -254,7 +240,7 @@ public final class RangerFx {
     public static void apex(ServerPlayer p, int ticks) {
         ServerLevel level = lv(p);
         FxState.set(p, "form:ranger", ticks);
-        Circles.ground(level, KEY, p.position(), 22.0, Math.min(ticks, 400));
+        FxState.set(p, "circle:ranger:22", ticks); // drawn by the client under the feet, so it follows exactly
         Circles.ring(level, KEY, p.position(), 14, 12);
         Fx.pillar(level, Palette.of(KEY), p.position(), 7, 1.4, 14);
         Tasks.flash(level, p.getX(), p.getY() + 1, p.getZ());
