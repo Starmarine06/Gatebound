@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "S": "minecraft:string",
+    "B": "minecraft:bow"
+  },
+  "pattern": [
+    " I ",
+    "SBS",
+    " I "
+  ],
+  "result": {
+    "id": "gatebound:compound_bow"
+  }
+}
