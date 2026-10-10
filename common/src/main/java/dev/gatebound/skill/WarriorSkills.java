@@ -179,7 +179,7 @@ public final class WarriorSkills {
 
     private static List<LivingEntity> foes(ServerPlayer p, ServerLevel level, double radius) {
         List<LivingEntity> out = new ArrayList<>();
-        for (LivingEntity e : SkillTargeting.enemiesAround(p, level, radius)) {
+        for (LivingEntity e : SkillTargeting.creaturesAround(p, level, radius)) {
             if (valid(e)) {
                 out.add(e);
             }

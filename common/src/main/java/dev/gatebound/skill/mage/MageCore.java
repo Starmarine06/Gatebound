@@ -209,7 +209,7 @@ public final class MageCore {
     }
 
     public static boolean valid(ServerPlayer owner, LivingEntity e) {
-        return e != owner && e.isAlive() && !(e instanceof Player) && !(e instanceof Mob mob && EchoManager.isEcho(mob));
+        return e != owner && e.isAlive() && !(e instanceof Player) && !(e instanceof net.minecraft.world.entity.decoration.ArmorStand) &&!(e instanceof Mob mob && EchoManager.isEcho(mob));
     }
 
     /** Hostile or neutral living things within a radius of a point (players and echoes excluded). */

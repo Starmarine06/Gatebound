@@ -32,7 +32,7 @@ public final class SkillTargeting {
         }
         final Vec3 rayEnd = end;
         AABB search = player.getBoundingBox().expandTowards(rayEnd.subtract(from)).inflate(1.0);
-        List<Entity> candidates = level.getEntities(player, search, e -> e instanceof LivingEntity le && le.isAlive() && !(e instanceof net.minecraft.world.entity.player.Player));
+        List<Entity> candidates = level.getEntities(player, search, SkillTargeting::targetable);
 
         List<LivingEntity> hits = new ArrayList<>();
         for (Entity e : candidates) {
@@ -57,11 +57,26 @@ public final class SkillTargeting {
         return hits;
     }
 
+    /** Any living mob (hostile, neutral or passive); never players or armour stands. */
+    public static boolean targetable(Entity e) {
+        return e instanceof LivingEntity le && le.isAlive() && !(e instanceof net.minecraft.world.entity.player.Player)
+                && !(e instanceof net.minecraft.world.entity.decoration.ArmorStand);
+    }
+
     /** Hostile living entities within a radius of the player. */
     public static List<LivingEntity> enemiesAround(ServerPlayer player, ServerLevel level, double radius) {
+        return around(player, level, radius, x -> x instanceof Enemy && targetable(x));
+    }
+
+    /** Every targetable mob within a radius of the player, hostile or not. */
+    public static List<LivingEntity> creaturesAround(ServerPlayer player, ServerLevel level, double radius) {
+        return around(player, level, radius, SkillTargeting::targetable);
+    }
+
+    private static List<LivingEntity> around(ServerPlayer player, ServerLevel level, double radius, java.util.function.Predicate<Entity> filter) {
         AABB box = player.getBoundingBox().inflate(radius);
         List<LivingEntity> out = new ArrayList<>();
-        for (Entity e : level.getEntities(player, box, x -> x instanceof Enemy && x instanceof LivingEntity le && le.isAlive())) {
+        for (Entity e : level.getEntities(player, box, filter)) {
             if (e.distanceToSqr(player) <= radius * radius) {
                 out.add((LivingEntity) e);
             }
