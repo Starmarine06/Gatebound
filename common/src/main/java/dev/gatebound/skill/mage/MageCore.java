@@ -107,6 +107,7 @@ public final class MageCore {
         });
         EntityEvent.LIVING_HURT.register(MageCore::onHurt);
         dev.gatebound.skill.fx.Props.init();
+        dev.gatebound.skill.fx.FormFx.init();
         FireSkills.init();
         IceSkills.init();
         LightningSkills.init();

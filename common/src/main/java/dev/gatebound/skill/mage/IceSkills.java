@@ -1,5 +1,6 @@
 package dev.gatebound.skill.mage;
 
+import dev.gatebound.skill.fx.FormFx;
 import dev.gatebound.sound.GateboundSounds;
 import dev.gatebound.compat.Compat;
 import dev.architectury.event.EventResult;
@@ -400,28 +401,9 @@ public final class IceSkills {
             for (LivingEntity e : MageCore.foes(o, lv, 4.5)) {
                 chill(lv, e, 1);
             }
-            Fx.runeTick(lv, ICE, o.position().add(0, 0.08, 0), 2.4, lv.getServer().getTickCount());
-        });
-        // A crown of ice spikes, a ring of snowflakes and trailing frost for as long as the form lasts.
-        MageCore.run((server, now) -> {
-            if (!MageCore.inForm(p, Element.ICE) || !p.isAlive() || p.isRemoved()) {
-                return true;
-            }
-            if (now % 2 == 0) {
-                ServerLevel lv = p.level();
-                Vec3 head = p.position().add(0, p.getBbHeight() + 0.1, 0);
-                for (int i = 0; i < 7; i++) {
-                    double a = Math.PI * 2 * i / 7;
-                    double h = (i % 2 == 0) ? 0.7 : 0.4;
-                    Fx.beam(lv, ICE.accent(), head.add(Math.cos(a) * 0.32, 0, Math.sin(a) * 0.32), head.add(Math.cos(a) * 0.32, h, Math.sin(a) * 0.32), 0.15);
-                }
-                Fx.swirl(lv, ICE.main(), p.position(), 1.1, 2.2, now, 4);
-                Fx.swirl(lv, Fx.fade(ICE.rgb1(), ICE.rgb2(), 1.2f), p.position(), 1.5, 2.0, now + 5, 3);
-                lv.sendParticles(ICE.alt(), p.getX(), p.getY() + 0.1, p.getZ(), 2, 0.4, 0.05, 0.4, 0.01);
-            }
-            return false;
         });
         CastFx.transform(p, Element.ICE);
+        FormFx.start(p, Element.ICE);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.PLAYER_HURT_FREEZE), 1.5f, 0.7f);
         Compat.overlay(p, Component.literal("You become the Frost Sovereign."));
         return true;

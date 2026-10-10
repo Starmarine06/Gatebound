@@ -1,5 +1,7 @@
 package dev.gatebound.skill.mage;
 
+import dev.gatebound.skill.fx.FormFx;
+import dev.gatebound.skill.fx.CastFx;
 import dev.gatebound.sound.GateboundSounds;
 import dev.gatebound.compat.Compat;
 import dev.architectury.event.EventResult;
@@ -203,11 +205,12 @@ public final class WindSkills {
         MageCore.flight(p, ticks);
         MageCore.form(p, Element.WIND, 10, o -> {
             ServerLevel lv = o.level();
-            lv.sendParticles(ParticleTypes.CLOUD, o.getX(), o.getY() + 1, o.getZ(), 12, 0.7, 0.8, 0.7, 0.05);
             for (LivingEntity e : MageCore.foes(o, lv, 3.5)) {
                 MageCore.knock(e, o.position(), 0.5, 0.1);
             }
         });
+        CastFx.transform(p, Element.WIND);
+        FormFx.start(p, Element.WIND);
         Compat.overlay(p, Component.literal("You become the wind."));
         return true;
     }

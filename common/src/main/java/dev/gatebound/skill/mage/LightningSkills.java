@@ -1,5 +1,7 @@
 package dev.gatebound.skill.mage;
 
+import dev.gatebound.skill.fx.FormFx;
+import dev.gatebound.skill.fx.CastFx;
 import dev.gatebound.sound.GateboundSounds;
 import dev.gatebound.compat.Compat;
 import dev.architectury.event.EventResult;
@@ -290,9 +292,10 @@ public final class LightningSkills {
                 MageCore.visualBolt(lv, target.position());
                 zap(o, lv, target, MageCore.dmg(d, 4));
             }
-            lv.sendParticles(ParticleTypes.ELECTRIC_SPARK, o.getX(), o.getY() + 1, o.getZ(), 15, 0.6, 0.9, 0.6, 0.2);
         });
         MageCore.visualBolt(level, p.position());
+        CastFx.transform(p, Element.LIGHTNING);
+        FormFx.start(p, Element.LIGHTNING);
         Compat.overlay(p, Component.literal("You become the Thunder God."));
         return true;
     }

@@ -1,5 +1,6 @@
 package dev.gatebound.skill.mage;
 
+import dev.gatebound.skill.fx.FormFx;
 import dev.gatebound.sound.GateboundSounds;
 import dev.gatebound.compat.Compat;
 import dev.architectury.event.EventResult;
@@ -396,36 +397,10 @@ public final class LightSkills {
                 holy(o, lv, e, MageCore.dmg(d, 3));
                 e.setRemainingFireTicks(40);
             }
-            lv.sendParticles(ParticleTypes.END_ROD, o.getX(), o.getY() + 1.2, o.getZ(), 25, 1.5, 1.0, 1.5, 0.05);
             Fx.shockwave(lv, LIGHT, o.position(), 9, 12);
         });
-        // A halo and two great wings of light for as long as the form lasts.
-        MageCore.run((server, now) -> {
-            if (!MageCore.inForm(p, Element.LIGHT) || !p.isAlive() || p.isRemoved()) {
-                return true;
-            }
-            if (now % 2 == 0) {
-                ServerLevel lv = p.level();
-                Vec3 base = p.position();
-                Vec3 head = base.add(0, p.getBbHeight() + 0.4, 0);
-                Fx.ring(lv, ParticleTypes.END_ROD, head, 0.4, 12);
-                Fx.ring(lv, Fx.dust(LIGHT.rgb2(), 0.9f), head, 0.55, 12);
-                Vec3 back = MageCore.flatLook(p).scale(-1);
-                Vec3 side = new Vec3(-back.z, 0, back.x);
-                for (int feather = 0; feather < 7; feather++) {
-                    double reach = 0.5 + feather * 0.45;
-                    double rise = 1.7 + feather * 0.18 - Math.pow(feather * 0.2, 2) + Math.sin(now * 0.15 + feather) * 0.1;
-                    for (int s = -1; s <= 1; s += 2) {
-                        Vec3 root = base.add(back.scale(0.35)).add(0, 1.3, 0);
-                        Vec3 tip = base.add(back.scale(0.35 + feather * 0.08)).add(side.scale(reach * s)).add(0, rise, 0);
-                        Fx.beam(lv, feather % 2 == 0 ? ParticleTypes.END_ROD : ParticleTypes.GLOW, root.lerp(tip, 0.45), tip, 0.35);
-                    }
-                }
-                Fx.swirl(lv, ParticleTypes.END_ROD, base, 1.3, 2.4, now, 3);
-            }
-            return false;
-        });
         CastFx.transform(p, Element.LIGHT);
+        FormFx.start(p, Element.LIGHT);
         MageCore.flash(level, p.getX(), p.getY() + 1, p.getZ());
         Compat.overlay(p, Component.literal("You become a Seraph: look to fly, jump to rise, sneak to sink."));
         return true;

@@ -1,5 +1,7 @@
 package dev.gatebound.skill.mage;
 
+import dev.gatebound.skill.fx.FormFx;
+import dev.gatebound.skill.fx.CastFx;
 import dev.gatebound.sound.GateboundSounds;
 import dev.gatebound.compat.Compat;
 import dev.architectury.event.EventResult;
@@ -267,10 +269,10 @@ public final class EarthSkills {
         gainArmor(p, MAX_STACKS);
         MageCore.form(p, Element.EARTH, 20, o -> {
             ServerLevel lv = o.level();
-            lv.sendParticles(rock(), o.getX(), o.getY() + 1, o.getZ(), 10, 0.6, 0.9, 0.6, 0.05);
             gainArmor(o, 1);
         });
-        level.sendParticles(rock(), p.getX(), p.getY() + 1, p.getZ(), 80, 1.0, 1.0, 1.0, 0.2);
+        CastFx.transform(p, Element.EARTH);
+        FormFx.start(p, Element.EARTH);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.ANVIL_LAND), 1.0f, 0.4f);
         Compat.overlay(p, Component.literal("You become a Titan."));
         return true;

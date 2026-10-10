@@ -1,5 +1,7 @@
 package dev.gatebound.skill.mage;
 
+import dev.gatebound.skill.fx.FormFx;
+import dev.gatebound.skill.fx.CastFx;
 import dev.gatebound.sound.GateboundSounds;
 import dev.gatebound.compat.Compat;
 import dev.architectury.event.EventResult;
@@ -303,10 +305,9 @@ public final class DarkSkills {
                 blight(o, lv, e, MageCore.dmg(d, 2.5), true);
                 o.heal(0.6f);
             }
-            lv.sendParticles(ParticleTypes.SQUID_INK, o.getX(), o.getY() + 1, o.getZ(), 15, 1.2, 0.8, 1.2, 0.03);
-            lv.sendParticles(ParticleTypes.PORTAL, o.getX(), o.getY() + 1, o.getZ(), 20, 1.5, 1.0, 1.5, 0.5);
         });
-        level.sendParticles(ParticleTypes.SQUID_INK, p.getX(), p.getY() + 1, p.getZ(), 100, 1.0, 1.0, 1.0, 0.3);
+        CastFx.transform(p, Element.DARK);
+        FormFx.start(p, Element.DARK);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.WARDEN_EMERGE), 1.0f, 0.7f);
         Compat.overlay(p, Component.literal("You become the Void Lord."));
         return true;

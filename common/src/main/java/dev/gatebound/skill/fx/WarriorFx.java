@@ -9,7 +9,8 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 
 import java.util.Random;
-import java.util.UUID;
+
+import static dev.gatebound.skill.fx.Anim.*;
 
 /**
  * Warrior effects: weight, impact and steel. Mostly textured models (slash crescents, ground cracks, stone spikes, steel
@@ -18,7 +19,6 @@ import java.util.UUID;
  */
 public final class WarriorFx {
     private static final Palette P = Palette.of("warrior");
-    private static final Vec3 UP = new Vec3(0, 1, 0);
     private static final Random RNG = new Random();
 
     private WarriorFx() {
@@ -26,39 +26,9 @@ public final class WarriorFx {
 
     // ---------------------------------------------------------------- primitives
 
-    /** The server level an entity is in (older versions type Entity.level() as plain Level). */
-    private static ServerLevel lv(net.minecraft.world.entity.Entity e) {
-        return (ServerLevel) e.level();
-    }
-
-    private static Quaternionf yaw(double rad) {
-        return new Quaternionf().rotationY((float) rad);
-    }
-
-    private static Vec3 flat(Vec3 v) {
-        Vec3 f = new Vec3(v.x, 0, v.z);
-        return f.lengthSqr() < 1.0e-4 ? new Vec3(0, 0, 1) : f.normalize();
-    }
-
     /** Spin that makes a flat slash lying on the ground bulge towards {@code dir} (the texture's top points north). */
     private static double bulge(Vec3 dir) {
         return Math.atan2(-dir.x, -dir.z);
-    }
-
-    /** A model that pops in, holds, then shrinks away. */
-    private static Props.Prop pop(ServerLevel level, Vec3 at, String model, Quaternionf rot, double sx, double sy, double sz, int hold) {
-        Props.Prop prop = Props.sprite(level, at, model, hold + 16);
-        prop.pose(Vec3.ZERO, rot, sx * 0.2, sy * 0.2, sz * 0.2, 0);
-        Tasks.after(1, s -> prop.pose(Vec3.ZERO, rot, sx, sy, sz, 3));
-        Tasks.after(hold + 3, s -> {
-            prop.pose(Vec3.ZERO, rot, sx * 1.1, sy * 0.02, sz * 1.1, 6);
-            prop.removeAfter(7);
-        });
-        return prop;
-    }
-
-    private static Props.Prop pop(ServerLevel level, Vec3 at, String model, Quaternionf rot, double size, int hold) {
-        return pop(level, at, model, rot, size, size, size, hold);
     }
 
     /** A flat decal on the ground. */
@@ -96,35 +66,6 @@ public final class WarriorFx {
                 chunk.removeAfter(7);
             });
         }
-    }
-
-    /** Runs {@code frame} for a player every {@code every} ticks for {@code ticks} ticks, then {@code end}. */
-    private interface Frame {
-        void at(ServerPlayer p, ServerLevel level, int age);
-    }
-
-    private static void during(ServerPlayer p, int ticks, int every, Frame frame, Runnable end) {
-        UUID id = p.getUUID();
-        int[] age = {0};
-        Tasks.run((server, now) -> {
-            ServerPlayer o = Tasks.playerOf(server, id);
-            if (o == null || age[0] >= ticks) {
-                if (end != null) {
-                    end.run();
-                }
-                return true;
-            }
-            if (age[0] % every == 0) {
-                frame.at(o, lv(o), age[0]);
-            }
-            age[0]++;
-            return false;
-        });
-    }
-
-    private static void fadeOut(Props.Prop prop, Quaternionf rot, double size) {
-        prop.pose(Vec3.ZERO, rot, 0.02, 0.02, 0.02, 4);
-        prop.removeAfter(5);
     }
 
     // ---------------------------------------------------------------- slam family
@@ -287,7 +228,7 @@ public final class WarriorFx {
             if (age % 4 == 0) {
                 Fx.spiral(lv, ParticleTypes.CLOUD, o.position(), 2.2, 1.8, 1, 6);
             }
-        }, () -> fadeOut(ring, Circles.face(UP, spin[0]), 7.0));
+        }, () -> fadeOut(ring, Circles.face(UP, spin[0])));
     }
 
     /** Three claw slashes on the target, and a sigil under it while it bleeds. */

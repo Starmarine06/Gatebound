@@ -1,5 +1,6 @@
 package dev.gatebound.skill.mage;
 
+import dev.gatebound.skill.fx.FormFx;
 import dev.gatebound.sound.GateboundSounds;
 import dev.gatebound.compat.Compat;
 import dev.architectury.event.EventResult;
@@ -89,31 +90,6 @@ public final class FireSkills {
         Fx.impact(level, FIRE, at, size * 2.2);
         MageCore.particles(level, ParticleTypes.EXPLOSION, at, 1, size * 0.2, 0);
         MageCore.particles(level, ParticleTypes.LARGE_SMOKE, at.add(0, 0.5, 0), (int) (6 * size), size * 0.4, 0.05);
-    }
-
-    /** One tick of the fire mantle a Mage wears in Ifrit form: a flame swirl, a crown of spikes and two wings of fire. */
-    private static void mantle(ServerPlayer p, long tick) {
-        ServerLevel lv = p.level();
-        Vec3 base = p.position();
-        Fx.swirl(lv, ParticleTypes.FLAME, base, 0.8, 2.2, tick, 5);
-        Fx.swirl(lv, Fx.fade(FIRE.rgb1(), FIRE.rgb2(), 1.2f), base, 1.2, 2.4, tick + 7, 3);
-        Vec3 head = base.add(0, p.getBbHeight() + 0.1, 0);
-        for (int i = 0; i < 5; i++) {
-            double a = Math.PI * 2 * i / 5 + tick * 0.05;
-            double h = 0.35 + 0.15 * Math.sin(tick * 0.3 + i);
-            Fx.put(lv, ParticleTypes.SMALL_FLAME, head.add(Math.cos(a) * 0.3, h, Math.sin(a) * 0.3));
-            Fx.put(lv, ParticleTypes.FLAME, head.add(Math.cos(a) * 0.3, h + 0.25, Math.sin(a) * 0.3));
-        }
-        Vec3 back = MageCore.flatLook(p).scale(-1);
-        Vec3 side = new Vec3(-back.z, 0, back.x);
-        for (int k = 0; k < 9; k++) {
-            double reach = 0.35 + k * 0.22;
-            double rise = 1.3 + Math.sin(k * 0.45 + tick * 0.25) * 0.35 + k * 0.05;
-            for (int s = -1; s <= 1; s += 2) {
-                Fx.put(lv, k % 2 == 0 ? ParticleTypes.FLAME : ParticleTypes.SMALL_FLAME,
-                        base.add(back.scale(0.3 + k * 0.03)).add(side.scale(reach * s)).add(0, rise, 0));
-            }
-        }
     }
 
     // ---------------------------------------------------------------- events
@@ -406,19 +382,9 @@ public final class FireSkills {
             for (LivingEntity e : MageCore.foes(o, lv, 4)) {
                 scorch(o, lv, d, e, 2, 80);
             }
-            Fx.runeTick(lv, FIRE, o.position().add(0, 0.08, 0), 2.2, lv.getServer().getTickCount());
-        });
-        // The mantle is drawn every other tick for as long as the form lasts.
-        MageCore.run((server, now) -> {
-            if (!MageCore.inForm(p, Element.FIRE) || !p.isAlive() || p.isRemoved()) {
-                return true;
-            }
-            if (now % 2 == 0) {
-                mantle(p, now);
-            }
-            return false;
         });
         CastFx.transform(p, Element.FIRE);
+        FormFx.start(p, Element.FIRE);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.BLAZE_AMBIENT), 1.5f, 0.5f);
         Compat.overlay(p, Component.literal("You become Ifrit."));
         return true;

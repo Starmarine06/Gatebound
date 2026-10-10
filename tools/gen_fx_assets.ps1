@@ -469,4 +469,201 @@ DrawStone 'stone_spike.png'
 WriteModel 'stone_spike' 'stone_spike' @(
   (BoxEl @(3.5, 0, 3.5) @(12.5, 5, 12.5) 'y' 15), (BoxEl @(4.8, 5, 4.8) @(11.2, 10, 11.2) 'y' 15), (BoxEl @(6.1, 10, 6.1) @(9.9, 14, 9.9) 'y' 15),
   (BoxEl @(7.2, 14, 7.2) @(8.8, 18, 8.8) 'y' 15), (BoxEl @(4, 0, 4) @(12, 4, 12) 'y' 50), (BoxEl @(5.5, 4, 5.5) @(10.5, 9, 10.5) 'y' 50))
+
+# ------------------------------------------------------------------ mage form set (attachments and body projectiles)
+function Rad($d) { return $d * [math]::PI / 180 }
+
+# Two wings spread behind the body (256x256, symmetric). Styles: feather (white-gold), flame, membrane (bat), wind (streaks).
+function DrawWings($file, $glow, $core, $fill, $style) {
+  $cv = NewCanvas 256; $g = $cv.g
+  for ($side = 0; $side -lt 2; $side++) {
+    $g.ResetTransform()
+    if ($side -eq 1) { $g.TranslateTransform(256, 0); $g.ScaleTransform(-1, 1) }
+    $rx = 138; $ry = 150
+    $tips = @()
+    for ($i = 0; $i -lt 7; $i++) {
+      $a = Rad (-82 + $i * 14.5)
+      $len = @(78, 100, 118, 124, 116, 100, 82)[$i]
+      $dx = [math]::Cos($a); $dy = [math]::Sin($a)
+      $tx = $rx + $dx * $len; $ty = $ry + $dy * $len
+      $tips += , (Pt $tx $ty)
+      $px = - $dy; $py = $dx
+      $w = 13
+      $mx = $rx + $dx * $len * 0.5; $my = $ry + $dy * $len * 0.5
+      $poly = PtArr @((Pt $rx $ry), (Pt ($mx + $px * $w) ($my + $py * $w)), (Pt $tx $ty), (Pt ($mx - $px * $w) ($my - $py * $w)))
+      switch ($style) {
+        'feather'  { $br = New-Object System.Drawing.SolidBrush (C 235 $fill[0] $fill[1] $fill[2]); $g.FillPolygon($br, $poly); $br.Dispose()
+                     $pen = New-Object System.Drawing.Pen (C 255 $glow[0] $glow[1] $glow[2]), ([single]1.6); $g.DrawPolygon($pen, $poly); $pen.Dispose()
+                     GlowLines $g (PtArr @((Pt $rx $ry), (Pt $tx $ty))) $glow $core 0.5 }
+        'flame'    { $br = New-Object System.Drawing.SolidBrush (C 190 $glow[0] $glow[1] $glow[2]); $g.FillPolygon($br, $poly); $br.Dispose()
+                     $inner = PtArr @((Pt $rx $ry), (Pt ($mx + $px * $w * 0.4) ($my + $py * $w * 0.4)), (Pt ($rx + $dx * $len * 0.85) ($ry + $dy * $len * 0.85)), (Pt ($mx - $px * $w * 0.4) ($my - $py * $w * 0.4)))
+                     $br = New-Object System.Drawing.SolidBrush (C 235 $core[0] $core[1] $core[2]); $g.FillPolygon($br, $inner); $br.Dispose() }
+        'wind'     { for ($k = -1; $k -le 1; $k++) {
+                       $pts = @()
+                       for ($t = 0; $t -le 12; $t++) { $f = $t / 12.0; $pts += , (Pt ($rx + $dx * $len * $f + $px * ($k * 7 + [math]::Sin($f * 5 + $i) * 4)) ($ry + $dy * $len * $f + $py * ($k * 7 + [math]::Sin($f * 5 + $i) * 4))) }
+                       GlowLines $g (PtArr $pts) $glow $core 0.7 } }
+      }
+    }
+    if ($style -eq 'membrane') {
+      $pts = @((Pt $rx $ry))
+      for ($i = 0; $i -lt 7; $i++) {
+        $pts += , $tips[$i]
+        if ($i -lt 6) { $m = Pt (($tips[$i].X + $tips[$i + 1].X) / 2 * 0.86 + $rx * 0.14) (($tips[$i].Y + $tips[$i + 1].Y) / 2 * 0.86 + $ry * 0.14); $pts += , $m }
+      }
+      $br = New-Object System.Drawing.SolidBrush (C 235 $fill[0] $fill[1] $fill[2]); $g.FillPolygon($br, (PtArr $pts)); $br.Dispose()
+      for ($i = 0; $i -lt 7; $i++) { GlowLines $g (PtArr @((Pt $rx $ry), $tips[$i])) $glow $core 0.9 }
+      GlowLines $g (PtArr $pts) $glow $core 0.5
+    }
+    # the shoulder bone
+    $g.ResetTransform()
+  }
+  SavePng $cv $file
+}
+
+# A flat ring with spikes, for the halo above the head (128x128, lying flat).
+function DrawHalo($file, $glow, $core, $spikes) {
+  $cv = NewCanvas 128; $g = $cv.g; $c = 64
+  GlowCircle $g $c $c 50 $glow $core 1.8
+  GlowCircle $g $c $c 42 $glow $core 0.7
+  for ($i = 0; $i -lt $spikes; $i++) {
+    $a = 2 * [math]::PI * $i / $spikes
+    GlowLines $g (PtArr @((Pt ($c + [math]::Cos($a) * 50) ($c + [math]::Sin($a) * 50)), (Pt ($c + [math]::Cos($a) * 62) ($c + [math]::Sin($a) * 62)))) $glow $core 0.9
+  }
+  SavePng $cv $file
+}
+
+# A tapered curved horn pair (256x128), for the head.
+function DrawHorns($file, $glow, $core) {
+  $cv = NewCanvas 256; $g = $cv.g
+  for ($side = 0; $side -lt 2; $side++) {
+    $g.ResetTransform()
+    if ($side -eq 1) { $g.TranslateTransform(256, 0); $g.ScaleTransform(-1, 1) }
+    $prev = $null
+    for ($t = 0; $t -le 20; $t++) {
+      $f = $t / 20.0
+      $x = 100 - $f * 62 + [math]::Sin($f * 3.1) * 20; $y = 118 - $f * 100
+      $cur = Pt $x $y
+      if ($prev -ne $null) {
+        $w = 22 * (1 - $f) + 3
+        $pen = New-Object System.Drawing.Pen (C 255 $glow[0] $glow[1] $glow[2]), ([single]($w + 5)); $pen.StartCap = 'Round'; $pen.EndCap = 'Round'
+        $g.DrawLine($pen, $prev, $cur); $pen.Dispose()
+        $pen = New-Object System.Drawing.Pen (C 255 62 16 10), ([single]$w); $pen.StartCap = 'Round'; $pen.EndCap = 'Round'
+        $g.DrawLine($pen, $prev, $cur); $pen.Dispose()
+        $pen = New-Object System.Drawing.Pen (C 255 $core[0] $core[1] $core[2]), ([single]($w * 0.18)); $g.DrawLine($pen, $prev, $cur); $pen.Dispose()
+      }
+      $prev = $cur
+    }
+    $g.ResetTransform()
+  }
+  SavePng $cv $file
+}
+
+# A jagged crown of crystal spikes (256x128).
+function DrawCrown($file, $glow, $core) {
+  $cv = NewCanvas 256; $g = $cv.g
+  $hs = @(60, 34, 84, 18, 100, 8, 88, 24, 62)
+  $base = 116; $pts = @((Pt 24 $base))
+  for ($i = 0; $i -lt 9; $i++) {
+    $x0 = 24 + $i * 26; $x1 = $x0 + 26
+    $pts += , (Pt ($x0 + 13) (118 - ($hs[$i] + 8)))
+    $pts += , (Pt $x1 ($base - 12))
+  }
+  $pts += , (Pt 232 $base)
+  $br = New-Object System.Drawing.SolidBrush (C 225 150 220 255); $g.FillPolygon($br, (PtArr $pts)); $br.Dispose()
+  GlowLines $g (PtArr $pts) $glow $core 1.1
+  for ($i = 0; $i -lt 9; $i++) { $x = 37 + $i * 26; GlowLines $g (PtArr @((Pt $x $base), (Pt $x (118 - ($hs[$i] + 8))))) $glow $core 0.5 }
+  SavePng $cv $file
+}
+
+# A vertical jagged strip (64x128) for lightning bolts, with side branches.
+function DrawBoltStrip($file, $glow, $core) {
+  $cv = NewCanvas 128; $g = $cv.g
+  $rng = New-Object System.Random 3
+  $x = 64; $pts = @((Pt 64 0))
+  for ($y = 12; $y -lt 128; $y += 12) { $x = 64 + $rng.Next(-16, 17); $pts += , (Pt $x $y) }
+  $pts += , (Pt 64 128)
+  GlowLines $g (PtArr $pts) $glow $core 2.2
+  for ($i = 1; $i -lt $pts.Count - 1; $i += 2) {
+    $b = $pts[$i]; $dir = if ($rng.Next(0, 2) -eq 0) { -1 } else { 1 }
+    GlowLines $g (PtArr @($b, (Pt ($b.X + $dir * 18) ($b.Y + 14)), (Pt ($b.X + $dir * 28) ($b.Y + 30)))) $glow $core 1.0
+  }
+  SavePng $cv $file
+}
+
+# A wavy dark tendril strip (128x128).
+function DrawTendril($file, $glow, $core) {
+  $cv = NewCanvas 128; $g = $cv.g
+  $pts = @()
+  for ($y = 0; $y -le 128; $y += 4) { $pts += , (Pt (64 + [math]::Sin($y * 0.09) * 22) $y) }
+  $pen = New-Object System.Drawing.Pen (C 150 $glow[0] $glow[1] $glow[2]), ([single]22); $pen.StartCap = 'Round'; $pen.EndCap = 'Round'; $g.DrawLines($pen, (PtArr $pts)); $pen.Dispose()
+  $pen = New-Object System.Drawing.Pen (C 255 22 8 34), ([single]13); $pen.StartCap = 'Round'; $pen.EndCap = 'Round'; $g.DrawLines($pen, (PtArr $pts)); $pen.Dispose()
+  $pen = New-Object System.Drawing.Pen (C 255 $core[0] $core[1] $core[2]), ([single]1.6); $g.DrawLines($pen, (PtArr $pts)); $pen.Dispose()
+  SavePng $cv $file
+}
+
+# Stone with glowing seams for boulders (64x64).
+function DrawBoulder($file, $glow, $core) {
+  $cv = NewCanvas 64; $g = $cv.g
+  $rng = New-Object System.Random 23
+  $g.Clear((C 255 96 90 84))
+  for ($i = 0; $i -lt 240; $i++) {
+    $x = $rng.Next(0, 64); $y = $rng.Next(0, 64); $v = $rng.Next(-24, 24)
+    $br = New-Object System.Drawing.SolidBrush (C 255 (96 + $v) (90 + $v) (84 + $v)); $g.FillRectangle($br, $x, $y, 3, 3); $br.Dispose()
+  }
+  for ($i = 0; $i -lt 7; $i++) {
+    $x = $rng.Next(0, 64); $y = $rng.Next(0, 64); $pts = @((Pt $x $y))
+    for ($k = 0; $k -lt 4; $k++) { $x += $rng.Next(-13, 14); $y += $rng.Next(-13, 14); $pts += , (Pt $x $y) }
+    $pen = New-Object System.Drawing.Pen (C 255 $glow[0] $glow[1] $glow[2]), ([single]2.4); $g.DrawLines($pen, (PtArr $pts)); $pen.Dispose()
+    $pen = New-Object System.Drawing.Pen (C 255 $core[0] $core[1] $core[2]), ([single]0.9); $g.DrawLines($pen, (PtArr $pts)); $pen.Dispose()
+  }
+  SavePng $cv $file
+}
+
+# A swirling dark orb (64x64).
+function DrawVoid($file, $glow, $core) {
+  $cv = NewCanvas 64; $g = $cv.g
+  $g.Clear((C 255 18 6 30))
+  for ($arm = 0; $arm -lt 3; $arm++) {
+    $pts = @()
+    for ($t = 0; $t -le 30; $t++) { $r = 3 + $t * 1.0; $a = $arm * 2.1 + $t * 0.22; $pts += , (Pt (32 + [math]::Cos($a) * $r) (32 + [math]::Sin($a) * $r)) }
+    $pen = New-Object System.Drawing.Pen (C 255 $glow[0] $glow[1] $glow[2]), ([single]3); $g.DrawLines($pen, (PtArr $pts)); $pen.Dispose()
+    $pen = New-Object System.Drawing.Pen (C 255 $core[0] $core[1] $core[2]), ([single]1); $g.DrawLines($pen, (PtArr $pts)); $pen.Dispose()
+  }
+  $br = New-Object System.Drawing.SolidBrush (C 255 4 0 10); $g.FillEllipse($br, 26, 26, 12, 12); $br.Dispose()
+  SavePng $cv $file
+}
+
+$fe = $elements['fire']; $ic = $elements['ice']; $li = $elements['lightning']; $wi = $elements['wind']
+$ea = $elements['earth']; $lg = $elements['light']; $da = $elements['dark']
+
+DrawWings 'wings_fire.png' $fe.glow $fe.core @(255, 140, 40) 'flame'
+DrawWings 'wings_wind.png' $wi.glow $wi.core @(255, 255, 255) 'wind'
+DrawWings 'wings_light.png' $lg.glow $lg.core @(255, 250, 230) 'feather'
+DrawWings 'wings_dark.png' $da.glow $da.core @(28, 10, 44) 'membrane'
+foreach ($n in @('fire', 'wind', 'light', 'dark')) { WriteModel "wings_$n" "wings_$n" @((PlaneEl 'z')) }
+
+DrawHalo 'halo_lightning.png' $li.glow $li.core 12
+DrawHalo 'halo_light.png' $lg.glow $lg.core 16
+DrawHalo 'halo_dark.png' $da.glow $da.core 8
+foreach ($n in @('lightning', 'light', 'dark')) { WriteModel "halo_$n" "halo_$n" @((PlaneEl 'y')) }
+
+DrawHorns 'horns_fire.png' $fe.glow $fe.core
+WriteModel 'horns_fire' 'horns_fire' @((PlaneEl 'z'), (PlaneEl 'x'))
+DrawCrown 'crown_ice.png' $ic.glow $ic.core
+WriteModel 'crown_ice' 'crown_ice' @((PlaneEl 'z'), (PlaneEl 'x'), (BoxEl @(0, 0, 7.95) @(16, 16, 8.05) 'y' 45), (BoxEl @(0, 0, 7.95) @(16, 16, 8.05) 'y' -45))
+
+DrawBoltStrip 'bolt.png' $li.glow $li.core
+WriteModel 'bolt' 'bolt' @((PlaneEl 'z'), (PlaneEl 'x'))
+DrawTendril 'tendril.png' $da.glow $da.core
+WriteModel 'tendril' 'tendril' @((PlaneEl 'z'), (PlaneEl 'x'))
+DrawBoulder 'boulder.png' $ea.glow $ea.core
+WriteModel 'boulder' 'boulder' @(
+  (BoxEl @(3, 3, 3) @(13, 13, 13) 'y' 0), (BoxEl @(3.5, 3.5, 3.5) @(12.5, 12.5, 12.5) 'y' 45), (BoxEl @(3.5, 3.5, 3.5) @(12.5, 12.5, 12.5) 'x' 45),
+  (BoxEl @(3.5, 3.5, 3.5) @(12.5, 12.5, 12.5) 'z' 45), (BoxEl @(2, 5, 5) @(14, 11, 11) 'y' 22.5))
+DrawVoid 'void_sphere.png' $da.glow $da.core
+WriteModel 'void_sphere' 'void_sphere' @(
+  (BoxEl @(3, 3, 3) @(13, 13, 13) 'y' 0), (BoxEl @(3.5, 3.5, 3.5) @(12.5, 12.5, 12.5) 'y' 45), (BoxEl @(3.5, 3.5, 3.5) @(12.5, 12.5, 12.5) 'x' 45),
+  (BoxEl @(3.5, 3.5, 3.5) @(12.5, 12.5, 12.5) 'z' 45))
+DrawSlash 'wind_blade.png' $wi.glow $wi.core
+WriteModel 'wind_blade' 'wind_blade' @((PlaneEl 'y'))
 Write-Output 'done'
