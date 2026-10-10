@@ -667,6 +667,20 @@ WriteModel 'void_sphere' 'void_sphere' @(
 DrawSlash 'wind_blade.png' $wi.glow $wi.core
 WriteModel 'wind_blade' 'wind_blade' @((PlaneEl 'y'))
 
+
+# ------------------------------------------------------------------ wings for the last three forms, and the wind tornado
+DrawWings 'wings_ice.png' $ic.glow $ic.core @(185, 228, 255) 'feather'
+DrawWings 'wings_lightning.png' $li.glow $li.core @(255, 236, 90) 'flame'
+DrawWings 'wings_earth.png' $ea.glow $ea.core @(98, 92, 86) 'membrane'
+foreach ($n in @('ice', 'lightning', 'earth')) { WriteModel "wings_$n" "wings_$n" @((PlaneEl 'z')) }
+
+# Stacked flared rings of wind (the ring_wind texture), narrow at the bottom and wide at the top.
+function RingPlane($y, $half) {
+  $f = Face 0
+  return '{"from": [' + (8 - $half) + ', ' + $y + ', ' + (8 - $half) + '], "to": [' + (8 + $half) + ', ' + $y + ', ' + (8 + $half) + '], "faces": {"up": ' + $f + ', "down": ' + $f + '}}'
+}
+WriteModel 'tornado' 'ring_wind' @((RingPlane 0.5 2.5), (RingPlane 3 3.4), (RingPlane 5.5 4.3), (RingPlane 8 5.3), (RingPlane 10.5 6.3), (RingPlane 13 7.4), (RingPlane 15.5 8))
+
 # ------------------------------------------------------------------ mage form body skins (64x64 player skin layout, 4 animation frames each)
 # Only the base-layer regions are painted; the outer-layer regions stay transparent, so the overlay never hides hats, jackets or sleeves.
 $formDir = Join-Path $root 'textures\entity\form'

@@ -99,25 +99,44 @@ public final class FormBodyLayer extends RenderLayer<AvatarRenderState, PlayerMo
 
     private void attachments(PoseStack ps, SubmitNodeCollector c, AvatarRenderState state, Entity owner, String element, float t) {
         PlayerModel m = getParentModel();
+        // every form stands in its own big circle
+        draw(ps, c, state, owner, null, "circle_" + element, 0.0f, 1.45f, 0.0f, 0, t * 1.5f, 0, 5.5f, 5.5f, 5.5f);
         switch (element) {
             case "fire" -> {
                 wings(ps, c, state, owner, m, "wings_fire", 3.8f, t);
                 horns(ps, c, state, owner, m, "horns_fire", 1.0f);
             }
             case "ice" -> {
+                wings(ps, c, state, owner, m, "wings_ice", 4.0f, t);
                 horns(ps, c, state, owner, m, "crown_ice", 0.8f);
                 spike(ps, c, state, owner, m, 1);
                 spike(ps, c, state, owner, m, -1);
             }
-            case "lightning" -> halo(ps, c, state, owner, m, "halo_lightning", 1.3f, t * 7.0f);
-            case "wind" -> wings(ps, c, state, owner, m, "wings_wind", 4.2f, t);
+            case "lightning" -> {
+                wings(ps, c, state, owner, m, "wings_lightning", 4.2f, t);
+                halo(ps, c, state, owner, m, "halo_lightning", 1.3f, t * 7.0f);
+                for (int i = 0; i < 4; i++) { // bolts circling the body
+                    float a = t * 0.3f + i * 1.5708f;
+                    draw(ps, c, state, owner, m.body, "bolt", (float) Math.cos(a) * 1.0f, 0.35f, (float) Math.sin(a) * 1.0f, 0, 0, 0, 0.9f, 2.4f, 0.9f);
+                }
+            }
+            case "wind" -> {
+                wings(ps, c, state, owner, m, "wings_wind", 4.2f, t);
+                draw(ps, c, state, owner, null, "tornado", 0.0f, 0.75f, 0.0f, 0, t * 22.0f, 0, 3.4f, 2.6f, 3.4f);
+                for (int i = 0; i < 4; i++) { // blades circling the body
+                    float a = t * 0.22f + i * 1.5708f;
+                    draw(ps, c, state, owner, m.body, "wind_blade", (float) Math.cos(a) * 1.3f, 0.4f + (float) Math.sin(t * 0.1f + i) * 0.15f,
+                            (float) Math.sin(a) * 1.3f, 0, 90.0f - (float) Math.toDegrees(a), 0, 1.8f, 1.8f, 1.8f);
+                }
+            }
             case "earth" -> {
+                wings(ps, c, state, owner, m, "wings_earth", 4.0f, t);
                 pauldron(ps, c, state, owner, m, 1);
                 pauldron(ps, c, state, owner, m, -1);
-                for (int i = 0; i < 3; i++) {
-                    float a = t * 0.07f + i * 2.094f;
-                    draw(ps, c, state, owner, null, "boulder", (float) Math.cos(a) * 1.6f, 0.2f + (float) Math.sin(t * 0.09f + i) * 0.25f,
-                            (float) Math.sin(a) * 1.6f, t * 3.0f, t * 4.0f + i * 60.0f, 0, 0.95f, 0.95f, 0.95f);
+                for (int i = 0; i < 5; i++) {
+                    float a = t * 0.07f + i * 1.2566f;
+                    draw(ps, c, state, owner, null, "boulder", (float) Math.cos(a) * 1.8f, 0.2f + (float) Math.sin(t * 0.09f + i) * 0.25f,
+                            (float) Math.sin(a) * 1.8f, t * 3.0f, t * 4.0f + i * 60.0f, 0, 0.95f, 0.95f, 0.95f);
                 }
             }
             case "light" -> {

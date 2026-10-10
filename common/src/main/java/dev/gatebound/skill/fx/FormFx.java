@@ -103,6 +103,19 @@ public final class FormFx {
         });
     }
 
+    /** A stone spike bursting out of the ground under a point, then sinking back. */
+    private static void spike(ServerLevel level, Vec3 base, double h) {
+        Props.Prop s = Props.sprite(level, base, "stone_spike", 40);
+        Quaternionf rot = yaw(RNG.nextDouble() * 3);
+        s.pose(Vec3.ZERO, rot, 1.2, 0.1, 1.2, 0);
+        Tasks.after(1, t -> s.pose(new Vec3(0, h * 0.5 - 0.3, 0), rot, 1.6, h, 1.6, 3));
+        Tasks.after(20, t -> {
+            s.pose(new Vec3(0, -0.2, 0), rot, 1.4, 0.1, 1.4, 6);
+            s.removeAfter(7);
+        });
+        Circles.ground(level, Element.EARTH, base, 2.8, 14);
+    }
+
     private static void emit(ServerPlayer o, ServerLevel level, Element element, int age) {
         Palette pal = Palette.of(element);
         String key = pal.key();
@@ -129,45 +142,71 @@ public final class FormFx {
                 }
             }
             case LIGHTNING -> {
-                if (age % 8 == 0) {
-                    for (LivingEntity e : nearest(o, level, 12, 2)) {
+                if (age % 6 == 0) { // a bolt from the chest that chains from one enemy to the next
+                    Vec3 from = o.position().add(0, 1.3, 0);
+                    for (LivingEntity e : nearest(o, level, 14, 3)) {
                         Vec3 to = mid(e);
-                        beam(level, "bolt", o.position().add(0, 1.3, 0), to, 0.9, 2);
-                        Circles.ring(level, key, to, 1.4, 5);
+                        beam(level, "bolt", from, to, 1.1, 2);
+                        Circles.ring(level, key, to, 1.6, 5);
+                        from = to;
                     }
                 }
-                if (age % 6 == 0) { // crackle over the skin
+                if (age % 24 == 0) { // strikes crashing down from the sky
+                    for (LivingEntity e : nearest(o, level, 16, 3)) {
+                        beam(level, "bolt", e.position().add(0, 14, 0), e.position().add(0, 0.2, 0), 1.8, 4);
+                        Circles.ground(level, Element.LIGHTNING, e.position(), 3.2, 10);
+                        Tasks.flash(level, e.getX(), e.getY() + 1, e.getZ());
+                        Tasks.sound(level, e.position(), pal.hit(), 0.7f, 1.3f);
+                    }
+                }
+                if (age % 4 == 0) { // crackle over the skin
                     Vec3 c = o.position().add(0, 1.0, 0);
-                    Vec3 a = c.add((RNG.nextDouble() - 0.5) * 1.6, RNG.nextDouble() * 1.0, (RNG.nextDouble() - 0.5) * 1.6);
-                    Vec3 b = c.add((RNG.nextDouble() - 0.5) * 1.6, RNG.nextDouble() * 1.0, (RNG.nextDouble() - 0.5) * 1.6);
-                    beam(level, "bolt", a, b, 0.5, 2);
+                    for (int i = 0; i < 2; i++) {
+                        Vec3 a2 = c.add((RNG.nextDouble() - 0.5) * 1.8, RNG.nextDouble() * 1.2, (RNG.nextDouble() - 0.5) * 1.8);
+                        Vec3 b2 = c.add((RNG.nextDouble() - 0.5) * 1.8, RNG.nextDouble() * 1.2, (RNG.nextDouble() - 0.5) * 1.8);
+                        beam(level, "bolt", a2, b2, 0.5, 2);
+                    }
                 }
             }
             case WIND -> {
-                if (age % 10 == 0) {
+                if (age % 6 == 0) {
                     int sign = 1;
-                    for (LivingEntity e : nearest(o, level, 14, 2)) {
+                    for (LivingEntity e : nearest(o, level, 14, 3)) {
                         Vec3 to = mid(e);
                         Vec3 from = hand(o, sign);
                         Vec3 dir = flat(to.subtract(from));
-                        fly(level, "wind_blade", from, to, 2.4, 1.5, 0, Circles.face(UP, Math.atan2(-dir.x, -dir.z)), () -> Circles.ring(level, key, to, 1.8, 5));
+                        fly(level, "wind_blade", from, to, 2.6, 1.6, 0, Circles.face(UP, Math.atan2(-dir.x, -dir.z)), () -> Circles.ring(level, key, to, 1.8, 5));
                         sign = -sign;
+                    }
+                }
+                if (age % 20 == 0) { // a ring of blades flung out in every direction
+                    Circles.ring(level, key, o.position(), 7, 9);
+                    for (int i = 0; i < 6; i++) {
+                        double ang = i * Math.PI / 3 + age * 0.1;
+                        Vec3 dir = new Vec3(Math.cos(ang), 0, Math.sin(ang));
+                        Vec3 from = o.position().add(0, 1.0, 0).add(dir.scale(0.6));
+                        fly(level, "wind_blade", from, from.add(dir.scale(8)), 2.8, 1.3, 0, Circles.face(UP, Math.atan2(-dir.x, -dir.z)), null);
                     }
                 }
             }
             case EARTH -> {
-                if (age % 20 == 0) {
-                    for (LivingEntity e : nearest(o, level, 14, 2)) {
+                if (age % 14 == 0) { // boulders lobbed from behind the shoulders
+                    for (LivingEntity e : nearest(o, level, 14, 3)) {
                         Vec3 to = mid(e);
                         Vec3 from = o.position().add(0, 2.3, 0).add(facing(o).scale(-0.3));
-                        fly(level, "boulder", from, to, 1.2, 0.9, 2.8, new Quaternionf().rotationXYZ(0.6f, 0.4f, 0.2f), () -> {
+                        fly(level, "boulder", from, to, 1.3, 0.9, 2.8, new Quaternionf().rotationXYZ(0.6f, 0.4f, 0.2f), () -> {
                             Circles.ground(level, Element.EARTH, e.position(), 3.0, 14);
                             Circles.ring(level, key, e.position(), 2.4, 6);
                         });
                     }
                 }
-                if (age % 40 == 20) {
-                    Circles.ring(level, key, o.position(), 5, 8);
+                if (age % 16 == 0) { // stone spikes erupt under the enemies
+                    for (LivingEntity e : nearest(o, level, 14, 4)) {
+                        spike(level, e.position(), 2.6 + RNG.nextDouble() * 1.4);
+                    }
+                }
+                if (age % 30 == 10) {
+                    Circles.ring(level, key, o.position(), 6, 8);
                 }
             }
             case LIGHT -> {

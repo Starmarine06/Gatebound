@@ -459,3 +459,7 @@ Anything that follows a player's body is now drawn by `client/FormBodyLayer` fro
 - The server only records tags (`skill/fx/FxState.set(player, tag, ticks)`); `FormSync` sends them every 2 ticks (`FormSyncPayload` carries player/tag pairs, `ClientFormData.tags(uuid)`).
 - To add a body effect: add a case in `FormBodyLayer.effect()` and call `FxState.set` from the skill. World-space things (impacts, rings, cracks, the plunged sword) stay server props.
 - 1.21.1 only gets the body skin (no `item_model` component there). Constants in `draw()` (offsets, tilt signs for spikes/pauldrons/horns) are guesses: tune after seeing them.
+
+### Forms pass 2 (wings for all, stronger Lightning/Wind/Earth)
+Every form now has wings (`wings_<element>`, all 7) and stands in a big `circle_<element>` under the feet (both client-drawn in `FormBodyLayer.attachments`).
+Lightning: orbiting `bolt` strips, chain bolts that jump between up to 3 enemies, sky strikes (14-block `bolt` column + ground circle + flash) every 1.2 s, skin crackle. Wind: spinning `tornado` model (stacked `ring_wind` planes), 4 orbiting `wind_blade`s, 3 blades per volley, a 6-blade ring flung outward every second. Earth: 5 orbiting boulders, lobbed boulder volleys, stone spikes erupting under up to 4 enemies every 0.8 s, shockwave ring. All visual only, untested in game; tune sizes in `FormBodyLayer` and `FormFx.emit`.
