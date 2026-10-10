@@ -948,7 +948,23 @@ public final class EchoManager {
             int curMode = effectiveMode(owner, e.getKey(), info.slot);
             boolean seeker = curMode == EchoRoster.SEEK || curMode == EchoRoster.GOTO;
             double leash = seeker ? 150 : EchoConfig.teleportDistance;
-            if (mob.level() != owner.level() || mob.distanceToSqr(owner) > leash * leash) {
+            // A commanded echo stays on its target until that target is dead (no pulling it back across the map).
+            boolean commanded = false;
+            if (mob instanceof EchoEntity ee && ee.commandTarget != null) {
+                Entity victim = ((ServerLevel) mob.level()).getEntity(ee.commandTarget);
+                if (victim instanceof LivingEntity target && target.isAlive()) {
+                    commanded = mob.distanceToSqr(owner) < 150 * 150;
+                    if (mob.getTarget() != target) {
+                        mob.setTarget(target);
+                    }
+                } else {
+                    ee.commandTarget = null;
+                }
+            }
+            // Land echoes are only brought to the owner while the owner stands on land (not in the air).
+            boolean landMob = !(mob instanceof EchoEntity ee2 && ee2.isFlier());
+            boolean ownerAirborne = !owner.onGround() && !owner.isInWater() && !owner.isInLava();
+            if (!commanded && !(landMob && ownerAirborne) && (mob.level() != owner.level() || mob.distanceToSqr(owner) > leash * leash)) {
                 teleportTo(mob, owner);
             }
             if ((tick + info.slot) % 20 == 0 && mob.level() instanceof ServerLevel level) {

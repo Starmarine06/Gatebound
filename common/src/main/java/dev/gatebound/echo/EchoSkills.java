@@ -70,6 +70,7 @@ public final class EchoSkills {
             }
             e.setTarget(null);
             e.commandUntil = 0;
+            e.commandTarget = null;
             e.seekFound = null;
             if (shown++ < 8) {
                 dev.gatebound.skill.fx.SummonerFx.rallyFrom(level, e);

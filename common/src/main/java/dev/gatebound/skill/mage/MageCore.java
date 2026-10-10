@@ -212,9 +212,44 @@ public final class MageCore {
         return e != owner && e.isAlive() && !(e instanceof Player) && !(e instanceof net.minecraft.world.entity.decoration.ArmorStand) &&!(e instanceof Mob mob && EchoManager.isEcho(mob));
     }
 
-    /** Hostile or neutral living things within a radius of a point (players and echoes excluded). */
+    /** Things that are not alive but can be destroyed by an attack: end crystals and missiles (fireballs) not fired by a player. */
+    public static boolean breakable(ServerPlayer owner, net.minecraft.world.entity.Entity e) {
+        if (!e.isAlive() || e.isRemoved()) {
+            return false;
+        }
+        if (e instanceof net.minecraft.world.entity.boss.enderdragon.EndCrystal) {
+            return true;
+        }
+        return e instanceof net.minecraft.world.entity.projectile.Projectile pr && pr.getOwner() != owner && !(pr.getOwner() instanceof Player)
+                && pr.isPickable();
+    }
+
+    /** Hurts a breakable object (an end crystal blows up, a fireball is swatted away). */
+    public static void smash(ServerPlayer owner, ServerLevel level, net.minecraft.world.entity.Entity object) {
+        boolean was = applying;
+        applying = true;
+        try {
+            object.hurtServer(level, level.damageSources().indirectMagic(owner, owner), 10.0f);
+        } finally {
+            applying = was;
+        }
+    }
+
+    /** Magic that sweeps an area also breaks end crystals and swats hostile fireballs inside it. */
+    private static void breakAround(ServerPlayer owner, ServerLevel level, AABB box, Vec3 at, double radius) {
+        for (net.minecraft.world.entity.Entity o : level.getEntities(owner, box, x -> breakable(owner, x))) {
+            double dx = o.getX() - at.x;
+            double dz = o.getZ() - at.z;
+            if (dx * dx + dz * dz <= (radius + 0.6) * (radius + 0.6)) {
+                smash(owner, level, o);
+            }
+        }
+    }
+
+    /** Hostile or neutral living things within a radius of a point (players and echoes excluded); also breaks end crystals there. */
     public static List<LivingEntity> foesAt(ServerPlayer owner, ServerLevel level, Vec3 at, double radius) {
         AABB box = new AABB(at, at).inflate(radius, Math.max(2.0, radius * 0.6), radius);
+        breakAround(owner, level, box, at, radius);
         List<LivingEntity> out = new ArrayList<>();
         for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, box, x -> valid(owner, x))) {
             double dx = e.getX() - at.x;
@@ -392,6 +427,23 @@ public final class MageCore {
             }
             if (trail != null) {
                 trail.draw(level, start, end, age[0]++);
+            }
+            if (hit == null) {
+                net.minecraft.world.entity.Entity object = null;
+                double nearest = Double.MAX_VALUE;
+                for (net.minecraft.world.entity.Entity x : level.getEntities(o, box, y -> breakable(o, y))) {
+                    double d = x.distanceToSqr(start);
+                    if (d < nearest) {
+                        nearest = d;
+                        object = x;
+                    }
+                }
+                if (object != null) {
+                    Vec3 where = object.position().add(0, object.getBbHeight() * 0.5, 0);
+                    smash(o, level, object);
+                    impact.hit(level, where, null);
+                    return true;
+                }
             }
             if (hit != null) {
                 impact.hit(level, hit.position().add(0, hit.getBbHeight() * 0.5, 0), hit);
