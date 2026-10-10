@@ -112,6 +112,14 @@ public final class FormBodyLayer extends RenderLayer<AvatarRenderState, PlayerMo
                 spike(ps, c, state, owner, m, 1);
                 spike(ps, c, state, owner, m, -1);
             }
+            case "rogue" -> {
+                wings(ps, c, state, owner, m, "wings_rogue", 4.2f, t);
+                halo(ps, c, state, owner, m, "halo_rogue", 1.1f, t * 5.0f);
+                for (int i = 0; i < 4; i++) { // the shadow arms, reaching out behind the shoulders
+                    float sway = (float) Math.sin(t * 0.13f + i * 1.7f);
+                    draw(ps, c, state, owner, m.body, "tendril", (i - 1.5f) * 0.3f, 0.2f, 0.36f, 30.0f + sway * 16.0f, 0, sway * 14.0f, 0.8f, 2.6f, 0.8f);
+                }
+            }
             case "warrior" -> {
                 wings(ps, c, state, owner, m, "wings_warrior", 4.4f, t);
                 horns(ps, c, state, owner, m, "horns_fire", 1.0f);

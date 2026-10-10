@@ -94,8 +94,13 @@ public final class Circles {
      * Ends early if the entity dies or leaves.
      */
     public static Props.Prop follow(net.minecraft.world.entity.Entity entity, String key, double size, int life, double lift) {
+        return followModel(entity, "circle_" + key, size, life, lift);
+    }
+
+    /** Like {@link #follow} for any flat effect model (for example the Rogue's reticle). */
+    public static Props.Prop followModel(net.minecraft.world.entity.Entity entity, String model, double size, int life, double lift) {
         ServerLevel level = (ServerLevel) entity.level();
-        Props.Prop prop = Props.sprite(level, entity.position().add(0, lift, 0), "circle_" + key, life + 12);
+        Props.Prop prop = Props.sprite(level, entity.position().add(0, lift, 0), model, life + 12);
         Quaternionf flat = face(new Vec3(0, 1, 0), 0);
         prop.pose(Vec3.ZERO, flat, size * 0.15, size * 0.15, size * 0.15, 0);
         double[] spin = {0};

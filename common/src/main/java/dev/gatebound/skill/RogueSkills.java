@@ -20,6 +20,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import dev.gatebound.item.KnifeItems;
+import dev.gatebound.skill.fx.RogueFx;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.server.MinecraftServer;
@@ -381,7 +382,7 @@ public final class RogueSkills {
         WALK.remove(id);
         if (was) {
             p.removeEffect(MobEffects.INVISIBILITY);
-            level.sendParticles(ParticleTypes.LARGE_SMOKE, p.getX(), p.getY() + 1, p.getZ(), 12, 0.3, 0.5, 0.3, 0.02);
+            RogueFx.puff(level, p.position().add(0, 1.0, 0), 1.4, 6);
         }
     }
 
@@ -452,8 +453,7 @@ public final class RogueSkills {
         }
         if (ambush) {
             Compat.overlay(p, Component.literal("AMBUSH x" + String.format("%.1f", f)).withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.BOLD));
-            level.sendParticles(ParticleTypes.CRIT, victim.getX(), victim.getY(0.6), victim.getZ(), 14, 0.3, 0.4, 0.3, 0.25);
-            level.sendParticles(ParticleTypes.SQUID_INK, victim.getX(), victim.getY(0.5), victim.getZ(), 10, 0.3, 0.4, 0.3, 0.05);
+            RogueFx.backstab(victim, p);
             sound(p, level, GateboundSounds.of(SoundEvents.PLAYER_ATTACK_CRIT), 0.7f);
         } else if (crit) {
             level.sendParticles(ParticleTypes.CRIT, victim.getX(), victim.getY(0.6), victim.getZ(), 8, 0.3, 0.4, 0.3, 0.2);
@@ -466,6 +466,9 @@ public final class RogueSkills {
             return;
         }
         victim.addEffect(new MobEffectInstance(MobEffects.POISON, 100, 1));
+        if (victim.level() instanceof ServerLevel vl) {
+            RogueFx.venomHit(vl, victim);
+        }
         MarkInfo mark = MARKS.get(victim.getUUID());
         if (mark != null && mark.owner().equals(p.getUUID()) && mark.until() > now) {
             victim.addEffect(new MobEffectInstance(MobEffects.WITHER, 80, 1));
@@ -477,6 +480,7 @@ public final class RogueSkills {
         double f = multiplier(p, level, target, forceBehind, forceAmbush);
         applyVenom(p, target, now(p));
         rawHurt(p, level, target, (float) (damage * f));
+        RogueFx.cut(level, p, target);
     }
 
     private static void rawHurt(ServerPlayer p, ServerLevel level, LivingEntity target, float amount) {
@@ -687,7 +691,7 @@ public final class RogueSkills {
         SHADOW.put(id, now + 40);
         p.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, 60, 0, false, false));
         dropAggro(p, level);
-        level.sendParticles(ParticleTypes.LARGE_SMOKE, p.getX(), p.getY() + 1, p.getZ(), 25, 0.4, 0.6, 0.4, 0.02);
+        RogueFx.meld(p);
         sound(p, level, GateboundSounds.of(SoundEvents.ENDERMAN_TELEPORT), 0.6f);
         Compat.overlay(p, Component.literal(host == null ? "You melt into your own shadow." : "You melt into the shadow of " + host.getName().getString() + ".")
                 .withStyle(ChatFormatting.DARK_PURPLE));
@@ -951,7 +955,7 @@ public final class RogueSkills {
         player.connection.send(new ClientboundSetEntityMotionPacket(player));
         player.addEffect(new MobEffectInstance(MobEffects.SPEED, 60, 1));
         PlayerCombat.grantIFrames(player, 4);
-        level.sendParticles(ParticleTypes.LARGE_SMOKE, player.getX(), player.getY() + 0.5, player.getZ(), 15, 0.3, 0.4, 0.3, 0.02);
+        RogueFx.shadowStep(player);
         sound(player, level, GateboundSounds.of(SoundEvents.ENDERMAN_TELEPORT), 1.4f);
         return true;
     }
@@ -962,6 +966,7 @@ public final class RogueSkills {
         if (hits.isEmpty()) {
             return miss(p, KNIVES_COST, "No target for your knives.");
         }
+        RogueFx.knives(p, hits);
         double damage = 3 + 0.25 * data.get(Stat.AGILITY);
         for (LivingEntity e : hits) {
             hit(p, level, e, damage, false, false);
@@ -974,7 +979,7 @@ public final class RogueSkills {
         int ticks = (6 + data.level / 10) * 20;
         enterShadow(p, level, ticks);
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 1));
-        level.sendParticles(ParticleTypes.LARGE_SMOKE, p.getX(), p.getY() + 1, p.getZ(), 25, 0.4, 0.6, 0.4, 0.02);
+        RogueFx.vanish(p);
         sound(p, level, GateboundSounds.of(SoundEvents.ENDERMAN_TELEPORT), 0.8f);
         Compat.overlay(p, Component.literal("Shadow: your next strike is an Ambush.").withStyle(ChatFormatting.DARK_PURPLE));
         return true;
@@ -987,7 +992,7 @@ public final class RogueSkills {
         }
         LivingEntity t = hits.get(0);
         mark(p, t, RogueConfig.markSeconds * 20);
-        level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, t.getX(), t.getY(0.5), t.getZ(), 20, 0.4, 0.6, 0.4, 0.04);
+        RogueFx.mark(t, RogueConfig.markSeconds * 20);
         sound(p, level, GateboundSounds.of(SoundEvents.WITHER_SPAWN), 1.8f);
         Compat.overlay(p, Component.literal("Marked " + t.getName().getString() + " for " + RogueConfig.markSeconds + " s: +"
                 + Math.round(RogueConfig.markBonus * 100) + "% damage from you.").withStyle(ChatFormatting.DARK_PURPLE));
@@ -996,7 +1001,7 @@ public final class RogueSkills {
 
     public static boolean venomBlade(ServerPlayer p, ServerLevel level, PlayerData data) {
         VENOM.put(p.getUUID(), now(p) + 400);
-        level.sendParticles(ParticleTypes.ITEM_SLIME, p.getX(), p.getY() + 1, p.getZ(), 15, 0.4, 0.5, 0.4, 0.05);
+        RogueFx.venomStart(p);
         sound(p, level, GateboundSounds.of(SoundEvents.BREWING_STAND_BREW), 1.2f);
         Compat.overlay(p, Component.literal("Venom Blade: your hits poison for 20 s (wither on marked foes).").withStyle(ChatFormatting.GREEN));
         return true;
@@ -1021,11 +1026,11 @@ public final class RogueSkills {
         if (dest == null) {
             return false;
         }
-        level.sendParticles(ParticleTypes.PORTAL, p.getX(), p.getY() + 1, p.getZ(), 15, 0.3, 0.6, 0.3, 0.2);
+        RogueFx.afterimage(p);
         Vec3 face = t.position().subtract(dest);
         float yaw = (float) (Math.toDegrees(Math.atan2(-face.x, face.z)));
         p.teleportTo(level, dest.x, dest.y, dest.z, Set.of(), yaw, 0f, false);
-        level.sendParticles(ParticleTypes.SQUID_INK, dest.x, dest.y + 1, dest.z, 10, 0.3, 0.6, 0.3, 0.05);
+        RogueFx.arrival(level, dest);
         return true;
     }
 
@@ -1039,7 +1044,7 @@ public final class RogueSkills {
             return miss(p, BACKSTAB_COST, "No room to get behind it.");
         }
         hit(p, level, t, 6 + 0.6 * data.get(Stat.AGILITY) + 0.05 * data.level, true, false);
-        level.sendParticles(ParticleTypes.SWEEP_ATTACK, t.getX(), t.getY(0.5), t.getZ(), 1, 0, 0, 0, 0);
+        RogueFx.backstab(t, p);
         sound(p, level, GateboundSounds.of(SoundEvents.PLAYER_ATTACK_STRONG), 1.1f);
         return true;
     }
@@ -1052,8 +1057,7 @@ public final class RogueSkills {
                 m.setTarget(null);
             }
         }
-        level.sendParticles(ParticleTypes.LARGE_SMOKE, p.getX(), p.getY() + 0.8, p.getZ(), 120, 3, 0.8, 3, 0.03);
-        level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, p.getX(), p.getY() + 0.5, p.getZ(), 30, 2.5, 0.3, 2.5, 0.02);
+        RogueFx.smokeBomb(p);
         sound(p, level, GateboundSounds.of(SoundEvents.FIRECHARGE_USE), 0.6f);
         enterShadow(p, level, 60);
         return true;
@@ -1070,7 +1074,7 @@ public final class RogueSkills {
             mark(p, e, 100);
             EchoTrail.line(level, p.position().add(0, 1, 0), e.getEyePosition());
         }
-        level.sendParticles(ParticleTypes.CRIT, p.getX(), p.getY() + 1, p.getZ(), 40, 2.5, 0.4, 2.5, 0.3);
+        RogueFx.fan(p);
         sound(p, level, GateboundSounds.of(SoundEvents.PLAYER_ATTACK_SWEEP), 1.4f);
         return true;
     }
@@ -1102,7 +1106,6 @@ public final class RogueSkills {
                 }
                 if (jumpBehind(sp, l, t)) {
                     hit(sp, l, t, damage, true, false);
-                    l.sendParticles(ParticleTypes.SWEEP_ATTACK, t.getX(), t.getY(0.5), t.getZ(), 1, 0, 0, 0, 0);
                     sound(sp, l, GateboundSounds.of(SoundEvents.PLAYER_ATTACK_SWEEP), 1.5f);
                 }
             });
@@ -1110,8 +1113,9 @@ public final class RogueSkills {
         schedule(now + 1 + 5 * 3L, server -> {
             ServerPlayer sp = playerOf(server, owner);
             if (sp != null && sp.isAlive() && sp.level() instanceof ServerLevel l) {
-                l.sendParticles(ParticleTypes.PORTAL, sp.getX(), sp.getY() + 1, sp.getZ(), 15, 0.3, 0.6, 0.3, 0.2);
+                RogueFx.afterimage(sp);
                 moveTo(sp, l, origin);
+                RogueFx.arrival(l, origin);
                 sound(sp, l, GateboundSounds.of(SoundEvents.ENDERMAN_TELEPORT), 1.2f);
             }
         });
@@ -1129,7 +1133,7 @@ public final class RogueSkills {
         boolean kill = !isBoss(t) && t.getHealth() < t.getMaxHealth() * 0.25f;
         double damage = kill ? 100000 : (8 + 0.8 * data.get(Stat.AGILITY)) * (1 + 2 * Math.max(0, missing));
         hit(p, level, t, damage, false, false);
-        level.sendParticles(ParticleTypes.SWEEP_ATTACK, t.getX(), t.getY(0.5), t.getZ(), 1, 0, 0, 0, 0);
+        RogueFx.execute(p, t);
         sound(p, level, GateboundSounds.of(SoundEvents.PLAYER_ATTACK_STRONG), 0.7f);
         if (t.isDeadOrDying()) {
             ManaState.add(p, 20);
@@ -1157,7 +1161,7 @@ public final class RogueSkills {
         DANCE.put(p.getUUID(), now + 200);
         enterShadow(p, level, 200);
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, 200, 2));
-        level.sendParticles(ParticleTypes.SQUID_INK, p.getX(), p.getY() + 1, p.getZ(), 40, 0.5, 0.8, 0.5, 0.06);
+        RogueFx.dance(p, 200);
         sound(p, level, GateboundSounds.of(SoundEvents.ENDERMAN_TELEPORT), 0.5f);
         Compat.overlay(p, Component.literal("Shadow Dance: every hit is an Ambush for 10 s.").withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.BOLD));
         return true;
@@ -1177,6 +1181,7 @@ public final class RogueSkills {
             mark(p, e, 120);
         }
         int n = around.size();
+        RogueFx.cutsStart(p);
         int gap = Math.max(1, 40 / n);
         UUID owner = p.getUUID();
         double damage = 5 + 0.5 * data.get(Stat.AGILITY) + 0.05 * data.level;
@@ -1189,7 +1194,7 @@ public final class RogueSkills {
                 }
                 hit(sp, l, t, damage, false, false);
                 EchoTrail.line(l, sp.position().add(0, 1, 0), t.getEyePosition());
-                l.sendParticles(ParticleTypes.SWEEP_ATTACK, t.getX(), t.getY(0.5), t.getZ(), 1, 0, 0, 0, 0);
+                RogueFx.flurry(l, t);
                 sound(sp, l, GateboundSounds.of(SoundEvents.PLAYER_ATTACK_SWEEP), 1.2f + (float) (sp.getRandom().nextDouble() * 0.6));
             });
         }
@@ -1222,7 +1227,7 @@ public final class RogueSkills {
         ps.bound.add(mob.getUUID());
         ps.boundAt.put(mob.getUUID(), now);
         BOUND_ALL.add(mob.getUUID());
-        level.sendParticles(ParticleTypes.SQUID_INK, mob.getX(), mob.getY() + 0.2, mob.getZ(), 15, 0.4, 0.1, 0.4, 0.02);
+        RogueFx.bindMark(mob, (int) Math.max(20, ps.until - now));
     }
 
     private static void release(MinecraftServer server, UUID id) {
@@ -1306,6 +1311,7 @@ public final class RogueSkills {
         int seconds = 10 + data.level / 20;
         Poss ps = new Poss(now, now + seconds * 20L);
         POSSESSION.put(id, ps);
+        RogueFx.possession(p, seconds * 20);
         int n = 0;
         for (Mob m : candidates) {
             if (n >= RogueConfig.possessionMaxBound) {
@@ -1405,10 +1411,9 @@ public final class RogueSkills {
         float damage = (float) attackPower(p, data);
         for (int i = 0; i < RogueConfig.possessionArms; i++) {
             Mob t = targets.get(Math.floorMod(ps.armCursor++, targets.size()));
-            EchoTrail.line(level, p.position().add(0, 0.1, 0), t.position().add(0, 0.5, 0));
             rawHurt(p, level, t, damage);
             t.setDeltaMovement(Vec3.ZERO);
-            level.sendParticles(ParticleTypes.CRIT, t.getX(), t.getY(0.5), t.getZ(), 4, 0.3, 0.3, 0.3, 0.1);
+            RogueFx.arm(level, p, t);
         }
         sound(p, level, GateboundSounds.of(SoundEvents.PLAYER_ATTACK_SWEEP), 0.7f);
     }
@@ -1443,15 +1448,8 @@ public final class RogueSkills {
                     m.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 60, 1));
                 }
             }
-            if (now % 4 == 0) {
-                // The shadow reaches along the ground from the Rogue's feet.
-                Vec3 from = new Vec3(p.getX(), p.getY() + 0.05, p.getZ());
-                Vec3 to = new Vec3(m.getX(), p.getY() + 0.05, m.getZ());
-                int steps = (int) Math.min(24, Math.max(2, from.distanceTo(to) / 0.8));
-                for (int i = 1; i <= steps; i++) {
-                    Vec3 pt = from.add(to.subtract(from).scale(i / (double) steps));
-                    level.sendParticles(ParticleTypes.SQUID_INK, pt.x, pt.y, pt.z, 1, 0.05, 0, 0.05, 0);
-                }
+            if (now % 10 == 0) {
+                RogueFx.chain(level, p, m); // a chain from the Rogue to each bound enemy
             }
             Long since = ps.boundAt.get(bid);
             if (!boss && since != null && now - since >= 40 && ps.possessed.add(bid)) {
@@ -1530,12 +1528,7 @@ public final class RogueSkills {
     /** Small particle-line helper (SQUID_INK / SMOKE) used by shadow strikes. */
     private static final class EchoTrail {
         static void line(ServerLevel level, Vec3 from, Vec3 to) {
-            Vec3 d = to.subtract(from);
-            int steps = (int) Math.min(40, Math.max(1, d.length() / 0.6));
-            for (int i = 0; i <= steps; i++) {
-                Vec3 pt = from.add(d.scale(i / (double) steps));
-                level.sendParticles(i % 2 == 0 ? ParticleTypes.SQUID_INK : ParticleTypes.SMOKE, pt.x, pt.y, pt.z, 1, 0, 0, 0, 0);
-            }
+            RogueFx.thread(level, from, to);
         }
     }
 }
