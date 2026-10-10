@@ -16,12 +16,14 @@ import net.minecraft.network.chat.Component;
 final class EchoScreen extends Screen {
     private static final int ROW = 22;
     private static final int PER_PAGE = 8;
-    private static final String[] ORDERS = {"Guard", "Attack", "Seek", "Guide"};
+    private static final String[] ORDERS = {"Guard", "Attack", "Seek", "Guide", "", "Hold"};
     private static final String[] HINTS = {
             "Stays close and only fights what has just hurt you or it. Never wanders far.",
             "Hunts the nearest enemies around it and what you fight.",
             "Scouts for a gate with a wide sweep and reports it to you.",
-            "Waits beside you; once a gate is found, right-click it and it leads you there."};
+            "Waits beside you; once a gate is found, right-click it and it leads you there.",
+            "",
+            "Stays exactly where it is, never follows or teleports to you, and only fights what comes close. Soul Swap can still call it."};
     private static final ChatFormatting[] GROUP_COLORS = {
             ChatFormatting.GOLD, ChatFormatting.AQUA, ChatFormatting.GREEN, ChatFormatting.LIGHT_PURPLE};
     private static final int[] GROUP_RGB = {0xFFFFAA00, 0xFF55FFFF, 0xFF55FF55, 0xFFFF55FF};
@@ -99,14 +101,15 @@ final class EchoScreen extends Screen {
         if (selRow != null) {
             selY = y;
             int slot = data.rows().indexOf(selRow);
-            for (int m = 0; m < 4; m++) {
+            for (int m : new int[]{0, 1, 2, 3, 5}) {
                 int mode = m;
+                int col = m == 5 ? 4 : m;
                 addRenderableWidget(Button.builder(orderLabel(m, selRow.personal()), b -> send(7, slot, mode))
-                        .bounds(left + m * 62, y + 12, 60, 20)
+                        .bounds(left + col * 52, y + 12, 50, 20)
                         .tooltip(Tooltip.create(Component.literal("Give only this echo this order. " + HINTS[m]))).build());
             }
             addRenderableWidget(Button.builder(Component.literal("Group order"), b -> send(7, slot, 4))
-                    .bounds(left + 250, y + 12, 70, 20)
+                    .bounds(left + 262, y + 12, 58, 20)
                     .tooltip(Tooltip.create(Component.literal("Clear its own order: it follows its group again."))).build());
             y += 40;
         }

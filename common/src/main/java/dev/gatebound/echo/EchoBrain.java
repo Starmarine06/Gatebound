@@ -74,6 +74,10 @@ final class EchoBrain {
             acquire(e, owner, level, mode);
         }
         LivingEntity target = e.getTarget();
+        if (mode == EchoRoster.HOLD && target != null && target.distanceToSqr(e) > 12 * 12) {
+            e.setTarget(null);
+            target = null;
+        }
         boolean onLeash = mode == EchoRoster.GUARD || mode == EchoRoster.GUIDE;
         if (target != null && onLeash && (e.distanceToSqr(owner) > GUARD_LEASH * GUARD_LEASH
                 || target.distanceToSqr(owner) > GUARD_LEASH * GUARD_LEASH)) {
@@ -94,6 +98,7 @@ final class EchoBrain {
             case EchoRoster.SEEK -> seek(e, owner, level);
             case EchoRoster.GUIDE -> guide(e, owner, level);
             case EchoRoster.GOTO -> goTo(e, owner, level);
+            case EchoRoster.HOLD -> e.getNavigation().stop();
             default -> follow(e, owner, 5, 2.5); // Guard: stays close
         }
     }
@@ -139,6 +144,17 @@ final class EchoBrain {
                         best = d;
                         pick = m;
                     }
+                }
+            }
+        } else if (mode == EchoRoster.HOLD) {
+            // Hold: only what comes close to the echo's own spot.
+            double best = Double.MAX_VALUE;
+            for (LivingEntity m : level.getEntitiesOfClass(LivingEntity.class, e.getBoundingBox().inflate(6, 3, 6),
+                    m -> validTarget(e, m, owner) && threat(m, e, owner))) {
+                double d = e.distanceToSqr(m);
+                if (d < best) {
+                    best = d;
+                    pick = m;
                 }
             }
         } else {

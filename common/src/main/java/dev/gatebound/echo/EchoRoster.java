@@ -17,6 +17,8 @@ public final class EchoRoster {
     public static final int GUIDE = 3;
     /** Eye-only order: fly straight to the selected gate. Never stored on a group. */
     public static final int GOTO = 4;
+    /** Personal order only: stay exactly where you are, never follow or teleport to the owner, fight only what comes close. */
+    public static final int HOLD = 5;
 
     /** One bound mob: its entity type id (e.g. minecraft:zombie), the display name captured at binding, and its group. */
     public record Entry(String type, String name, int group) {

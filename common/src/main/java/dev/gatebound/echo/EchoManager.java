@@ -758,11 +758,17 @@ public final class EchoManager {
     /** Gives one echo its own order (a value past Guide clears it, so the echo follows its group again). */
     public static void setPersonalOrder(ServerPlayer owner, int slot, int mode) {
         Map<Integer, Integer> m = PERSONAL.computeIfAbsent(owner.getUUID(), k -> new HashMap<>());
-        if (mode < EchoRoster.GUARD || mode > EchoRoster.GUIDE) {
+        if ((mode < EchoRoster.GUARD || mode > EchoRoster.GUIDE) && mode != EchoRoster.HOLD) {
             m.remove(slot);
         } else {
             m.put(slot, mode);
         }
+    }
+
+    /** The echo you picked with the select key, wherever it is (it must be in a loaded chunk), or null. */
+    public static EchoEntity selectedEcho(ServerPlayer owner) {
+        Integer slot = SELECTED_SLOT.get(owner.getUUID());
+        return slot == null ? null : echoInSlot(owner, slot);
     }
 
     private static EchoEntity echoInSlot(ServerPlayer owner, int slot) {
@@ -843,7 +849,9 @@ public final class EchoManager {
         List<String> labels = new ArrayList<>(List.of(ORDER_NAMES));
         labels.add("Group order");
         labels.add(selected ? "Deselect" : "Select");
-        NetworkManager.sendToPlayer(player, new EchoWheelPayload(echo.getId(), false, echo.mobName(), labels, personal >= 0 ? personal : 4));
+        labels.add("Hold");
+        NetworkManager.sendToPlayer(player, new EchoWheelPayload(echo.getId(), false, echo.mobName(), labels,
+                personal == EchoRoster.HOLD ? 6 : (personal >= 0 ? personal : 4)));
     }
 
     private static final String[] ORDER_NAMES = {"Guard", "Attack", "Seek", "Guide"};
@@ -893,6 +901,12 @@ public final class EchoManager {
             setPersonalOrder(player, slot, -1);
             Compat.overlay(player, Component.literal(echo.mobName() + " follows its group again.")
                     .withStyle(net.minecraft.ChatFormatting.GRAY));
+        } else if (choice == 6) {
+            setPersonalOrder(player, slot, EchoRoster.HOLD);
+            setSelection(player, echo, slot, true);
+            echo.getNavigation().stop();
+            Compat.overlay(player, Component.literal(echo.mobName() + " holds here until you give it another order.")
+                    .withStyle(net.minecraft.ChatFormatting.GOLD));
         } else if (choice == 5) {
             boolean on = SELECTED_SLOT.getOrDefault(player.getUUID(), -99) != slot;
             setSelection(player, echo, slot, on);
@@ -947,6 +961,7 @@ public final class EchoManager {
             }
             int curMode = effectiveMode(owner, e.getKey(), info.slot);
             boolean seeker = curMode == EchoRoster.SEEK || curMode == EchoRoster.GOTO;
+            boolean holding = curMode == EchoRoster.HOLD;
             double leash = seeker ? 150 : EchoConfig.teleportDistance;
             // A commanded echo stays on its target until that target is dead (no pulling it back across the map).
             boolean commanded = false;
@@ -964,7 +979,7 @@ public final class EchoManager {
             // Land echoes are only brought to the owner while the owner stands on land (not in the air).
             boolean landMob = !(mob instanceof EchoEntity ee2 && ee2.isFlier());
             boolean ownerAirborne = !owner.onGround() && !owner.isInWater() && !owner.isInLava();
-            if (!commanded && !(landMob && ownerAirborne) && (mob.level() != owner.level() || mob.distanceToSqr(owner) > leash * leash)) {
+            if (!holding && !commanded && !(landMob && ownerAirborne) && (mob.level() != owner.level() || mob.distanceToSqr(owner) > leash * leash)) {
                 teleportTo(mob, owner);
             }
             if ((tick + info.slot) % 20 == 0 && mob.level() instanceof ServerLevel level) {

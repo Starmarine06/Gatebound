@@ -218,8 +218,11 @@ public final class EchoSkills {
     /** Swap places with the echo you look at. */
     public static boolean soulSwap(ServerPlayer player, ServerLevel level, PlayerData data) {
         EchoEntity echo = lookedAtEcho(player, level);
+        if (echo == null) {
+            echo = EchoManager.selectedEcho(player); // no echo in sight: swap with the selected one, however far away it is
+        }
         if (echo == null || echo.isVehicle() || echo.level() != level) {
-            return needEcho(player, SWAP_COST, "Look at one of your echoes to swap places with it.");
+            return needEcho(player, SWAP_COST, "Look at one of your echoes, or select one, to swap places with it.");
         }
         Vec3 mine = player.position();
         Vec3 theirs = echo.position();
