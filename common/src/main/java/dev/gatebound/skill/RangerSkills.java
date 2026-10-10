@@ -100,6 +100,9 @@ public final class RangerSkills {
         /** A homing arrow locked onto this entity or this block when it was cast. */
         UUID lockEntity;
         net.minecraft.core.BlockPos lockBlock;
+        /** The glowing arrow model riding this arrow, and what kind of skill arrow it is (for the impact effect). */
+        dev.gatebound.skill.fx.Props.Prop glow;
+        String kind;
 
         Tracked(UUID owner, ResourceKey<Level> dim, long born, boolean seek) {
             this.owner = owner;
@@ -164,6 +167,7 @@ public final class RangerSkills {
             PRIMED.clear();
             APEX.clear();
             ARROWS.clear();
+            dev.gatebound.skill.fx.RangerFx.reset();
             TASKS.clear();
         });
     }
@@ -350,7 +354,7 @@ public final class RangerSkills {
         }
         PRIMED.put(p.getUUID(), new Primed(kind, now(p) + RangerConfig.primedSeconds * 20L, null, null));
         Compat.overlay(p, Component.literal("Your next arrow is imbued: " + label));
-        p.level().sendParticles(ParticleTypes.ENCHANT, p.getX(), p.getY() + 1.2, p.getZ(), 20, 0.4, 0.5, 0.4, 0.3);
+        dev.gatebound.skill.fx.RangerFx.primed(p);
         sound(p, p.level(), GateboundSounds.of(SoundEvents.ENCHANTMENT_TABLE_USE), 1.2f);
         return true;
     }
@@ -407,6 +411,8 @@ public final class RangerSkills {
         t.lockBlock = primed.block();
         t.trail = trailOf(kind);
         t.lastPos = arrow.position();
+        t.glow = dev.gatebound.skill.fx.RangerFx.glow(level, arrow);
+        t.kind = kind.name().toLowerCase();
         ARROWS.put(arrow.getUUID(), t);
         if (arrow instanceof Arrow a) {
             if (kind == Kind.POISON) {
@@ -425,10 +431,14 @@ public final class RangerSkills {
                 Arrow extra = shootFrom(p, level, arrow.position(), dir.normalize(), speed, base * (float) (0.4 + 0.6 * power), buffed(p, now(p)));
                 Tracked et = ARROWS.get(extra.getUUID());
                 et.trail = ParticleTypes.CRIT;
+                et.kind = "multishot";
                 extra.setGlowingTag(true);
             }
         } else if (kind == Kind.RAIN) {
-            t.onLand = spot -> rainAt(p, spot, dmg(data, 3));
+            t.onLand = spot -> {
+                dev.gatebound.skill.fx.RangerFx.rain(level, spot, RangerConfig.rainRingRadius * 2.2, RangerConfig.rainWaves * 3 + 24);
+                rainAt(p, spot, dmg(data, 3));
+            };
         }
         sound(p, level, GateboundSounds.of(SoundEvents.ENCHANTMENT_TABLE_USE), 1.6f);
     }
@@ -505,7 +515,9 @@ public final class RangerSkills {
         if (seek) {
             arrow.setNoGravity(true);
         }
-        ARROWS.put(arrow.getUUID(), new Tracked(p.getUUID(), level.dimension(), now(p), seek));
+        Tracked tr = new Tracked(p.getUUID(), level.dimension(), now(p), seek);
+        tr.glow = dev.gatebound.skill.fx.RangerFx.glow(level, arrow);
+        ARROWS.put(arrow.getUUID(), tr);
     }
 
     private static Vec3 rotated(ServerPlayer p, float yawOffset) {
@@ -525,6 +537,11 @@ public final class RangerSkills {
             return EventResult.pass();
         }
         long now = level.getServer().getTickCount();
+        Tracked hitBy = ARROWS.get(arrow.getUUID());
+        if (hitBy != null && hitBy.kind != null) {
+            dev.gatebound.skill.fx.RangerFx.impact(level, victim, hitBy.kind);
+            hitBy.kind = null;
+        }
         // Every player's arrows hit harder with Strength and with distance; quarry and Agility bonuses are the Ranger's.
         PlayerData pd = PlayerDataStore.of(p);
         double mult = multiplier(p, victim, now) * (1 + RangerConfig.strengthBowBonus * pd.get(Stat.STRENGTH));
@@ -620,13 +637,23 @@ public final class RangerSkills {
             Entity e = level == null ? null : level.getEntity(id);
             if (!(e instanceof AbstractArrow arrow) || !arrow.isAlive()) {
                 land(t);
-                ARROWS.remove(id);
+                drop(id, t);
                 continue;
             }
             long age = now - t.born;
             Vec3 v = arrow.getDeltaMovement();
             boolean flying = v.lengthSqr() > 0.25;
             boolean skill = arrow.entityTags().contains(ARROW_TAG);
+            if (t.glow != null) {
+                if (flying) {
+                    if (age % 2 == 0) {
+                        dev.gatebound.skill.fx.RangerFx.moveGlow(t.glow, arrow);
+                    }
+                } else {
+                    dev.gatebound.skill.fx.RangerFx.endGlow(t.glow);
+                    t.glow = null;
+                }
+            }
             if (flying) {
                 t.lastPos = arrow.position();
                 if (t.trail != null) {
@@ -638,12 +665,12 @@ public final class RangerSkills {
             }
             if (skill && (age > RangerConfig.arrowLifeTicks || (!flying && age > RangerConfig.arrowGroundTicks))) {
                 arrow.discard();
-                ARROWS.remove(id);
+                drop(id, t);
                 continue;
             }
             if (!t.seek || !flying) {
                 if (!flying && !skill && age > 1200) {
-                    ARROWS.remove(id);
+                    drop(id, t);
                 }
                 continue;
             }
@@ -696,6 +723,14 @@ public final class RangerSkills {
         }
     }
 
+    private static void drop(UUID id, Tracked t) {
+        if (t.glow != null) {
+            dev.gatebound.skill.fx.RangerFx.endGlow(t.glow);
+            t.glow = null;
+        }
+        ARROWS.remove(id);
+    }
+
     private static void land(Tracked t) {
         if (t.onLand != null && t.lastPos != null) {
             Consumer<Vec3> run = t.onLand;
@@ -718,9 +753,12 @@ public final class RangerSkills {
             a.nextStrike = now + 20;
             ServerLevel level = p.level();
             PlayerData data = PlayerDataStore.of(p);
+            int strikes = 0;
             for (LivingEntity e : foes(p, level, RangerConfig.apexRadius)) {
                 e.addEffect(new MobEffectInstance(MobEffects.GLOWING, 40, 0, false, false));
-                line(level, p.getEyePosition().add(0, 4, 0), center(e), ParticleTypes.END_ROD);
+                if (strikes++ < 6) {
+                    dev.gatebound.skill.fx.RangerFx.strike(level, e);
+                }
                 rayHit(p, level, e, dmg(data, 3));
             }
             sound(p, level, GateboundSounds.of(SoundEvents.ARROW_HIT_PLAYER), 0.8f);
@@ -731,10 +769,11 @@ public final class RangerSkills {
 
     public static boolean eagleEye(ServerPlayer p, ServerLevel level, PlayerData data) {
         begin(p, EAGLE_COST, false);
-        for (LivingEntity e : foes(p, level, 24)) {
+        List<LivingEntity> seen = foes(p, level, 24);
+        for (LivingEntity e : seen) {
             e.addEffect(new MobEffectInstance(MobEffects.GLOWING, 160, 0));
         }
-        level.sendParticles(ParticleTypes.END_ROD, p.getX(), p.getY() + 1.8, p.getZ(), 10, 0.3, 0.2, 0.3, 0.02);
+        dev.gatebound.skill.fx.RangerFx.eagle(p, seen);
         sound(p, level, GateboundSounds.of(SoundEvents.ARROW_HIT_PLAYER), 0.7f);
         return true;
     }
@@ -793,7 +832,7 @@ public final class RangerSkills {
         }
         PRIMED.put(p.getUUID(), new Primed(Kind.HOMING, now(p) + RangerConfig.primedSeconds * 20L, entityId, blockPos));
         Compat.overlay(p, Component.literal("Locked on: " + name + ". Loose an arrow."));
-        level.sendParticles(ParticleTypes.ENCHANT, p.getX(), p.getY() + 1.2, p.getZ(), 20, 0.4, 0.5, 0.4, 0.3);
+        dev.gatebound.skill.fx.RangerFx.lock(p, entityId == null ? null : level.getEntity(entityId), blockPos);
         sound(p, level, GateboundSounds.of(SoundEvents.ENCHANTMENT_TABLE_USE), 1.2f);
         return true;
     }
@@ -803,7 +842,8 @@ public final class RangerSkills {
     }
 
     private static void firePiercing(ServerPlayer p, ServerLevel level, PlayerData data) {
-        List<LivingEntity> hits = SkillTargeting.ray(p, level, 40, 3, ParticleTypes.CRIT);
+        List<LivingEntity> hits = SkillTargeting.ray(p, level, 40, 3, null);
+        dev.gatebound.skill.fx.RangerFx.pierce(p, hits);
         sound(p, level, GateboundSounds.of(SoundEvents.ARROW_SHOOT), 0.8f);
         for (LivingEntity e : hits) {
             if (valid(e)) {
@@ -814,14 +854,14 @@ public final class RangerSkills {
 
     public static boolean huntersQuarry(ServerPlayer p, ServerLevel level, PlayerData data) {
         begin(p, QUARRY_COST, false);
-        List<LivingEntity> hits = SkillTargeting.ray(p, level, 48, 1, ParticleTypes.END_ROD);
+        List<LivingEntity> hits = SkillTargeting.ray(p, level, 48, 1, null);
         if (hits.isEmpty() || !valid(hits.get(0))) {
             return miss(p, QUARRY_COST, "No target to mark.");
         }
         LivingEntity q = hits.get(0);
         QUARRY.put(p.getUUID(), q.getUUID());
         q.addEffect(new MobEffectInstance(MobEffects.GLOWING, RangerConfig.quarryGlowSeconds * 20, 0, false, false));
-        level.sendParticles(ParticleTypes.CRIT, q.getX(), q.getY(1.1), q.getZ(), 12, 0.3, 0.3, 0.3, 0.2);
+        dev.gatebound.skill.fx.RangerFx.quarry(p, q, RangerConfig.quarryGlowSeconds * 20);
         sound(p, level, GateboundSounds.of(SoundEvents.AMETHYST_BLOCK_CHIME), 1.4f);
         return true;
     }
@@ -834,7 +874,7 @@ public final class RangerSkills {
         p.setDeltaMovement(back.x * 1.5, 0.35, back.z * 1.5);
         p.connection.send(new ClientboundSetEntityMotionPacket(p));
         PlayerCombat.grantIFrames(p, 8);
-        level.sendParticles(ParticleTypes.CLOUD, p.getX(), p.getY() + 0.2, p.getZ(), 10, 0.3, 0.1, 0.3, 0.02);
+        dev.gatebound.skill.fx.RangerFx.roll(p);
         sound(p, level, GateboundSounds.of(SoundEvents.PLAYER_ATTACK_SWEEP), 1.4f);
         LivingEntity target = nearest(p, level, 24);
         if (target != null && hasBow(p)) {
@@ -861,16 +901,18 @@ public final class RangerSkills {
     }
 
     private static void fireRicochet(ServerPlayer p, ServerLevel level, PlayerData data) {
-        List<LivingEntity> first = SkillTargeting.ray(p, level, 40, 1, ParticleTypes.ELECTRIC_SPARK);
+        List<LivingEntity> first = SkillTargeting.ray(p, level, 40, 1, null);
         sound(p, level, GateboundSounds.of(SoundEvents.ARROW_SHOOT), 1.5f);
         if (first.isEmpty() || !valid(first.get(0))) {
             return;
         }
         Set<UUID> hit = new HashSet<>();
         LivingEntity cur = first.get(0);
+        List<Vec3> bounces = new ArrayList<>();
         float damage = dmg(data, 7);
         for (int bounce = 0; bounce < 4 && cur != null; bounce++) {
             hit.add(cur.getUUID());
+            bounces.add(center(cur));
             rayHit(p, level, cur, damage);
             damage *= 0.85f;
             LivingEntity next = null;
@@ -880,11 +922,9 @@ public final class RangerSkills {
                     next = (LivingEntity) c;
                 }
             }
-            if (next != null) {
-                line(level, center(cur), center(next), ParticleTypes.ELECTRIC_SPARK);
-            }
             cur = next;
         }
+        dev.gatebound.skill.fx.RangerFx.ricochet(p, bounces);
     }
 
     public static boolean rainOfArrows(ServerPlayer p, ServerLevel level, PlayerData data) {
@@ -896,7 +936,7 @@ public final class RangerSkills {
     }
 
     private static void fireHeadshot(ServerPlayer p, ServerLevel level, PlayerData data) {
-        List<LivingEntity> hits = SkillTargeting.ray(p, level, 48, 1, ParticleTypes.CRIT);
+        List<LivingEntity> hits = SkillTargeting.ray(p, level, 48, 1, null);
         sound(p, level, GateboundSounds.of(SoundEvents.CROSSBOW_SHOOT), 0.8f);
         if (hits.isEmpty() || !valid(hits.get(0))) {
             return;
@@ -910,14 +950,14 @@ public final class RangerSkills {
             base = Math.max(base, t.getHealth() + 1);
         }
         rayHit(p, level, t, base);
-        level.sendParticles(ParticleTypes.CRIT, t.getX(), t.getY(0.9), t.getZ(), 20, 0.3, 0.3, 0.3, 0.3);
+        dev.gatebound.skill.fx.RangerFx.headshot(p, t);
     }
 
     public static boolean huntersTrance(ServerPlayer p, ServerLevel level, PlayerData data) {
         int ticks = (RangerConfig.tranceBaseSeconds + data.level / 10) * 20;
         TRANCE.put(p.getUUID(), now(p) + ticks);
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 1));
-        level.sendParticles(ParticleTypes.END_ROD, p.getX(), p.getY() + 1, p.getZ(), 25, 0.5, 0.8, 0.5, 0.03);
+        dev.gatebound.skill.fx.RangerFx.trance(p, ticks);
         sound(p, level, GateboundSounds.of(SoundEvents.BEACON_ACTIVATE), 1.6f);
         return true;
     }
@@ -928,6 +968,7 @@ public final class RangerSkills {
 
     private static void fireBarrage(ServerPlayer p, ServerLevel level, PlayerData data) {
         float damage = dmg(data, 4);
+        dev.gatebound.skill.fx.RangerFx.barrage(p, RangerConfig.barrageArrows);
         for (int i = 0; i < RangerConfig.barrageArrows; i++) {
             after(p, i, server -> {
                 if (!p.isAlive()) {
@@ -957,7 +998,7 @@ public final class RangerSkills {
         for (LivingEntity e : foes(p, level, RangerConfig.apexRadius)) {
             e.addEffect(new MobEffectInstance(MobEffects.GLOWING, 60, 0, false, false));
         }
-        level.sendParticles(ParticleTypes.END_ROD, p.getX(), p.getY() + 1, p.getZ(), 50, 0.8, 1.0, 0.8, 0.05);
+        dev.gatebound.skill.fx.RangerFx.apex(p, ticks);
         sound(p, level, GateboundSounds.of(SoundEvents.ENDER_DRAGON_GROWL), 1.2f);
         return true;
     }

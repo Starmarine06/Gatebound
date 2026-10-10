@@ -23,6 +23,7 @@ $elements = [ordered]@{
   rogue     = @{ glow = @(150, 64, 235);  core = @(232, 205, 255) }
   venom     = @{ glow = @(84, 220, 60);   core = @(226, 255, 200) }
   summoner  = @{ glow = @(63, 216, 200);  core = @(232, 255, 251) }
+  ranger    = @{ glow = @(96, 214, 80);   core = @(245, 255, 210) }
 }
 
 function NewCanvas($size) {
@@ -168,6 +169,11 @@ function DrawCircle($name, $glow, $core, $seed) {
     'summoner'  { PolyStar $g $c $c 158 6 2 (-[math]::PI / 2) $glow $core 1.2
                   for ($i = 0; $i -lt 3; $i++) { $a = $i * 2 * [math]::PI / 3 - [math]::PI / 2; GlowCircle $g ($c + [math]::Cos($a) * 62) ($c + [math]::Sin($a) * 62) 62 $glow $core 0.8 }
                   GlowCircle $g $c $c 20 $glow $core 1.2 }
+    'ranger'    { PolyStar $g $c $c 158 5 2 (-[math]::PI / 2) $glow $core 1.1
+                  for ($i = 0; $i -lt 5; $i++) { $a = $i * 2 * [math]::PI / 5 - [math]::PI / 2
+                    GlowLines $g ([System.Drawing.PointF[]]@((Pt ($c + [math]::Cos($a) * 30) ($c + [math]::Sin($a) * 30)), (Pt ($c + [math]::Cos($a) * 128) ($c + [math]::Sin($a) * 128)), (Pt ($c + [math]::Cos($a + 0.14) * 108) ($c + [math]::Sin($a + 0.14) * 108)), (Pt ($c + [math]::Cos($a) * 128) ($c + [math]::Sin($a) * 128)), (Pt ($c + [math]::Cos($a - 0.14) * 108) ($c + [math]::Sin($a - 0.14) * 108)))) $glow $core 0.9 }
+                  GlowCircle $g $c $c 104 $glow $core 0.7
+                  GlowCircle $g $c $c 22 $glow $core 1.2 }
     'dark'      { PolyStar $g $c $c 156 5 2 ([math]::PI / 2) $glow $core 1.2
                   GlowCircle $g $c $c 70 $glow $core 1.0
                   GlowCircle $g $c $c 24 $glow $core 1.2 }
@@ -900,6 +906,126 @@ WriteModel 'crown_summoner' 'crown_summoner' @((PlaneEl 'z'))
 DrawHalo 'halo_summoner.png' $sm.glow $sm.core 12
 WriteModel 'halo_summoner' 'halo_summoner' @((PlaneEl 'y'))
 
+
+# ------------------------------------------------------------------ ranger set
+$rn = $elements['ranger']
+$gold = @{ glow = @(255, 205, 70); core = @(255, 245, 200) }
+
+# A glowing arrow flying to the right, with an aura (256x256; the model squashes it to a long thin strip).
+function DrawArrowGlow($file, $glow, $core) {
+  $cv = NewCanvas 256; $g = $cv.g
+  $br = New-Object System.Drawing.SolidBrush (C 70 $glow[0] $glow[1] $glow[2]); $g.FillEllipse($br, 10, 78, 236, 100); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 110 $glow[0] $glow[1] $glow[2]); $g.FillEllipse($br, 40, 100, 190, 56); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 255 150 112 70); $g.FillRectangle($br, 50, 122, 150, 12); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 255 $core[0] $core[1] $core[2]); $g.FillPolygon($br, (PtArr @((Pt 196 106), (Pt 250 128), (Pt 196 150)))); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 255 $glow[0] $glow[1] $glow[2])
+  $g.FillPolygon($br, (PtArr @((Pt 50 128), (Pt 24 98), (Pt 66 108), (Pt 82 128))))
+  $g.FillPolygon($br, (PtArr @((Pt 50 128), (Pt 24 158), (Pt 66 148), (Pt 82 128))))
+  $br.Dispose()
+  GlowLines $g (PtArr @((Pt 50 128), (Pt 214 128))) $glow $core 0.9
+  SavePng $cv $file
+}
+
+# A single leaf (128x128), tip to the right.
+function DrawLeaf($file, $glow, $core) {
+  $cv = NewCanvas 128; $g = $cv.g
+  $top = @(); $bot = @()
+  for ($i = 0; $i -le 12; $i++) {
+    $t = $i / 12.0; $x = 14 + $t * 100; $h = [math]::Sin($t * [math]::PI) * 30 * (1 - $t * 0.35)
+    $top += , (Pt $x (64 - $h)); $bot += , (Pt $x (64 + $h))
+  }
+  $botRev = @($bot[($bot.Count - 1)..0])
+  $br = New-Object System.Drawing.SolidBrush (C 60 $glow[0] $glow[1] $glow[2]); $g.FillEllipse($br, 6, 22, 116, 84); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 245 40 130 52); $g.FillPolygon($br, (PtArr ($top + $botRev))); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 160 $glow[0] $glow[1] $glow[2]); $g.FillPolygon($br, (PtArr ($top[0..6] + @($bot[6]) + @($bot[0..0])))); $br.Dispose()
+  GlowLines $g (PtArr ($top + $botRev)) $glow $core 0.6
+  GlowLines $g (PtArr @((Pt 8 64), (Pt 108 64))) $glow $core 0.7
+  for ($i = 1; $i -lt 5; $i++) { $x = 14 + $i * 18; GlowLines $g (PtArr @((Pt $x 64), (Pt ($x + 14) 44), (Pt $x 64), (Pt ($x + 14) 84))) $glow $core 0.4 }
+  SavePng $cv $file
+}
+
+# A thorny vine strip (128x128), for snares.
+function DrawVine($file, $glow, $core) {
+  $cv = NewCanvas 128; $g = $cv.g
+  $pts = @()
+  for ($y = 0; $y -le 128; $y += 4) { $pts += , (Pt (64 + [math]::Sin($y * 0.1) * 18) $y) }
+  $pen = New-Object System.Drawing.Pen (C 110 $glow[0] $glow[1] $glow[2]), ([single]20); $pen.StartCap = 'Round'; $pen.EndCap = 'Round'; $g.DrawLines($pen, (PtArr $pts)); $pen.Dispose()
+  $pen = New-Object System.Drawing.Pen (C 255 36 92 40), ([single]10); $pen.StartCap = 'Round'; $pen.EndCap = 'Round'; $g.DrawLines($pen, (PtArr $pts)); $pen.Dispose()
+  $pen = New-Object System.Drawing.Pen (C 255 $core[0] $core[1] $core[2]), ([single]1.4); $g.DrawLines($pen, (PtArr $pts)); $pen.Dispose()
+  for ($y = 10; $y -lt 124; $y += 18) {
+    $x = 64 + [math]::Sin($y * 0.1) * 18; $dir = if ((($y / 18) % 2) -eq 0) { 1 } else { -1 }
+    $br = New-Object System.Drawing.SolidBrush (C 255 190 220 120)
+    $g.FillPolygon($br, (PtArr @((Pt $x ($y - 4)), (Pt ($x + $dir * 22) ($y - 12)), (Pt $x ($y + 4))))); $br.Dispose()
+  }
+  SavePng $cv $file
+}
+
+# A hawk seen from above, flying to the right (256x256).
+function DrawHawk($file, $glow, $core) {
+  $cv = NewCanvas 256; $g = $cv.g
+  $wing = @((Pt 140 118), (Pt 90 18), (Pt 120 20), (Pt 168 96), (Pt 190 108))
+  $wingB = @((Pt 140 138), (Pt 90 238), (Pt 120 236), (Pt 168 160), (Pt 190 148))
+  $body = @((Pt 40 128), (Pt 90 112), (Pt 190 108), (Pt 244 128), (Pt 190 148), (Pt 90 144))
+  $br = New-Object System.Drawing.SolidBrush (C 70 $glow[0] $glow[1] $glow[2]); $g.FillEllipse($br, 20, 60, 220, 136); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 245 54 36 20)
+  $g.FillPolygon($br, (PtArr $wing)); $g.FillPolygon($br, (PtArr $wingB)); $g.FillPolygon($br, (PtArr $body))
+  $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 255 $glow[0] $glow[1] $glow[2])
+  $g.FillPolygon($br, (PtArr @((Pt 30 128), (Pt 4 108), (Pt 4 148))))
+  $g.FillPolygon($br, (PtArr @((Pt 238 128), (Pt 256 134), (Pt 238 140))))
+  $br.Dispose()
+  GlowLines $g (PtArr ($wing + @($wing[0]))) $glow $core 0.7
+  GlowLines $g (PtArr ($wingB + @($wingB[0]))) $glow $core 0.7
+  GlowLines $g (PtArr ($body + @($body[0]))) $glow $core 0.7
+  $br = New-Object System.Drawing.SolidBrush (C 255 $core[0] $core[1] $core[2]); $g.FillEllipse($br, 206, 120, 8, 8); $br.Dispose()
+  SavePng $cv $file
+}
+
+# Branching antlers, for the crown of the predator (256x256, drawn in the top half).
+function DrawAntlers($file, $glow, $core) {
+  $cv = NewCanvas 256; $g = $cv.g
+  for ($side = 0; $side -lt 2; $side++) {
+    $g.ResetTransform()
+    if ($side -eq 1) { $g.TranslateTransform(256, 0); $g.ScaleTransform(-1, 1) }
+    $beams = @(
+      @((Pt 112 220), (Pt 96 180), (Pt 74 140), (Pt 58 92), (Pt 52 30)),
+      @((Pt 96 180), (Pt 62 170), (Pt 30 150)),
+      @((Pt 74 140), (Pt 100 110), (Pt 108 70)),
+      @((Pt 58 92), (Pt 28 80), (Pt 12 52)),
+      @((Pt 66 120), (Pt 40 118), (Pt 16 104)))
+    foreach ($b in $beams) {
+      $pen = New-Object System.Drawing.Pen (C 90 $glow[0] $glow[1] $glow[2]), ([single]18); $pen.StartCap = 'Round'; $pen.EndCap = 'Round'; $pen.LineJoin = 'Round'
+      $g.DrawLines($pen, (PtArr $b)); $pen.Dispose()
+      $pen = New-Object System.Drawing.Pen (C 255 104 78 46), ([single]9); $pen.StartCap = 'Round'; $pen.EndCap = 'Round'; $pen.LineJoin = 'Round'
+      $g.DrawLines($pen, (PtArr $b)); $pen.Dispose()
+      $pen = New-Object System.Drawing.Pen (C 255 $core[0] $core[1] $core[2]), ([single]1.2); $g.DrawLines($pen, (PtArr $b)); $pen.Dispose()
+    }
+    $g.ResetTransform()
+  }
+  SavePng $cv $file
+}
+
+DrawArrowGlow 'arrow_glow.png' $rn.glow $rn.core
+WriteModel 'arrow_glow' 'arrow_glow' @((PlaneEl 'y'), (PlaneEl 'z'))
+DrawLeaf 'leaf.png' $rn.glow $rn.core
+WriteModel 'leaf' 'leaf' @((PlaneEl 'y'), (PlaneEl 'z'))
+DrawVine 'thorn_vine.png' $rn.glow $rn.core
+WriteModel 'thorn_vine' 'thorn_vine' @((PlaneEl 'z'), (PlaneEl 'x'))
+DrawHawk 'hawk.png' $gold.glow $gold.core
+WriteModel 'hawk' 'hawk' @((PlaneEl 'y'))
+DrawEye 'hawk_eye.png' $gold.glow $gold.core
+WriteModel 'hawk_eye' 'hawk_eye' @((PlaneEl 'z'))
+DrawReticle 'reticle_gold.png' $gold.glow $gold.core
+WriteModel 'reticle_gold' 'reticle_gold' @((PlaneEl 'y'))
+DrawSilhouette 'silhouette_ranger.png' $rn.glow $rn.core
+WriteModel 'silhouette_ranger' 'silhouette_ranger' @((PlaneEl 'z'))
+DrawBeam 'ranger_beam.png' $rn.glow $rn.core
+WriteModel 'ranger_beam' 'ranger_beam' @((PlaneEl 'z'), (PlaneEl 'x'))
+DrawWings 'wings_ranger.png' $gold.glow $gold.core @(34, 78, 40) 'feather'
+WriteModel 'wings_ranger' 'wings_ranger' @((PlaneEl 'z'))
+DrawAntlers 'antlers_ranger.png' $gold.glow $gold.core
+WriteModel 'antlers_ranger' 'antlers_ranger' @((PlaneEl 'z'))
+
 # ------------------------------------------------------------------ mage form body skins (64x64 player skin layout, 4 animation frames each)
 # Only the base-layer regions are painted; the outer-layer regions stay transparent, so the overlay never hides hats, jackets or sleeves.
 $formDir = Join-Path $root 'textures\entity\form'
@@ -963,6 +1089,13 @@ function SkinPixel($el, $x, $y, $f) {
       if ((Hash2 $x $y ($f + 5)) -gt 0.96) { return @(235, 255, 252) }
       return $c
     }
+    'ranger' {
+      $s = 0.5 + 0.5 * [math]::Sin($y * 0.7 + [math]::Sin($x * 0.6 + $ph) * 1.5)
+      $c = Mix @(20, 50, 26) @(74, 160, 64) $s
+      if ((Hash2 $x $y ($f + 13)) -gt 0.955) { return @(255, 226, 96) }
+      if (($x % 9) -eq 0) { return Mix @(120, 86, 48) @(190, 150, 80) (Hash2 $x $y 4) }
+      return $c
+    }
     'warrior' {
       if (($x % 8) -eq 0 -or ($y % 8) -eq 0) { return Mix @(200, 50, 24) @(255, 190, 80) (0.5 + 0.5 * [math]::Sin($ph + $x * 0.3)) }
       return Mix @(66, 72, 84) @(150, 158, 172) (Hash2 ([math]::Floor($x / 2)) ([math]::Floor($y / 2)) 3)
@@ -991,8 +1124,8 @@ function DrawSkin($el, $f, $eye) {
   $bmp.Dispose()
 }
 
-$eyes = @{ fire = @(255, 255, 220); ice = @(255, 255, 255); lightning = @(255, 255, 255); wind = @(70, 150, 120); earth = @(255, 200, 80); warrior = @(255, 210, 90); rogue = @(120, 255, 90); summoner = @(230, 255, 252); light = @(255, 255, 255); dark = @(255, 60, 230) }
-foreach ($el in @('fire', 'ice', 'lightning', 'wind', 'earth', 'light', 'dark', 'warrior', 'rogue', 'summoner')) {
+$eyes = @{ fire = @(255, 255, 220); ice = @(255, 255, 255); lightning = @(255, 255, 255); wind = @(70, 150, 120); earth = @(255, 200, 80); warrior = @(255, 210, 90); rogue = @(120, 255, 90); ranger = @(255, 230, 90); summoner = @(230, 255, 252); light = @(255, 255, 255); dark = @(255, 60, 230) }
+foreach ($el in @('fire', 'ice', 'lightning', 'wind', 'earth', 'light', 'dark', 'warrior', 'rogue', 'summoner', 'ranger')) {
   for ($f = 0; $f -lt 4; $f++) { DrawSkin $el $f $eyes[$el] }
 }
 Write-Output 'done'

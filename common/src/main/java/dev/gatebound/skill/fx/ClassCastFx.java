@@ -20,6 +20,9 @@ public final class ClassCastFx {
     /** Summoner skills that are quick utilities: a lighter circle, no front sigil. */
     private static final Set<String> SUMMONER_QUIET = Set.of("scouts_eye", "rally", "soul_swap", "sacrifice", "soul_link");
 
+    /** Ranger skills that are utilities rather than shots: a lighter circle. */
+    private static final Set<String> RANGER_QUIET = Set.of("eagle_eye", "hunters_quarry", "evasive_roll", "hunters_trance");
+
     private ClassCastFx() {
     }
 
@@ -30,10 +33,12 @@ public final class ClassCastFx {
         GateboundClass cls = skill.owner();
         if (cls == GateboundClass.WARRIOR) {
             warrior(p, skill);
+        } else if (cls == GateboundClass.RANGER) {
+            RangerFx.cast(p, RANGER_QUIET.contains(skill.id()));
         } else if (cls == GateboundClass.SUMMONER) {
             SummonerFx.cast(p, SUMMONER_QUIET.contains(skill.id()));
         }
-        // Rogue and Ranger get their own flavour in their batches.
+        // Rogue gets its own flavour in its batch.
     }
 
     /** Overhead swing plus a red sigil underfoot. */

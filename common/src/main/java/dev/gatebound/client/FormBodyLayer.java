@@ -134,6 +134,17 @@ public final class FormBodyLayer extends RenderLayer<AvatarRenderState, PlayerMo
                             (float) Math.sin(a) * 0.9f, 0, -(float) Math.toDegrees(a), 0, 1.0f, 1.0f, 1.0f);
                 }
             }
+            case "ranger" -> {
+                wings(ps, c, state, owner, m, "wings_ranger", 4.2f, t);
+                horns(ps, c, state, owner, m, "antlers_ranger", 1.3f);
+                for (int i = 0; i < 6; i++) { // glowing arrows circling the predator, points outward
+                    float a = t * 0.2f + i * 1.0472f;
+                    draw(ps, c, state, owner, null, "arrow_glow", (float) Math.cos(a) * 1.5f, 0.1f + (float) Math.sin(t * 0.1f + i) * 0.2f,
+                            (float) Math.sin(a) * 1.5f, 0, -(float) Math.toDegrees(a), 0, 2.2f, 0.8f, 0.8f);
+                }
+                draw(ps, c, state, owner, null, "hawk", (float) Math.cos(t * 0.05f) * 3.4f, -1.4f + (float) Math.sin(t * 0.07f) * 0.3f,
+                        (float) Math.sin(t * 0.05f) * 3.4f, 0, -(float) Math.toDegrees(t * 0.05f) - 90.0f, 0, 2.6f, 2.6f, 2.6f);
+            }
             case "warrior" -> {
                 wings(ps, c, state, owner, m, "wings_warrior", 4.4f, t);
                 horns(ps, c, state, owner, m, "horns_fire", 1.0f);
