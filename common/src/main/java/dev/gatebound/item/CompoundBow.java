@@ -92,6 +92,9 @@ public final class CompoundBow extends BowItem {
     private static final Map<UUID, Grapple> GRAPPLES = new HashMap<>();
     private static final Map<UUID, Long> READY = new HashMap<>();
 
+    /** The compound bow is switched off for everyone: it cannot be drawn, shot or used to grapple. Set to true to bring it back. */
+    public static final boolean ENABLED = false;
+
     private CompoundBow(Properties properties) {
         super(properties);
     }
@@ -170,6 +173,9 @@ public final class CompoundBow extends BowItem {
 
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
+        if (!ENABLED) {
+            return InteractionResult.FAIL;
+        }
         if (!(player instanceof ServerPlayer sp)) {
             // Client side: while crouching this is a grapple click, so do not start the draw animation.
             return player.isShiftKeyDown() ? InteractionResult.SUCCESS : superUse(level, player, hand);
@@ -202,7 +208,7 @@ public final class CompoundBow extends BowItem {
     }
 
     private static boolean holdsCompoundBow(ServerPlayer p) {
-        return p.getMainHandItem().getItem() instanceof CompoundBow || p.getOffhandItem().getItem() instanceof CompoundBow;
+        return ENABLED && p.getMainHandItem().getItem() instanceof CompoundBow || p.getOffhandItem().getItem() instanceof CompoundBow;
     }
 
     /** Crouching with the bow: keep aiming at one spot to set the anchor there. */
