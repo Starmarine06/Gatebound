@@ -133,17 +133,8 @@ public final class RogueFx {
         Circles.followModel(target, "reticle", 1.5, ticks, target.getBbHeight() + 0.9);
     }
 
-    /** Melding into a shadow: a pool opens under the Rogue and tendrils of mist rise from it. */
+    /** Melding into a shadow: nothing is drawn, a hidden Rogue leaves no pool, mist or shadow behind. */
     public static void meld(ServerPlayer p) {
-        ServerLevel level = lv(p);
-        Vec3 at = p.position();
-        Circles.ground(level, "rogue", at, 3.2, 24);
-        for (int i = 0; i < 3; i++) {
-            double a = i * Math.PI * 2 / 3 + RNG.nextDouble();
-            Vec3 base = at.add(Math.cos(a) * 0.6, 0.9, Math.sin(a) * 0.6);
-            pop(level, base, "tendril", yaw(a), 0.8, 1.8, 0.8, 14);
-        }
-        puff(level, at.add(0, 0.5, 0), 1.6, 10);
     }
 
     public static void venomStart(ServerPlayer p) {
@@ -215,27 +206,8 @@ public final class RogueFx {
         puff(level, mid, 2.4, 8);
     }
 
-    /** Shadow Dance: silhouettes circle the Rogue and a dark sigil follows for the whole dance. */
+    /** Shadow Dance: the Rogue is invisible for the dance, so nothing is drawn (no silhouettes, sigil or shadow). */
     public static void dance(ServerPlayer p, int ticks) {
-        ServerLevel level = lv(p);
-        Circles.follow(p, "rogue", 4.0, ticks, 0.06);
-        Props.Prop[] ghosts = new Props.Prop[3];
-        for (int i = 0; i < ghosts.length; i++) {
-            ghosts[i] = Props.sprite(level, p.position().add(0, 1.0, 0), "silhouette", ticks + 20);
-            ghosts[i].pose(Vec3.ZERO, yaw(0), 0.3, 0.3, 0.3, 0);
-        }
-        during(p, ticks, 2, (o, lv, age) -> {
-            for (int i = 0; i < ghosts.length; i++) {
-                double a = age * 0.14 + i * Math.PI * 2 / ghosts.length;
-                Vec3 pos = o.position().add(Math.cos(a) * 1.7, 1.0, Math.sin(a) * 1.7);
-                ghosts[i].pin(pos, yaw(Math.PI / 2 - a), 2.0, 2.0, 2.0, 2);
-            }
-        }, () -> {
-            for (Props.Prop g : ghosts) {
-                g.pose(Vec3.ZERO, yaw(0), 0.02, 0.02, 0.02, 4);
-                g.removeAfter(5);
-            }
-        });
     }
 
     /** Thousand Cuts: a big sigil under the Rogue while the blades go to work. */
