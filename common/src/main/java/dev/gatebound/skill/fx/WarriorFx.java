@@ -144,53 +144,31 @@ public final class WarriorFx {
         Tasks.flash(level, at.x, at.y + 1.8, at.z);
     }
 
-    /** Steel plates circling the body, and a faint sigil under the feet, for the whole duration. */
+    /** Steel plates circling the body and a faint sigil under the feet, drawn by the client for the whole duration. */
     public static void ironSkin(ServerPlayer p, int ticks) {
-        ServerLevel level = lv(p);
-        Circles.follow(p, "warrior", 2.6, Math.min(ticks, 50), 0.06);
-        int n = 4;
-        Props.Prop[] plates = new Props.Prop[n];
-        for (int i = 0; i < n; i++) {
-            plates[i] = Props.sprite(level, p.position().add(0, 1.0, 0), "steel_plate", ticks + 20);
-            plates[i].pose(Vec3.ZERO, yaw(0), 0.3, 0.3, 0.3, 0);
-        }
-        double[] spin = {0};
-        during(p, ticks, 2, (o, lv, age) -> {
-            spin[0] += 0.34;
-            for (int i = 0; i < n; i++) {
-                double a = spin[0] + i * Math.PI * 2 / n;
-                Vec3 pos = o.position().add(Math.cos(a) * 1.0, 1.0 + Math.sin(age * 0.12 + i) * 0.12, Math.sin(a) * 1.0);
-                plates[i].pin(pos, yaw(Math.PI / 2 - a), 1.5, 1.5, 1.5, 2);
-            }
-            if (age % 10 == 0) {
-                Tasks.particles(lv, ParticleTypes.CRIT, o.position().add(0, 1.0, 0), 3, 0.5, 0.1);
-            }
-        }, () -> {
-            for (Props.Prop plate : plates) {
-                plate.pose(Vec3.ZERO, yaw(0), 0.02, 0.02, 0.02, 4);
-                plate.removeAfter(5);
-            }
-        });
+        FxState.set(p, "iron_skin", ticks);
+        FxState.set(p, "circle:warrior:2.6", Math.min(ticks, 50));
+        Anim.during(p, ticks, 10, (o, lv, age) -> Tasks.particles(lv, ParticleTypes.CRIT, o.position().add(0, 1.0, 0), 3, 0.5, 0.1), null);
     }
 
-    /** Heal burst: gold circle that follows the player, rising light and rings. */
+    /** Heal burst: gold circle under the player, rising light and rings. */
     public static void secondWind(ServerPlayer p) {
         ServerLevel level = lv(p);
         Palette light = Palette.of(Element.LIGHT);
-        Circles.follow(p, "light", 3.4, 36, 0.06);
+        FxState.set(p, "circle:light:3.4", 36);
         Circles.ring(level, "light", p.position(), 3.6, 9);
         Fx.pillar(level, light, p.position(), 3.2, 0.8, 14);
         Fx.spiral(level, ParticleTypes.HAPPY_VILLAGER, p.position(), 0.8, 2.2, 2, 16);
     }
 
-    /** A pulsing red sigil under the Warrior and an ember mantle for the length of the rage. */
+    /** A red sigil under the Warrior (drawn by the client) and an ember mantle for the length of the rage. */
     public static void rage(ServerPlayer p, int ticks) {
         ServerLevel level = lv(p);
         Circles.ground(level, "warrior", p.position(), 6.0, 26);
         Circles.ring(level, "warrior", p.position(), 6, 8);
         Tasks.after(4, s -> Circles.ring(level, "warrior", p.position(), 9, 9));
         Fx.pillar(level, P, p.position(), 5, 1.0, 12);
-        Circles.follow(p, "warrior", 2.8, ticks, 0.06);
+        FxState.set(p, "circle:warrior:2.8", ticks);
         during(p, ticks, 4, (o, lv, age) -> {
             Tasks.particles(lv, ParticleTypes.FLAME, o.position().add(0, 1.2, 0), 2, 0.4, 0.01);
             Tasks.particles(lv, ParticleTypes.CAMPFIRE_COSY_SMOKE, o.position().add(0, 2.0, 0), 1, 0.2, 0.01);
@@ -215,20 +193,10 @@ public final class WarriorFx {
         });
     }
 
-    /** Spinning blade ring around the body with a wind spiral; follows the player for the length of the whirl. */
+    /** Spinning blade ring around the body (drawn by the client) with a wind spiral for the length of the whirl. */
     public static void whirlwind(ServerPlayer p) {
-        ServerLevel level = lv(p);
-        Props.Prop ring = Props.sprite(level, p.position().add(0, 1.0, 0), "blade_ring", 40);
-        ring.pose(Vec3.ZERO, Circles.face(UP, 0), 1.0, 1.0, 1.0, 0);
-        double[] spin = {0};
-        during(p, 22, 2, (o, lv, age) -> {
-            spin[0] += 1.1;
-            double size = age < 4 ? 4.2 : 7.0;
-            ring.pin(o.position().add(0, 1.0, 0), Circles.face(UP, spin[0]), size, size, size, 2);
-            if (age % 4 == 0) {
-                Fx.spiral(lv, ParticleTypes.CLOUD, o.position(), 2.2, 1.8, 1, 6);
-            }
-        }, () -> fadeOut(ring, Circles.face(UP, spin[0])));
+        FxState.set(p, "whirlwind", 22);
+        during(p, 22, 4, (o, lv, age) -> Fx.spiral(lv, ParticleTypes.CLOUD, o.position(), 2.2, 1.8, 1, 6), null);
     }
 
     /** Three claw slashes on the target, and a sigil under it while it bleeds. */
@@ -265,21 +233,10 @@ public final class WarriorFx {
 
     // ---------------------------------------------------------------- Bulwark
 
-    /** An upright shield sigil held out in front for the whole duration. */
+    /** An upright shield sigil held out in front for the whole duration (drawn by the client). */
     public static void bulwark(ServerPlayer p, int ticks) {
-        ServerLevel level = lv(p);
-        Props.Prop shield = Props.sprite(level, p.position().add(0, 1.1, 0), "shield_sigil", ticks + 20);
-        shield.pose(Vec3.ZERO, yaw(0), 0.3, 0.3, 0.3, 0);
-        during(p, ticks, 2, (o, lv, age) -> {
-            Vec3 look = flat(o.getLookAngle());
-            Vec3 pos = o.position().add(look.scale(1.3)).add(0, 1.15, 0);
-            double pulse = 2.3 + Math.sin(age * 0.2) * 0.08;
-            shield.pin(pos, yaw(Math.atan2(look.x, look.z)), pulse, pulse, pulse, 2);
-        }, () -> {
-            shield.pose(Vec3.ZERO, yaw(0), 0.02, 0.02, 0.02, 4);
-            shield.removeAfter(5);
-        });
-        Circles.ground(level, "warrior", p.position(), 3.0, 16);
+        FxState.set(p, "bulwark", ticks);
+        Circles.ground(lv(p), "warrior", p.position(), 3.0, 16);
     }
 
     /** A returning flash when Bulwark reflects a blow. */
@@ -307,24 +264,9 @@ public final class WarriorFx {
             sword.pose(new Vec3(0, -3.6, 0), down, 0.02, 0.02, 0.02, 12);
             sword.removeAfter(13);
         });
-        Props.Prop left = Props.sprite(level, at.add(0, 2.3, 0), "slash", ticks + 20);
-        Props.Prop right = Props.sprite(level, at.add(0, 2.3, 0), "slash", ticks + 20);
-        left.pose(Vec3.ZERO, yaw(0), 0.2, 0.2, 0.2, 0);
-        right.pose(Vec3.ZERO, yaw(0), 0.2, 0.2, 0.2, 0);
-        Circles.follow(p, "warrior", 4.0, ticks, 0.06);
-        during(p, ticks, 4, (o, lv, age) -> {
-            Vec3 look = flat(o.getLookAngle());
-            Vec3 perp = new Vec3(-look.z, 0, look.x);
-            Vec3 head = o.position().add(0, 2.2 + Math.sin(age * 0.15) * 0.05, 0);
-            left.pin(head.add(perp.scale(0.38)), Circles.face(look, 0.55), 1.1, 1.1, 1.1, 4);
-            right.pin(head.add(perp.scale(-0.38)), Circles.face(look, -0.55), 1.1, 1.1, 1.1, 4);
-            Tasks.particles(lv, ParticleTypes.FLAME, o.position().add(0, 1.0, 0), 2, 0.4, 0.01);
-        }, () -> {
-            left.pose(Vec3.ZERO, yaw(0), 0.02, 0.02, 0.02, 4);
-            right.pose(Vec3.ZERO, yaw(0), 0.02, 0.02, 0.02, 4);
-            left.removeAfter(5);
-            right.removeAfter(5);
-        });
+        FxState.set(p, "avatar", ticks);
+        FxState.set(p, "circle:warrior:4.0", ticks);
+        during(p, ticks, 4, (o, lv, age) -> Tasks.particles(lv, ParticleTypes.FLAME, o.position().add(0, 1.0, 0), 2, 0.4, 0.01), null);
     }
 
     /** One pulse of the avatar's aura: blade ring bursts out and a ring runs ahead of it. */

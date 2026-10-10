@@ -16,17 +16,19 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 /**
- * Tells every client which players are in a Mage form, so the client body layer (client/FormBodyLayer) can skin them.
- * Re-sent when the set changes, when someone joins, and every two seconds so a client that was still loading never misses it.
+ * Tells every client which body effects are active on which players (Mage forms as "form:fire", and the FxState tags), so the
+ * client layer (client/FormBodyLayer) can draw them on the real rendered body. Re-sent when something changes, when someone
+ * joins, and every two seconds so a client that was still loading never misses it.
  */
 public final class FormSync {
-    private static Map<UUID, Element> last = Map.of();
+    private static Map<UUID, List<String>> last = Map.of();
     private static boolean dirty = true;
 
     private FormSync() {
     }
 
     public static void init() {
+        FxState.init();
         TickEvent.SERVER_POST.register(FormSync::tick);
         PlayerEvent.PLAYER_JOIN.register(player -> dirty = true);
         PlayerEvent.PLAYER_QUIT.register(player -> dirty = true);
@@ -34,20 +36,27 @@ public final class FormSync {
 
     private static void tick(MinecraftServer server) {
         long now = server.getTickCount();
-        if (now % 5 != 0) {
+        if (now % 2 != 0) {
             return;
         }
-        Map<UUID, Element> forms = new TreeMap<>(MageCore.activeForms(now));
-        if (dirty || !forms.equals(last) || now % 40 == 0) {
+        Map<UUID, List<String>> all = new TreeMap<>(FxState.snapshot(now));
+        for (Map.Entry<UUID, Element> e : MageCore.activeForms(now).entrySet()) {
+            List<String> tags = new ArrayList<>(all.getOrDefault(e.getKey(), List.of()));
+            tags.add("form:" + e.getValue().name().toLowerCase(java.util.Locale.ROOT));
+            all.put(e.getKey(), tags);
+        }
+        if (dirty || !all.equals(last) || now % 40 == 0) {
             dirty = false;
-            last = forms;
+            last = all;
             List<UUID> players = new ArrayList<>();
-            List<String> elements = new ArrayList<>();
-            for (Map.Entry<UUID, Element> e : forms.entrySet()) {
-                players.add(e.getKey());
-                elements.add(e.getValue().name().toLowerCase(java.util.Locale.ROOT));
+            List<String> tags = new ArrayList<>();
+            for (Map.Entry<UUID, List<String>> e : all.entrySet()) {
+                for (String tag : e.getValue()) {
+                    players.add(e.getKey());
+                    tags.add(tag);
+                }
             }
-            FormSyncPayload payload = new FormSyncPayload(players, elements);
+            FormSyncPayload payload = new FormSyncPayload(players, tags);
             for (ServerPlayer p : server.getPlayerList().getPlayers()) {
                 NetworkManager.sendToPlayer(p, payload);
             }
