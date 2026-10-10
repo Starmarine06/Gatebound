@@ -8,7 +8,6 @@ import dev.architectury.event.events.common.EntityEvent;
 import dev.architectury.event.events.common.LifecycleEvent;
 import dev.gatebound.data.Element;
 import dev.gatebound.data.PlayerData;
-import dev.gatebound.data.PlayerDataStore;
 import dev.gatebound.skill.fx.CastFx;
 import dev.gatebound.skill.fx.Circles;
 import dev.gatebound.skill.fx.Fx;

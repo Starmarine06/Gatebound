@@ -1,7 +1,6 @@
 package dev.gatebound.echo;
 
 import dev.gatebound.compat.Compat;
-import dev.architectury.networking.NetworkManager;
 import dev.architectury.utils.Env;
 import dev.architectury.utils.EnvExecutor;
 import net.minecraft.server.level.ServerPlayer;

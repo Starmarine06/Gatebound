@@ -13,7 +13,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 
-import java.util.Set;
 
 /** Registries of the grave a dead player leaves behind: the block, its item and its block entity. */
 public final class GraveRegistries {

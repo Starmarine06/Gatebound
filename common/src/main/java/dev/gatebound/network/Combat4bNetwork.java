@@ -1,7 +1,6 @@
 package dev.gatebound.network;
 
 import dev.gatebound.compat.Compat;
-import dev.architectury.networking.NetworkManager;
 import dev.gatebound.combat.PlayerCombat;
 import dev.gatebound.data.ClientStaminaData;
 import net.minecraft.server.level.ServerPlayer;
