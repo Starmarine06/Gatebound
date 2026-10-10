@@ -282,6 +282,29 @@ WriteModel 'ice_spike' 'ice_shard' @(
   (BoxEl @(7.2, 14, 7.2) @(8.8, 18, 8.8) 'y' 0), (BoxEl @(3.5, 0, 3.5) @(12.5, 5, 12.5) 'y' 45), (BoxEl @(4.8, 5, 4.8) @(11.2, 10, 11.2) 'y' 45),
   (BoxEl @(6.1, 10, 6.1) @(9.9, 14, 9.9) 'y' 45), (BoxEl @(7.2, 14, 7.2) @(8.8, 18, 8.8) 'y' 45))
 
+# A tall column of light: bright white-gold in the middle, fading to transparent at the sides, with faint streaks.
+function DrawBeam($file, $glow, $core) {
+  $W = 64; $H = 128
+  $bmp = New-Object System.Drawing.Bitmap $W, $H, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+  for ($x = 0; $x -lt $W; $x++) {
+    $d = [math]::Abs($x - ($W - 1) / 2) / ($W / 2)
+    $a = [math]::Pow([math]::Max(0, 1 - $d), 1.5)
+    $mix = [math]::Pow([math]::Max(0, 1 - $d * 1.6), 2)
+    for ($y = 0; $y -lt $H; $y++) {
+      $streak = 0.88 + 0.12 * [math]::Sin($y * 0.35 + $x * 0.5)
+      $alpha = [int][math]::Min(255, 255 * $a * $streak)
+      $r = [int]($glow[0] + ($core[0] - $glow[0]) * $mix)
+      $g = [int]($glow[1] + ($core[1] - $glow[1]) * $mix)
+      $b = [int]($glow[2] + ($core[2] - $glow[2]) * $mix)
+      $bmp.SetPixel($x, $y, (C $alpha $r $g $b))
+    }
+  }
+  $bmp.Save((Join-Path $texDir $file), [System.Drawing.Imaging.ImageFormat]::Png)
+  $bmp.Dispose()
+}
+DrawBeam 'light_beam.png' $elements['light'].glow $elements['light'].core
+WriteModel 'light_beam' 'light_beam' @((PlaneEl 'z'), (PlaneEl 'x'))
+
 DrawMeteor
 WriteModel 'meteor' 'meteor' @(
   (BoxEl @(3, 3, 3) @(13, 13, 13) 'y' 0), (BoxEl @(3.5, 3.5, 3.5) @(12.5, 12.5, 12.5) 'y' 45), (BoxEl @(3.5, 3.5, 3.5) @(12.5, 12.5, 12.5) 'x' 45),
