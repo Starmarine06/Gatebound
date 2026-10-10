@@ -26,9 +26,26 @@ public final class GateboundHud {
             return;
         }
         drawStatus(g, mc);
+        drawBar(g, mc);
         drawTargetPosture(g, mc);
         drawParry(g, mc);
         Combat4bClient.renderHud(g, mc);
+    }
+
+    /** Rage or Avatar timer under the status panel. */
+    private static void drawBar(GuiGraphicsExtractor g, Minecraft mc) {
+        dev.gatebound.data.ClientFormData.Bar bar = dev.gatebound.data.ClientFormData.bar(mc.player.getUUID());
+        if (bar == null) {
+            return;
+        }
+        boolean avatar = "avatar".equals(bar.name());
+        int x = 6;
+        int y = 80;
+        int w = 112;
+        g.fill(x, y, x + w, y + 6, 0xFF1C1C26);
+        g.fill(x, y, x + (int) (w * bar.fraction()), y + 6, avatar ? 0xFFFF9A2E : 0xFFD23A22);
+        g.outline(x, y, w, 6, 0xFF0B0B10);
+        g.text(mc.font, avatar ? "AVATAR" : "RAGE", x + w + 6, y - 1, 0xFFFF8A70, true);
     }
 
     private static void drawStatus(GuiGraphicsExtractor g, Minecraft mc) {

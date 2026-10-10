@@ -14,6 +14,10 @@ import dev.gatebound.data.PlayerData;
 import dev.gatebound.data.PlayerDataStore;
 import dev.gatebound.data.Stat;
 import dev.gatebound.echo.EchoManager;
+import dev.gatebound.item.KnifeItems;
+import dev.gatebound.skill.fx.FxState;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.Items;
 import dev.gatebound.skill.fx.WarriorFx;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
@@ -232,6 +236,10 @@ public final class WarriorSkills {
                 WarriorFx.bulwarkReflect(level, p, attacker);
             }
             return EventResult.pass();
+        }
+        if (source.getEntity() instanceof ServerPlayer w && isWarrior(w) && CombatHandler.isMelee(source) && victim instanceof Mob mob
+                && !EchoManager.isEcho(mob)) {
+            passiveStrike(w, level, mob, amount);
         }
         if (source.getEntity() instanceof ServerPlayer p && enraged(p, now) && !EchoManager.isEcho(victim)) {
             double steal = AVATAR.containsKey(p.getUUID()) ? WarriorConfig.avatarLifesteal : WarriorConfig.rageLifesteal;
@@ -502,6 +510,7 @@ public final class WarriorSkills {
     public static boolean berserkerRage(ServerPlayer p, ServerLevel level, PlayerData data) {
         int ticks = (WarriorConfig.rageBaseSeconds + data.level / 10) * 20;
         RAGE.put(p.getUUID(), now(p) + ticks);
+        FxState.set(p, "bar:rage:" + ticks, ticks);
         p.addEffect(new MobEffectInstance(MobEffects.STRENGTH, ticks, 1));
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 0));
         WarriorFx.rage(p, ticks);
@@ -548,6 +557,7 @@ public final class WarriorSkills {
         int ticks = (WarriorConfig.avatarBaseSeconds + data.level / 10) * 20;
         long now = now(p);
         AVATAR.put(p.getUUID(), new Avatar(now + ticks, now + 20));
+        FxState.set(p, "bar:avatar:" + ticks, ticks);
         p.addEffect(new MobEffectInstance(MobEffects.STRENGTH, ticks, 2));
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, ticks, 1));
         p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, ticks, 1));
@@ -555,6 +565,74 @@ public final class WarriorSkills {
         WarriorFx.avatarStart(p, ticks);
         sound(p, level, GateboundSounds.of(SoundEvents.ENDER_DRAGON_GROWL), 0.8f);
         return true;
+    }
+
+    // ---------------------------------------------------------------- gear and passives
+
+    private static final Set<String> WEAPON_SKILLS = Set.of("shockwave", "charge", "cleave", "leap_slam", "rending_strike", "whirlwind",
+            "crushing_blow", "earthbreaker");
+
+    private static final Set<net.minecraft.world.item.Item> HEAVY = Set.of(
+            Items.IRON_HELMET, Items.IRON_CHESTPLATE, Items.IRON_LEGGINGS, Items.IRON_BOOTS,
+            Items.DIAMOND_HELMET, Items.DIAMOND_CHESTPLATE, Items.DIAMOND_LEGGINGS, Items.DIAMOND_BOOTS,
+            Items.NETHERITE_HELMET, Items.NETHERITE_CHESTPLATE, Items.NETHERITE_LEGGINGS, Items.NETHERITE_BOOTS);
+
+    /** How many iron, diamond or netherite armour pieces the player wears. */
+    public static int heavyPieces(ServerPlayer p) {
+        int n = 0;
+        for (EquipmentSlot slot : KnifeItems.ARMOR_SLOTS) {
+            if (HEAVY.contains(p.getItemBySlot(slot).getItem())) {
+                n++;
+            }
+        }
+        return n;
+    }
+
+    /** Called by SkillHandler before any mana is spent: Warrior skills that hit need a melee weapon in hand. */
+    public static boolean canUse(ServerPlayer p, Skill skill) {
+        if (skill.owner() != GateboundClass.WARRIOR || !WarriorConfig.requireWeapon || !WEAPON_SKILLS.contains(skill.id())
+                || KnifeItems.isMeleeWeapon(p.getMainHandItem())) {
+            return true;
+        }
+        Compat.overlay(p, net.minecraft.network.chat.Component.literal("A Warrior's strikes need a melee weapon in hand.")
+                .withStyle(net.minecraft.ChatFormatting.GRAY));
+        return false;
+    }
+
+    /** Every melee hit lands a second one: Strength and heavy armour add to it. Applied a tick later (i-frames would eat it now). */
+    private static void passiveStrike(ServerPlayer p, ServerLevel level, LivingEntity victim, float amount) {
+        PlayerData data = PlayerDataStore.of(p);
+        double bonus = Math.min(WarriorConfig.meleeCap, WarriorConfig.meleePerStrength * data.get(Stat.STRENGTH))
+                + WarriorConfig.heavyPieceBonus * heavyPieces(p);
+        float extra = (float) (amount * bonus);
+        if (extra < 0.05f) {
+            return;
+        }
+        after(p, 1, server -> {
+            if (victim.isAlive()) {
+                applying = true;
+                try {
+                    Compat.setInvulnerableTime(victim, 0);
+                    victim.hurtServer(level, level.damageSources().indirectMagic(p, p), extra);
+                } finally {
+                    applying = false;
+                }
+            }
+        });
+    }
+
+    /** The nearest enemies within a radius, for effects that launch from the body. */
+    public static List<LivingEntity> nearestFoes(ServerPlayer p, ServerLevel level, double radius, int max) {
+        List<LivingEntity> list = new ArrayList<>(foes(p, level, radius));
+        list.sort(java.util.Comparator.comparingDouble(e -> e.distanceToSqr(p)));
+        return list.size() > max ? list.subList(0, max) : list;
+    }
+
+    /** Damage dealt by something launched from the body (Avatar of War's slash waves). */
+    public static void formHit(ServerPlayer p, LivingEntity target, double base) {
+        if (target.isAlive() && target.level() instanceof ServerLevel level) {
+            strike(p, level, target, dmg(PlayerDataStore.of(p), base) * 0.8f);
+        }
     }
 
     private static boolean miss(ServerPlayer p, int cost) {

@@ -55,6 +55,28 @@ final class Anim {
         pop(level, from.add(to).scale(0.5), model, Circles.face(d, 0), width, len, width, hold);
     }
 
+    /** A model that flies from one point to another, then calls {@code onHit}. */
+    static void fly(ServerLevel level, String model, Vec3 from, Vec3 to, double size, double speed, double arc,
+                            Quaternionf rot, Runnable onHit) {
+        int travel = (int) Math.max(3, Math.min(16, from.distanceTo(to) / speed));
+        Props.Prop prop = Props.sprite(level, from, model, travel + 14);
+        prop.pose(Vec3.ZERO, rot, size * 0.3, size * 0.3, size * 0.3, 0);
+        Vec3 delta = to.subtract(from);
+        if (arc > 0) {
+            Tasks.after(1, s -> prop.pose(delta.scale(0.5).add(0, arc, 0), rot, size, size, size, travel / 2));
+            Tasks.after(1 + travel / 2, s -> prop.pose(delta, rot, size, size, size, travel - travel / 2));
+        } else {
+            Tasks.after(1, s -> prop.pose(delta, rot, size, size, size, travel));
+        }
+        Tasks.after(travel + 1, s -> {
+            prop.pose(delta, rot, size * 1.4, size * 1.4, size * 1.4, 2);
+            prop.removeAfter(3);
+            if (onHit != null) {
+                onHit.run();
+            }
+        });
+    }
+
     /** Runs {@code frame} for a player every {@code every} ticks for {@code ticks} ticks, then {@code end}. */
     interface Frame {
         void at(ServerPlayer p, ServerLevel level, int age);

@@ -1,6 +1,7 @@
 package dev.gatebound.skill.fx;
 
 import dev.gatebound.data.Element;
+import dev.gatebound.skill.WarriorSkills;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -264,9 +265,21 @@ public final class WarriorFx {
             sword.pose(new Vec3(0, -3.6, 0), down, 0.02, 0.02, 0.02, 12);
             sword.removeAfter(13);
         });
-        FxState.set(p, "avatar", ticks);
-        FxState.set(p, "circle:warrior:4.0", ticks);
-        during(p, ticks, 4, (o, lv, age) -> Tasks.particles(lv, ParticleTypes.FLAME, o.position().add(0, 1.0, 0), 2, 0.4, 0.01), null);
+        FxState.set(p, "form:warrior", ticks); // skin, wings, horns, pauldrons, greatsword and blade ring: client/FormBodyLayer
+        during(p, ticks, 4, (o, lv, age) -> {
+            Tasks.particles(lv, ParticleTypes.FLAME, o.position().add(0, 1.0, 0), 2, 0.4, 0.01);
+            if (age % 12 == 0) { // slash waves launched from the body at the nearest enemies
+                for (LivingEntity e : WarriorSkills.nearestFoes(o, lv, 14, 3)) {
+                    Vec3 from = o.position().add(0, 1.2, 0);
+                    Vec3 to = e.position().add(0, e.getBbHeight() * 0.55, 0);
+                    Vec3 dir = flat(to.subtract(from));
+                    fly(lv, "slash", from, to, 3.4, 1.6, 0, Circles.face(UP, bulge(dir)), () -> {
+                        hitSlash(lv, e, o.position());
+                        WarriorSkills.formHit(o, e, 3);
+                    });
+                }
+            }
+        }, null);
     }
 
     /** One pulse of the avatar's aura: blade ring bursts out and a ring runs ahead of it. */

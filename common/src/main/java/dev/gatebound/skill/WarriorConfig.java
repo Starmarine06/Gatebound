@@ -32,4 +32,13 @@ public final class WarriorConfig {
     public static double leapUp = 0.75;
 
     public static double earthbreakerRadius = 8;
+
+    // Gear and passives
+    /** Skills that hit need a melee weapon (not a knife) in the main hand; they are refused before any mana is spent. */
+    public static boolean requireWeapon = true;
+    /** Every Warrior melee hit lands an extra hit worth this fraction of the damage per point of Strength (capped)... */
+    public static double meleePerStrength = 0.006;
+    public static double meleeCap = 0.4;
+    /** ...plus this much for every iron, diamond or netherite armour piece worn. */
+    public static double heavyPieceBonus = 0.03;
 }

@@ -93,6 +93,9 @@ public final class SkillHandler {
             return;
         }
         Skill skill = skills.get(slot);
+        if (!WarriorSkills.canUse(player, skill)) {
+            return;
+        }
         boolean mage = GateboundClass.MAGE.id().equals(data.classId);
         int now = player.level().getServer().getTickCount();
         if (mage) {

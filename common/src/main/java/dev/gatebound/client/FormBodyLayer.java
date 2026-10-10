@@ -112,6 +112,14 @@ public final class FormBodyLayer extends RenderLayer<AvatarRenderState, PlayerMo
                 spike(ps, c, state, owner, m, 1);
                 spike(ps, c, state, owner, m, -1);
             }
+            case "warrior" -> {
+                wings(ps, c, state, owner, m, "wings_warrior", 4.4f, t);
+                horns(ps, c, state, owner, m, "horns_fire", 1.0f);
+                draw(ps, c, state, owner, m.body, "steel_plate", 0.58f, -0.05f, 0.0f, 0, 15.0f, 0, 2.3f, 2.3f, 2.3f);
+                draw(ps, c, state, owner, m.body, "steel_plate", -0.58f, -0.05f, 0.0f, 0, -15.0f, 0, 2.3f, 2.3f, 2.3f);
+                draw(ps, c, state, owner, m.body, "sword", 0.2f, 0.1f, 0.34f, 0, 0, 30.0f, 1.8f, 3.4f, 1.8f); // greatsword across the back
+                draw(ps, c, state, owner, m.body, "blade_ring", 0.0f, 0.7f, 0.0f, 0, t * 40.0f, 0, 5.5f, 5.5f, 5.5f);
+            }
             case "lightning" -> {
                 wings(ps, c, state, owner, m, "wings_lightning", 4.2f, t);
                 halo(ps, c, state, owner, m, "halo_lightning", 1.3f, t * 7.0f);

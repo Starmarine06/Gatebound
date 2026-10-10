@@ -681,6 +681,10 @@ function RingPlane($y, $half) {
 }
 WriteModel 'tornado' 'ring_wind' @((RingPlane 0.5 2.5), (RingPlane 3 3.4), (RingPlane 5.5 4.3), (RingPlane 8 5.3), (RingPlane 10.5 6.3), (RingPlane 13 7.4), (RingPlane 15.5 8))
 
+# ------------------------------------------------------------------ Avatar of War wings
+DrawWings 'wings_warrior.png' $elements['warrior'].glow $elements['warrior'].core @(112, 118, 130) 'membrane'
+WriteModel 'wings_warrior' 'wings_warrior' @((PlaneEl 'z'))
+
 # ------------------------------------------------------------------ mage form body skins (64x64 player skin layout, 4 animation frames each)
 # Only the base-layer regions are painted; the outer-layer regions stay transparent, so the overlay never hides hats, jackets or sleeves.
 $formDir = Join-Path $root 'textures\entity\form'
@@ -732,6 +736,10 @@ function SkinPixel($el, $x, $y, $f) {
       if ((Hash2 $x $y ($f + 9)) -gt 0.97) { return @(255, 255, 255) }
       return $c
     }
+    'warrior' {
+      if (($x % 8) -eq 0 -or ($y % 8) -eq 0) { return Mix @(200, 50, 24) @(255, 190, 80) (0.5 + 0.5 * [math]::Sin($ph + $x * 0.3)) }
+      return Mix @(66, 72, 84) @(150, 158, 172) (Hash2 ([math]::Floor($x / 2)) ([math]::Floor($y / 2)) 3)
+    }
     'dark' {
       $s = 0.5 + 0.5 * [math]::Sin(($x + $y) * 0.5 - $ph * 1.2 + [math]::Sin($x * 0.5) * 1.4)
       return Mix @(12, 4, 22) @(120, 46, 190) ([math]::Pow($s, 3))
@@ -756,8 +764,8 @@ function DrawSkin($el, $f, $eye) {
   $bmp.Dispose()
 }
 
-$eyes = @{ fire = @(255, 255, 220); ice = @(255, 255, 255); lightning = @(255, 255, 255); wind = @(70, 150, 120); earth = @(255, 200, 80); light = @(255, 255, 255); dark = @(255, 60, 230) }
-foreach ($el in @('fire', 'ice', 'lightning', 'wind', 'earth', 'light', 'dark')) {
+$eyes = @{ fire = @(255, 255, 220); ice = @(255, 255, 255); lightning = @(255, 255, 255); wind = @(70, 150, 120); earth = @(255, 200, 80); warrior = @(255, 210, 90); light = @(255, 255, 255); dark = @(255, 60, 230) }
+foreach ($el in @('fire', 'ice', 'lightning', 'wind', 'earth', 'light', 'dark', 'warrior')) {
   for ($f = 0; $f -lt 4; $f++) { DrawSkin $el $f $eyes[$el] }
 }
 Write-Output 'done'
