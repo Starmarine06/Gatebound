@@ -54,7 +54,18 @@ public final class SkillHandler {
         });
         // Mana is deliberately NOT refilled on join or respawn: it is saved with the player and picks up where it left off.
         PlayerEvent.PLAYER_JOIN.register(player -> sendMana(player, true));
-        PlayerEvent.PLAYER_RESPAWN.register((player, conqueredEnd, reason) -> sendMana(player, true));
+        PlayerEvent.PLAYER_RESPAWN.register((player, conqueredEnd, reason) -> {
+            sendMana(player, true);
+            // Back at full health: a couple of ticks later, once the level's max health has been applied.
+            java.util.UUID id = player.getUUID();
+            dev.gatebound.skill.fx.Tasks.after(2, server -> {
+                ServerPlayer back = dev.gatebound.skill.fx.Tasks.playerOf(server, id);
+                if (back != null && back.isAlive()) {
+                    back.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.INSTANT_HEALTH, 40, 20));
+                    back.setHealth(back.getMaxHealth());
+                }
+            });
+        });
         PlayerEvent.PLAYER_QUIT.register(player -> {
             PlayerDataStore.markDirty(player);
             ManaState.forget(player.getUUID());
