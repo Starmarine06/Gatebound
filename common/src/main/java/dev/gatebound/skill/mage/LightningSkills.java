@@ -51,9 +51,11 @@ public final class LightningSkills {
 
     private static final Map<UUID, Long> STATIC = new HashMap<>();
 
+    /** Static holder; not instantiable. */
     private LightningSkills() {
     }
 
+    /** Registers the Lightning hurt hook. */
     public static void init() {
         EntityEvent.LIVING_HURT.register(LightningSkills::onHurt);
         LifecycleEvent.SERVER_STOPPED.register(server -> STATIC.clear());
@@ -61,6 +63,7 @@ public final class LightningSkills {
 
     // ---------------------------------------------------------------- helpers
 
+    /** True if the entity is charged with static. */
     private static boolean charged(LivingEntity e) {
         Long until = STATIC.get(e.getUUID());
         return until != null && until > e.level().getServer().getTickCount();
@@ -85,6 +88,7 @@ public final class LightningSkills {
         }
     }
 
+    /** Nearest valid target to a point, skipping given ids. */
     private static LivingEntity nearest(ServerPlayer p, ServerLevel level, LivingEntity from, double range, Set<UUID> skip) {
         LivingEntity best = null;
         double bestD = Double.MAX_VALUE;
@@ -113,6 +117,7 @@ public final class LightningSkills {
         return new Vec3[]{from, to};
     }
 
+    /** Zaps along a path, shocking foes in it. */
     private static void shockPath(ServerPlayer p, ServerLevel level, PlayerData data, Vec3 from, Vec3 to, double base) {
         dev.gatebound.skill.fx.SpellFx.dash(level, from, to, base > 6 ? 1.8 : 1.0);
         Vec3 seg = to.subtract(from);
@@ -130,6 +135,7 @@ public final class LightningSkills {
 
     // ---------------------------------------------------------------- events
 
+    /** Hurt hook: bonus damage on charged targets. */
     private static EventResult onHurt(LivingEntity victim, DamageSource source, float amount) {
         if (MageCore.applying() || amount <= 0 || victim instanceof ServerPlayer || !(victim.level() instanceof ServerLevel level)
                 || !(source.getEntity() instanceof ServerPlayer p)) {
@@ -145,6 +151,7 @@ public final class LightningSkills {
 
     // ---------------------------------------------------------------- skills
 
+    /** Arc Bolt: fast bolt that leaves Static; hitting Static chains the shock. */
     public static boolean arcBolt(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.LIGHTNING, ARC_COST);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.LIGHTNING_BOLT_THUNDER), 0.6f, 2.0f);
@@ -164,6 +171,7 @@ public final class LightningSkills {
         return true;
     }
 
+    /** Thunder Storm: lightning strikes every enemy nearby. */
     public static boolean thunderStorm(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.LIGHTNING, STORM_COST);
         List<LivingEntity> foes = MageCore.foes(p, level, 7);
@@ -177,6 +185,7 @@ public final class LightningSkills {
         return true;
     }
 
+    /** Static Step: blink forward, shocking everything passed. */
     public static boolean staticStep(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.LIGHTNING, STEP_COST);
         Vec3[] path = blink(p, level, 9);
@@ -185,6 +194,7 @@ public final class LightningSkills {
         return true;
     }
 
+    /** Overcharge: faster, and every hit shocks the target. */
     public static boolean overcharge(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.LIGHTNING, OVERCHARGE_COST);
         int ticks = MageConfig.buffSeconds * 20;
@@ -197,6 +207,7 @@ public final class LightningSkills {
         return true;
     }
 
+    /** Chain Lightning: bolt that leaps through several enemies. */
     public static boolean chainLightning(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.LIGHTNING, CHAIN_COST);
         List<LivingEntity> first = dev.gatebound.skill.SkillTargeting.ray(p, level, 28, 1, ParticleTypes.ELECTRIC_SPARK);
@@ -222,6 +233,7 @@ public final class LightningSkills {
         return true;
     }
 
+    /** Lightning Rod: rod that calls bolts onto nearby enemies. */
     public static boolean lightningRod(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.LIGHTNING, ROD_COST);
         Vec3 spot = MageCore.aimSpot(p, level, 20);
@@ -248,6 +260,7 @@ public final class LightningSkills {
         return true;
     }
 
+    /** Thunderstrike: huge bolt on the aimed spot after a warning. */
     public static boolean thunderstrike(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.LIGHTNING, STRIKE_COST);
         Vec3 spot = MageCore.aimSpot(p, level, 40);
@@ -271,6 +284,7 @@ public final class LightningSkills {
         return true;
     }
 
+    /** Storm Surge: surge forward as lightning, striking enemies in the path. */
     public static boolean stormSurge(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.LIGHTNING, SURGE_COST);
         Vec3[] path = blink(p, level, 16);
@@ -280,6 +294,7 @@ public final class LightningSkills {
         return true;
     }
 
+    /** Thunder God: ultimate lightning form. */
     public static boolean thunderGod(ServerPlayer p, ServerLevel level, PlayerData data) {
         int ticks = MageConfig.formSeconds * 20;
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 2));

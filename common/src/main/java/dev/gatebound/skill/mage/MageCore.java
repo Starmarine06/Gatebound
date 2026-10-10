@@ -67,9 +67,11 @@ public final class MageCore {
         void hit(ServerLevel level, Vec3 pos, LivingEntity target);
     }
 
+    /** An active elemental form and when it ends. */
     private record Form(Element element, long until) {
     }
 
+    /** A temporary block change and when to restore it. */
     private record Temp(ServerLevel level, BlockPos pos, BlockState original, Block placed, long restoreAt) {
     }
 
@@ -80,11 +82,13 @@ public final class MageCore {
     /** Guards our own damage from re-entering hurt hooks. */
     private static boolean applying;
 
+    /** Static holder; not instantiable. */
     private MageCore() {
     }
 
     // ---------------------------------------------------------------- lifecycle
 
+    /** Registers the mage tick and cleanup hooks. */
     public static void init() {
         TickEvent.SERVER_POST.register(MageCore::tick);
         dev.gatebound.skill.fx.Tasks.init();
@@ -134,6 +138,7 @@ public final class MageCore {
         return EventResult.pass();
     }
 
+    /** Drops all of a player's mage state. */
     private static void clearPlayer(UUID id) {
         FORMS.remove(id);
         BUFFS.remove(id);
@@ -170,6 +175,7 @@ public final class MageCore {
         }
     }
 
+    /** Per-tick driver: runs tickers, delayed actions and block restores. */
     private static void tick(MinecraftServer server) {
         long now = server.getTickCount();
         if (now % 10 == 0) {
@@ -187,14 +193,17 @@ public final class MageCore {
 
     // ---------------------------------------------------------------- damage and targets
 
+    /** Spell damage scaled by the player's level and stats. */
     public static float dmg(PlayerData data, double base) {
         return (float) ((base + MageConfig.damagePerIntellect * data.get(Stat.INTELLECT)) * (1 + MageConfig.damagePerLevel * data.level));
     }
 
+    /** True while a spell is dealing damage (guards re-entrant hurt hooks). */
     public static boolean applying() {
         return applying;
     }
 
+    /** Deals spell damage to a target on behalf of the player. */
     public static void strike(ServerPlayer p, ServerLevel level, LivingEntity target, float amount) {
         boolean was = applying;
         applying = true;
@@ -206,6 +215,7 @@ public final class MageCore {
         }
     }
 
+    /** True if the entity is a valid spell target for the owner. */
     public static boolean valid(ServerPlayer owner, LivingEntity e) {
         return e != owner && e.isAlive() && !(e instanceof Player) && !(e instanceof net.minecraft.world.entity.decoration.ArmorStand) &&!(e instanceof Mob mob && EchoManager.isEcho(mob));
     }
@@ -259,6 +269,7 @@ public final class MageCore {
         return out;
     }
 
+    /** Valid spell targets around the player within a radius. */
     public static List<LivingEntity> foes(ServerPlayer p, ServerLevel level, double radius) {
         return foesAt(p, level, p.position(), radius);
     }
@@ -271,12 +282,14 @@ public final class MageCore {
         return hit.getType() == HitResult.Type.MISS ? end : hit.getLocation();
     }
 
+    /** The player's look direction flattened onto the horizontal plane. */
     public static Vec3 flatLook(ServerPlayer p) {
         Vec3 look = p.getLookAngle();
         Vec3 flat = new Vec3(look.x, 0, look.z);
         return flat.lengthSqr() < 1.0e-4 ? new Vec3(0, 0, 1) : flat.normalize();
     }
 
+    /** Knocks an entity away from a point. */
     public static void knock(LivingEntity e, Vec3 from, double power, double up) {
         Vec3 away = e.position().subtract(from);
         Vec3 dir = new Vec3(away.x, 0, away.z);
@@ -285,22 +298,27 @@ public final class MageCore {
         e.needsSync = true;
     }
 
+    /** Syncs the player's skill state to the client. */
     public static void send(ServerPlayer p) {
         p.connection.send(new ClientboundSetEntityMotionPacket(p));
     }
 
+    /** Plays a sound at a position. */
     public static void sound(ServerLevel level, Vec3 at, SoundEvent sound, float volume, float pitch) {
         dev.gatebound.skill.fx.Tasks.sound(level, at, sound, volume, pitch);
     }
 
+    /** Spawns particles at a position. */
     public static void particles(ServerLevel level, ParticleOptions type, Vec3 at, int count, double spread, double speed) {
         dev.gatebound.skill.fx.Tasks.particles(level, type, at, count, spread, speed);
     }
 
+    /** Looks a player up by UUID. */
     public static ServerPlayer playerOf(MinecraftServer server, UUID id) {
         return dev.gatebound.skill.fx.Tasks.playerOf(server, id);
     }
 
+    /** Finds any loaded entity by UUID across levels. */
     public static LivingEntity find(MinecraftServer server, UUID id) {
         for (ServerLevel level : server.getAllLevels()) {
             if (level.getEntity(id) instanceof LivingEntity e && e.isAlive()) {
@@ -319,6 +337,7 @@ public final class MageCore {
         }
     }
 
+    /** Bright flash of light at a position. */
     public static void flash(ServerLevel level, double x, double y, double z) {
         dev.gatebound.skill.fx.Tasks.flash(level, x, y, z);
     }
@@ -370,10 +389,12 @@ public final class MageCore {
 
     // ---------------------------------------------------------------- tickers, bolts, zones
 
+    /** Starts a per-tick effect that runs until it finishes. */
     public static void run(dev.gatebound.skill.fx.Tasks.Ticker ticker) {
         dev.gatebound.skill.fx.Tasks.run(ticker);
     }
 
+    /** Runs an action after some ticks. */
     public static void after(int ticks, Consumer<MinecraftServer> action) {
         dev.gatebound.skill.fx.Tasks.after(ticks, action);
     }
@@ -496,10 +517,12 @@ public final class MageCore {
 
     // ---------------------------------------------------------------- buffs and forms
 
+    /** Gives the player a named timed buff. */
     public static void buff(ServerPlayer p, String key, int ticks) {
         BUFFS.computeIfAbsent(p.getUUID(), k -> new HashMap<>()).put(key, (long) p.level().getServer().getTickCount() + ticks);
     }
 
+    /** True if the player has the named buff. */
     public static boolean buffed(ServerPlayer p, String key) {
         Map<String, Long> map = BUFFS.get(p.getUUID());
         if (map == null) {
@@ -527,6 +550,7 @@ public final class MageCore {
         return out;
     }
 
+    /** True if the player is in the given elemental form. */
     public static boolean inForm(ServerPlayer p, Element element) {
         Form f = FORMS.get(p.getUUID());
         return f != null && f.element() == element && f.until() > p.level().getServer().getTickCount();
@@ -585,12 +609,14 @@ public final class MageCore {
         return true;
     }
 
+    /** Restores one temporary block to its original state. */
     private static void restore(Temp t) {
         if (t.level().getBlockState(t.pos()).is(t.placed())) {
             t.level().setBlock(t.pos(), t.original(), 3);
         }
     }
 
+    /** Restores every temporary block. */
     private static void restoreAll() {
         for (Temp t : TEMPS) {
             restore(t);

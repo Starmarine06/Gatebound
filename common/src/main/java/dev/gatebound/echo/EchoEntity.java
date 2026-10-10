@@ -80,10 +80,12 @@ public class EchoEntity extends PathfinderMob {
         return m;
     }
 
+    /** Creates an echo entity. */
     public EchoEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
     }
 
+    /** Default attributes for echoes. */
     public static AttributeSupplier.Builder createAttributes() {
         return PathfinderMob.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 20)
@@ -108,6 +110,7 @@ public class EchoEntity extends PathfinderMob {
         return this.entityData.get(OWNER_ID);
     }
 
+    /** Sets the owning player's id. */
     void setOwnerId(java.util.UUID id) {
         this.entityData.set(OWNER_ID, id.toString());
     }
@@ -117,10 +120,12 @@ public class EchoEntity extends PathfinderMob {
         return this.entityData.get(SELECTED);
     }
 
+    /** Sets whether the echo is the selected one. */
     void setSelected(boolean selected) {
         this.entityData.set(SELECTED, selected);
     }
 
+    /** Entity type id of the mob this echo copies. */
     public String mobType() {
         return this.entityData.get(MOB_TYPE);
     }
@@ -149,6 +154,7 @@ public class EchoEntity extends PathfinderMob {
         }
     }
 
+    /** Sets an attribute's base value. */
     private void set(net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attribute, double value) {
         AttributeInstance inst = this.getAttribute(attribute);
         if (inst != null) {
@@ -166,6 +172,7 @@ public class EchoEntity extends PathfinderMob {
         }
     }
 
+    /** Makes the echo fly (swaps to a flying movement controller). */
     private void makeFlier() {
         this.setNoGravity(true);
         this.entityData.set(FLIER, true);
@@ -182,6 +189,7 @@ public class EchoEntity extends PathfinderMob {
         return false;
     }
 
+    /** True if the echo flies. */
     public boolean isFlier() {
         return this.entityData.get(FLIER);
     }
@@ -239,6 +247,7 @@ public class EchoEntity extends PathfinderMob {
         super.travel(input);
     }
 
+    /** The echo's attack damage. */
     public double attackDamage() {
         return attackDamage;
     }

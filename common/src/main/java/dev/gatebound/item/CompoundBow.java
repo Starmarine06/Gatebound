@@ -99,10 +99,12 @@ public final class CompoundBow extends BowItem {
         return dev.gatebound.data.GateboundClass.RANGER.id().equals(id);
     }
 
+    /** Creates the bow item. */
     private CompoundBow(Properties properties) {
         super(properties);
     }
 
+    /** Registers the grapple bow's hooks. */
     public static void init() {
         ITEMS.register();
         TickEvent.SERVER_POST.register(CompoundBow::tick);
@@ -137,6 +139,7 @@ public final class CompoundBow extends BowItem {
         }
     }
 
+    /** Per-tick upkeep of tracked projectile flights. */
     private static void tickFlights(net.minecraft.server.MinecraftServer server) {
         if (FLIGHTS.isEmpty()) {
             return;
@@ -214,6 +217,7 @@ public final class CompoundBow extends BowItem {
         return InteractionResult.SUCCESS;
     }
 
+    /** True if the player holds the compound bow. */
     private static boolean holdsCompoundBow(ServerPlayer p) {
         return usable(p) && (p.getMainHandItem().getItem() instanceof CompoundBow || p.getOffhandItem().getItem() instanceof CompoundBow);
     }
@@ -253,6 +257,7 @@ public final class CompoundBow extends BowItem {
 
     private static final String HANG_TAG = "gatebound_hanging";
 
+    /** Hangs the player in place (no gravity) while on a line. */
     private static void hang(net.minecraft.world.entity.player.Player p, boolean on) {
         p.setNoGravity(on);
         if (on) {
@@ -262,6 +267,7 @@ public final class CompoundBow extends BowItem {
         }
     }
 
+    /** Releases the grapple: starts the cooldown and softens momentum. */
     private static void release(ServerPlayer p, long now) {
         GRAPPLES.remove(p.getUUID());
         hang(p, false);
@@ -290,6 +296,7 @@ public final class CompoundBow extends BowItem {
         }
     }
 
+    /** Per-tick driver: syncs lines and updates active grapples. */
     private static void tick(net.minecraft.server.MinecraftServer server) {
         long now = server.getTickCount();
         sync(server, now);

@@ -40,6 +40,7 @@ public final class EchoRenderer extends EntityRenderer<EchoEntity, EchoRenderer.
     private final Map<String, Entity> dummies = new HashMap<>();
     private Level dummyLevel;
 
+    /** Creates the renderer. */
     public EchoRenderer(EntityRendererProvider.Context context) {
         super(context);
         this.dispatcher = context.getEntityRenderDispatcher();
@@ -50,6 +51,7 @@ public final class EchoRenderer extends EntityRenderer<EchoEntity, EchoRenderer.
         return new State();
     }
 
+    /** Stand-in entity of the copied mob type used for rendering. */
     private Entity dummyFor(EchoEntity echo) {
         if (dummyLevel != echo.level()) {
             dummies.clear();

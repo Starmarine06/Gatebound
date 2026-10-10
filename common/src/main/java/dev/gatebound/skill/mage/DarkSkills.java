@@ -48,14 +48,17 @@ public final class DarkSkills {
     private static final String ECLIPSE = "eclipse";
     private static final int CURSE_TICKS = 300;
 
+    /** A curse's caster and expiry. */
     private record Curse(UUID by, long until) {
     }
 
     private static final Map<UUID, Curse> CURSED = new HashMap<>();
 
+    /** Static holder; not instantiable. */
     private DarkSkills() {
     }
 
+    /** Registers the Dark hurt and death hooks. */
     public static void init() {
         EntityEvent.LIVING_HURT.register(DarkSkills::onHurt);
         EntityEvent.LIVING_DEATH.register((entity, source) -> {
@@ -67,11 +70,13 @@ public final class DarkSkills {
 
     // ---------------------------------------------------------------- helpers
 
+    /** True if the entity carries this player's curse. */
     private static boolean cursedBy(ServerPlayer p, LivingEntity e) {
         Curse c = CURSED.get(e.getUUID());
         return c != null && c.by().equals(p.getUUID()) && c.until() > e.level().getServer().getTickCount();
     }
 
+    /** Places a curse on an entity. */
     private static void curse(ServerPlayer p, ServerLevel level, LivingEntity e) {
         CURSED.put(e.getUUID(), new Curse(p.getUUID(), (long) level.getServer().getTickCount() + CURSE_TICKS));
         dev.gatebound.skill.fx.SpellFx.curse(e, CURSE_TICKS);
@@ -85,6 +90,7 @@ public final class DarkSkills {
         }
     }
 
+    /** Heals the player by a fraction of max health. */
     private static void drain(ServerPlayer p, double fractionOfMax) {
         ManaState.add(p, ManaState.max(PlayerDataStore.of(p)) * fractionOfMax);
         SkillHandler.sendMana(p, true);
@@ -92,6 +98,7 @@ public final class DarkSkills {
 
     // ---------------------------------------------------------------- events
 
+    /** Hurt hook: bonus damage and lifesteal against cursed targets. */
     private static EventResult onHurt(LivingEntity victim, DamageSource source, float amount) {
         if (MageCore.applying() || amount <= 0 || victim instanceof ServerPlayer || !(victim.level() instanceof ServerLevel level)
                 || !(source.getEntity() instanceof ServerPlayer p)) {
@@ -110,6 +117,7 @@ public final class DarkSkills {
         return EventResult.pass();
     }
 
+    /** Death hook: Soul Harvest and curse payouts. */
     private static void onDeath(LivingEntity entity) {
         Curse c = CURSED.remove(entity.getUUID());
         if (c == null || !(entity.level() instanceof ServerLevel level)) {
@@ -127,6 +135,7 @@ public final class DarkSkills {
 
     // ---------------------------------------------------------------- skills
 
+    /** Shadow Bolt: dark bolt that lays Curse. */
     public static boolean shadowBolt(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.DARK, BOLT_COST);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.WITHER_SHOOT), 0.5f, 1.8f);
@@ -146,6 +155,7 @@ public final class DarkSkills {
         return true;
     }
 
+    /** Void Grasp: drags enemies toward you and roots them. */
     public static boolean voidGrasp(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.DARK, GRASP_COST);
         for (LivingEntity e : MageCore.foes(p, level, 9)) {
@@ -163,6 +173,7 @@ public final class DarkSkills {
         return true;
     }
 
+    /** Hex: curses the target so it deals far less damage. */
     public static boolean hex(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.DARK, HEX_COST);
         List<LivingEntity> hit = SkillTargeting.ray(p, level, 26, 1, ParticleTypes.PORTAL);
@@ -180,6 +191,7 @@ public final class DarkSkills {
         return true;
     }
 
+    /** Life Siphon: drains the target over time, healing you. */
     public static boolean lifeSiphon(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.DARK, SIPHON_COST);
         for (int i = 0; i < 12; i++) {
@@ -202,6 +214,7 @@ public final class DarkSkills {
         return true;
     }
 
+    /** Dread: curses nearby enemies and makes them flee. */
     public static boolean dread(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.DARK, DREAD_COST);
         List<LivingEntity> foes = MageCore.foes(p, level, 11);
@@ -231,6 +244,7 @@ public final class DarkSkills {
         return true;
     }
 
+    /** Soul Harvest: reaps every cursed enemy nearby for big damage. */
     public static boolean soulHarvest(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.DARK, HARVEST_COST);
         int reaped = 0;
@@ -249,6 +263,7 @@ public final class DarkSkills {
         return reaped > 0;
     }
 
+    /** Black Hole: drags everything into a point, then collapses for huge damage. */
     public static boolean blackHole(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.DARK, HOLE_COST);
         MageCore.sacrifice(p, 4.0f);
@@ -277,6 +292,7 @@ public final class DarkSkills {
         return true;
     }
 
+    /** Eclipse: blinds and curses enemies; you are fast and heal from hits. */
     public static boolean eclipse(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.DARK, ECLIPSE_COST);
         MageCore.sacrifice(p, 4.0f);
@@ -293,6 +309,7 @@ public final class DarkSkills {
         return true;
     }
 
+    /** Void Lord: ultimate dark form with spreading curses and void pulses. */
     public static boolean voidLord(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.sacrifice(p, 6.0f);
         int ticks = MageConfig.formSeconds * 20;

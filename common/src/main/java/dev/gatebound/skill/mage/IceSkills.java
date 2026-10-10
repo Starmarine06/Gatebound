@@ -59,9 +59,11 @@ public final class IceSkills {
     private static final Map<UUID, Props.Prop> SHELLS = new HashMap<>();
     private static final Palette ICE = Palette.of(Element.ICE);
 
+    /** Static holder; not instantiable. */
     private IceSkills() {
     }
 
+    /** Registers the Ice hurt hook. */
     public static void init() {
         EntityEvent.LIVING_HURT.register(IceSkills::onHurt);
         LifecycleEvent.SERVER_STOPPED.register(server -> {
@@ -78,6 +80,7 @@ public final class IceSkills {
 
     // ---------------------------------------------------------------- chill and freeze
 
+    /** True if the entity is frozen. */
     private static boolean frozen(LivingEntity e) {
         Long until = FROZEN.get(e.getUUID());
         return until != null && until > e.level().getServer().getTickCount();
@@ -100,6 +103,7 @@ public final class IceSkills {
         }
     }
 
+    /** Freezes a target for some ticks. */
     private static void freeze(ServerLevel level, LivingEntity target, int ticks) {
         FROZEN.put(target.getUUID(), (long) level.getServer().getTickCount() + ticks);
         target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, ticks, 10));
@@ -130,6 +134,7 @@ public final class IceSkills {
         }
     }
 
+    /** Damages a target and adds frost stacks. */
     private static void hit(ServerPlayer p, ServerLevel level, LivingEntity target, float damage, int stacks) {
         MageCore.strike(p, level, target, damage);
         chill(level, target, stacks);
@@ -137,6 +142,7 @@ public final class IceSkills {
 
     // ---------------------------------------------------------------- events
 
+    /** Hurt hook: shatter bonus against frozen targets. */
     private static EventResult onHurt(LivingEntity victim, DamageSource source, float amount) {
         if (MageCore.applying() || amount <= 0 || !(victim.level() instanceof ServerLevel level)) {
             return EventResult.pass();
@@ -156,6 +162,7 @@ public final class IceSkills {
 
     // ---------------------------------------------------------------- skills
 
+    /** Frost Shard: fast shard that adds Chill. */
     public static boolean frostShard(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.ICE, SHARD_COST);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.GLASS_BREAK), 0.8f, 1.6f);
@@ -186,6 +193,7 @@ public final class IceSkills {
         return true;
     }
 
+    /** Frost Nova: ring of frost adding Chill to nearby enemies. */
     public static boolean frostNova(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.ICE, NOVA_COST);
         for (LivingEntity e : MageCore.foes(p, level, 5.5)) {
@@ -217,6 +225,7 @@ public final class IceSkills {
         level.sendParticles(ICE.main(), base.x, base.y + height, base.z, 8, 0.2, 0.2, 0.2, 0.05);
     }
 
+    /** Ice Armor: take less damage; attackers are chilled. */
     public static boolean iceArmor(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.ICE, ARMOR_COST);
         int ticks = MageConfig.buffSeconds * 20;
@@ -240,6 +249,7 @@ public final class IceSkills {
         return true;
     }
 
+    /** Glacial Path: freezes a bridge ahead that melts later. */
     public static boolean glacialPath(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.ICE, PATH_COST);
         Vec3 flat = MageCore.flatLook(p);
@@ -269,6 +279,7 @@ public final class IceSkills {
         return placed > 0;
     }
 
+    /** Icicle Barrage: fan of icicles, each adding Chill. */
     public static boolean icicleBarrage(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.ICE, BARRAGE_COST);
         for (int i = 0; i < 7; i++) {
@@ -308,6 +319,7 @@ public final class IceSkills {
         return true;
     }
 
+    /** Shatter: breaks every frozen enemy nearby for big damage. */
     public static boolean shatter(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.ICE, SHATTER_COST);
         int count = 0;
@@ -340,6 +352,7 @@ public final class IceSkills {
         return count > 0;
     }
 
+    /** Blizzard: storm at the aimed spot that chills everything inside. */
     public static boolean blizzard(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.ICE, BLIZZARD_COST);
         Vec3 spot = MageCore.aimSpot(p, level, 30);
@@ -370,6 +383,7 @@ public final class IceSkills {
         return true;
     }
 
+    /** Absolute Zero: freezes every nearby enemy solid. */
     public static boolean absoluteZero(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.ICE, ZERO_COST);
         List<LivingEntity> foes = MageCore.foes(p, level, 20);
@@ -393,6 +407,7 @@ public final class IceSkills {
         return true;
     }
 
+    /** Frost Sovereign: ultimate ice form; hits freeze. */
     public static boolean frostSovereign(ServerPlayer p, ServerLevel level, PlayerData data) {
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, MageConfig.formSeconds * 20, 1));
         MageCore.form(p, Element.ICE, 10, o -> {

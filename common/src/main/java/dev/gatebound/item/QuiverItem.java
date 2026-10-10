@@ -68,10 +68,12 @@ public final class QuiverItem extends Item {
 
     private static final Map<UUID, Stash> STASH = new HashMap<>();
 
+    /** Creates the quiver item. */
     private QuiverItem(Properties properties) {
         super(properties);
     }
 
+    /** Registers the quiver tick hook. */
     public static void init() {
         ITEMS.register();
         TickEvent.SERVER_POST.register(QuiverItem::tick);
@@ -87,11 +89,13 @@ public final class QuiverItem extends Item {
 
     // ---------------------------------------------------------------- stored count
 
+    /** Arrows stored in a quiver. */
     public static int stored(ItemStack quiver) {
         CustomData data = quiver.get(DataComponents.CUSTOM_DATA);
         return data == null ? 0 : data.copyTag().getIntOr(COUNT, 0);
     }
 
+    /** Sets the arrows stored in a quiver. */
     private static void setStored(ItemStack quiver, int count) {
         int n = Math.max(0, Math.min(CAPACITY, count));
         CustomData.update(DataComponents.CUSTOM_DATA, quiver, tag -> tag.putInt(COUNT, n));
@@ -99,26 +103,31 @@ public final class QuiverItem extends Item {
                 Component.literal("Arrows: " + n + " / " + CAPACITY).withStyle(ChatFormatting.GRAY))));
     }
 
+    /** Builds a quiver stack holding some arrows. */
     private static ItemStack makeQuiver(int count) {
         ItemStack q = new ItemStack(QUIVER.get());
         setStored(q, count);
         return q;
     }
 
+    /** True if the stack is a temporary arrow loan from the quiver. */
     private static boolean isLoan(ItemStack stack) {
         CustomData data = stack.get(DataComponents.CUSTOM_DATA);
         return data != null && data.copyTag().getBooleanOr(LOAN, false);
     }
 
+    /** Arrows kept in reserve on a stack. */
     private static int reserveOf(ItemStack stack) {
         CustomData data = stack.get(DataComponents.CUSTOM_DATA);
         return data == null ? 0 : data.copyTag().getIntOr(RESERVE, 0);
     }
 
+    /** Sets the reserve count on a stack. */
     private static void setReserve(ItemStack stack, int reserve) {
         CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.putInt(RESERVE, reserve));
     }
 
+    /** True if the stack is a plain arrow. */
     private static boolean plainArrow(ItemStack stack) {
         return stack.is(Items.ARROW) && !isLoan(stack);
     }
@@ -184,6 +193,7 @@ public final class QuiverItem extends Item {
         return false;
     }
 
+    /** True if the player holds a bow. */
     private static boolean holdingBow(ServerPlayer p) {
         return p.getMainHandItem().getItem() instanceof BowItem || p.getMainHandItem().getItem() instanceof CrossbowItem
                 || p.getOffhandItem().getItem() instanceof BowItem || p.getOffhandItem().getItem() instanceof CrossbowItem;
@@ -234,11 +244,13 @@ public final class QuiverItem extends Item {
         }
     }
 
+    /** True if the player's cursor holds this loan. */
     private static boolean carriesLoan(ServerPlayer p, Stash st) {
         ItemStack carried = p.containerMenu.getCarried();
         return carried.is(Items.ARROW) && isLoan(carried) && st.id.equals(loanId(carried));
     }
 
+    /** Every 4 ticks: loans arrows to bow holders and restores them otherwise. */
     private static void tick(MinecraftServer server) {
         if (server.getTickCount() % 4 != 0) {
             return;

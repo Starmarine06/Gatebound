@@ -30,9 +30,11 @@ public final class CombatHandler {
     /** Guards against the finisher's own damage re-entering the hurt event. */
     private static boolean applyingFinisher;
 
+    /** Static holder; not instantiable. */
     private CombatHandler() {
     }
 
+    /** Registers the combat hurt hook. */
     public static void init() {
         EntityEvent.LIVING_HURT.register(CombatHandler::onHurt);
         // Dungeon mobs never hurt each other (a stray arrow or a swing that misses the player must not start a brawl).
@@ -69,6 +71,7 @@ public final class CombatHandler {
         }
     }
 
+    /** Hurt hook: routes hits by who is hurt. */
     private static EventResult onHurt(LivingEntity victim, DamageSource source, float amount) {
         if (amount <= 0 || applyingFinisher || !(victim.level() instanceof ServerLevel level)) {
             return EventResult.pass();
@@ -88,12 +91,14 @@ public final class CombatHandler {
         return EventResult.pass();
     }
 
+    /** True if the damage is a melee hit. */
     public static boolean isMelee(DamageSource source) {
         return source.getDirectEntity() != null && source.getDirectEntity() == source.getEntity()
                 && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)
                 && !source.is(DamageTypes.MAGIC) && !source.is(DamageTypes.INDIRECT_MAGIC);
     }
 
+    /** A mob hit the player: handles parries and heavy strikes. */
     private static EventResult onPlayerHit(ServerPlayer player, LivingEntity attacker, DamageSource source, int now, ServerLevel level) {
         if (!isMelee(source)) {
             return EventResult.pass();
@@ -148,6 +153,7 @@ public final class CombatHandler {
         return EventResult.interruptFalse();
     }
 
+    /** The player hit a mob: adds posture damage. */
     private static void onMobHit(ServerPlayer player, Mob mob, DamageSource source, int now, ServerLevel level) {
         if (isMelee(source) && CombatState.isStaggered(mob.getUUID(), now)) {
             // Finisher: a heavy extra hit on a staggered mob, once.
@@ -169,6 +175,7 @@ public final class CombatHandler {
         }
     }
 
+    /** Adds posture to a target and staggers it when full. */
     private static void addPostureAndMaybeBreak(LivingEntity target, double amount, int now, ServerLevel level, ServerPlayer player) {
         double value = CombatState.addPosture(target.getUUID(), amount, now);
         syncPosture(player, target, value, false);
@@ -187,6 +194,7 @@ public final class CombatHandler {
         }
     }
 
+    /** Sends a posture update to the player's client. */
     private static void syncPosture(ServerPlayer player, LivingEntity target, double value, boolean staggered) {
         NetworkManager.sendToPlayer(player, new PostureSyncPayload(target.getId(), (int) value, (int) CombatConfig.postureMax, staggered));
     }

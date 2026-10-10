@@ -76,6 +76,7 @@ public final class RangerSkills {
 
     private static final String ARROW_TAG = "gatebound_ranger_arrow";
 
+    /** A delayed server action due at tick `at`. */
     private record Task(long at, Consumer<MinecraftServer> run) {
     }
 
@@ -133,11 +134,13 @@ public final class RangerSkills {
     /** Guards our own damage from re-entering the hurt event. */
     private static boolean applying;
 
+    /** Static holder; not instantiable. */
     private RangerSkills() {
     }
 
     // ---------------------------------------------------------------- lifecycle
 
+    /** Registers Ranger tick, hurt, death and arrow-fired hooks. */
     public static void init() {
         TickEvent.SERVER_POST.register(RangerSkills::tick);
         EntityEvent.LIVING_HURT.register(RangerSkills::onHurt);
@@ -173,6 +176,7 @@ public final class RangerSkills {
         });
     }
 
+    /** Drops all of a player's Ranger state. */
     private static void clearPlayer(UUID id) {
         QUARRY.remove(id);
         PRIMED.remove(id);
@@ -180,6 +184,7 @@ public final class RangerSkills {
         APEX.remove(id);
     }
 
+    /** Clears quarry and tracked arrows when a relevant entity dies. */
     private static void onDeath(LivingEntity entity, DamageSource source) {
         if (entity instanceof ServerPlayer player) {
             clearPlayer(player.getUUID());
@@ -205,31 +210,38 @@ public final class RangerSkills {
 
     // ---------------------------------------------------------------- helpers
 
+    /** Current game time for the player's level. */
     private static long now(ServerPlayer p) {
         return p.level().getServer().getTickCount();
     }
 
+    /** True if the player is a Ranger. */
     private static boolean isRanger(ServerPlayer p) {
         return GateboundClass.RANGER.id().equals(PlayerDataStore.of(p).classId);
     }
 
+    /** True while Hunter's Trance is active. */
     private static boolean tranced(ServerPlayer p, long now) {
         return TRANCE.getOrDefault(p.getUUID(), 0L) > now;
     }
 
+    /** True while Apex Predator is active. */
     private static boolean apexed(ServerPlayer p, long now) {
         Apex a = APEX.get(p.getUUID());
         return a != null && a.until > now;
     }
 
+    /** True if any Ranger buff makes arrows seek. */
     private static boolean buffed(ServerPlayer p, long now) {
         return tranced(p, now) || apexed(p, now);
     }
 
+    /** Plays a sound at the player. */
     private static void sound(ServerPlayer p, ServerLevel level, SoundEvent sound, float pitch) {
         level.playSound(null, p.blockPosition(), sound, SoundSource.PLAYERS, 1.0f, pitch);
     }
 
+    /** True if the player holds a bow or crossbow. */
     private static boolean hasBow(ServerPlayer p) {
         return p.getMainHandItem().getItem() instanceof BowItem || p.getMainHandItem().getItem() instanceof CrossbowItem;
     }
@@ -247,16 +259,19 @@ public final class RangerSkills {
         return true;
     }
 
+    /** Fails a cast with a message and no cost. */
     private static boolean miss(ServerPlayer p, int cost, String message) {
         ManaState.add(p, cost * 0.5);
         Compat.overlay(p, Component.literal(message));
         return false;
     }
 
+    /** Skill damage scaled by the player's level and stats. */
     private static float dmg(PlayerData data, double base) {
         return (float) ((base + RangerConfig.damagePerAgility * data.get(Stat.AGILITY)) * (1 + RangerConfig.damagePerLevel * data.level));
     }
 
+    /** True if the entity is the player's marked quarry. */
     private static boolean isQuarry(ServerPlayer p, LivingEntity e, long now) {
         if (e.getUUID().equals(QUARRY.get(p.getUUID()))) {
             return true;
@@ -284,10 +299,12 @@ public final class RangerSkills {
         }
     }
 
+    /** True if the entity is a valid target for Ranger skills. */
     private static boolean valid(LivingEntity e) {
         return e.isAlive() && !(e instanceof Player) && !(e instanceof Mob mob && EchoManager.isEcho(mob));
     }
 
+    /** Valid targets around the player within a radius. */
     private static List<LivingEntity> foes(ServerPlayer p, ServerLevel level, double radius) {
         List<LivingEntity> out = new ArrayList<>();
         for (LivingEntity e : SkillTargeting.enemiesAround(p, level, radius)) {
@@ -298,6 +315,7 @@ public final class RangerSkills {
         return out;
     }
 
+    /** Nearest valid target within a radius. */
     private static LivingEntity nearest(ServerPlayer p, ServerLevel level, double radius) {
         LivingEntity best = null;
         for (LivingEntity e : foes(p, level, radius)) {
@@ -308,6 +326,7 @@ public final class RangerSkills {
         return best;
     }
 
+    /** Runs an action for the player after some ticks. */
     private static void after(ServerPlayer p, int ticks, Consumer<MinecraftServer> run) {
         TASKS.add(new Task(now(p) + ticks, run));
     }
@@ -324,6 +343,7 @@ public final class RangerSkills {
         }
     }
 
+    /** Draws a particle line between two points. */
     private static void line(ServerLevel level, Vec3 a, Vec3 b, ParticleOptions particle) {
         Vec3 step = b.subtract(a);
         int points = (int) Math.max(2, step.length() * 2);
@@ -333,6 +353,7 @@ public final class RangerSkills {
         }
     }
 
+    /** Centre of an entity's body. */
     private static Vec3 center(LivingEntity e) {
         return e.position().add(0, e.getBbHeight() * 0.6, 0);
     }
@@ -350,6 +371,7 @@ public final class RangerSkills {
         return arrow;
     }
 
+    /** Fires a tracked arrow from a point in a direction. */
     private static Arrow shootFrom(ServerPlayer p, ServerLevel level, Vec3 from, Vec3 dir, double speed, float damage, boolean seek) {
         Arrow arrow = new Arrow(level, from.x, from.y, from.z, new ItemStack(Items.ARROW), p.getMainHandItem());
         arrow.setOwner(p);
@@ -380,6 +402,7 @@ public final class RangerSkills {
         PRIMED.put(p.getUUID(), new Primed(kinds, now(p) + RangerConfig.primedSeconds * 20L, lockEntity, lockBlock));
     }
 
+    /** Readable list of the bow skills currently primed. */
     private static String stackLabel(ServerPlayer p) {
         Primed pr = PRIMED.get(p.getUUID());
         StringBuilder sb = new StringBuilder();
@@ -394,6 +417,7 @@ public final class RangerSkills {
         return sb.toString();
     }
 
+    /** Primes a bow skill onto the next arrow (costs mana). */
     private static boolean prime(ServerPlayer p, int cost, Kind kind, String label) {
         if (!begin(p, cost, true)) {
             return false;
@@ -405,6 +429,7 @@ public final class RangerSkills {
         return true;
     }
 
+    /** Trail particle for the primed skills. */
     private static ParticleOptions trailOf(java.util.Set<Kind> kinds) {
         if (kinds.contains(Kind.POISON)) {
             return ParticleTypes.ITEM_SLIME;
@@ -447,6 +472,7 @@ public final class RangerSkills {
         }
     }
 
+    /** Turns an arrow into the primed skills (damage, effects, trail, multishot, rain). */
     private static void imbue(ServerPlayer p, ServerLevel level, PlayerData data, AbstractArrow arrow, Primed primed) {
         java.util.Set<Kind> kinds = primed.kinds();
         Vec3 v = arrow.getDeltaMovement();
@@ -555,6 +581,7 @@ public final class RangerSkills {
         }
     }
 
+    /** True if the player is drawing a bow. */
     private static boolean aiming(ServerPlayer p) {
         return p.isUsingItem() && (p.getUseItem().getItem() instanceof BowItem || p.getUseItem().getItem() instanceof CrossbowItem) && isRanger(p);
     }
@@ -575,6 +602,7 @@ public final class RangerSkills {
         }
     }
 
+    /** Starts tracking an arrow for homing and landing effects. */
     private static void track(ServerPlayer p, ServerLevel level, Arrow arrow, boolean seek) {
         arrow.addTag(ARROW_TAG);
         if (seek) {
@@ -585,12 +613,14 @@ public final class RangerSkills {
         ARROWS.put(arrow.getUUID(), tr);
     }
 
+    /** Look direction rotated by a yaw offset. */
     private static Vec3 rotated(ServerPlayer p, float yawOffset) {
         return Vec3.directionFromRotation(p.getXRot(), p.getYRot() + yawOffset);
     }
 
     // ---------------------------------------------------------------- events
 
+    /** Hurt hook for Ranger damage bonuses. */
     private static EventResult onHurt(LivingEntity victim, DamageSource source, float amount) {
         // A Ranger who is drawing a bow cannot be hurt (only things that bypass invulnerability get through).
         if (victim instanceof ServerPlayer sp && amount > 0 && !source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY) && aiming(sp)) {
@@ -632,6 +662,7 @@ public final class RangerSkills {
         return EventResult.pass();
     }
 
+    /** Per-tick driver for tasks, arrows, quarry and Apex. */
     private static void tick(MinecraftServer server) {
         long now = server.getTickCount();
         if (!TASKS.isEmpty()) {
@@ -666,11 +697,13 @@ public final class RangerSkills {
         }
     }
 
+    /** Looks a player up by UUID. */
     private static ServerPlayer playerOf(MinecraftServer server, UUID id) {
         ServerPlayer p = server.getPlayerList().getPlayer(id);
         return p != null && p.isAlive() ? p : null;
     }
 
+    /** The player's current quarry entity, if loaded. */
     private static LivingEntity quarryOf(MinecraftServer server, ServerPlayer p) {
         UUID id = QUARRY.get(p.getUUID());
         if (id == null) {
@@ -680,6 +713,7 @@ public final class RangerSkills {
         return e instanceof LivingEntity le && le.isAlive() ? le : null;
     }
 
+    /** Drops quarry marks whose target is gone. */
     private static void keepQuarry(MinecraftServer server) {
         for (UUID owner : new ArrayList<>(QUARRY.keySet())) {
             ServerPlayer p = playerOf(server, owner);
@@ -696,6 +730,7 @@ public final class RangerSkills {
         }
     }
 
+    /** Per-tick upkeep of tracked arrows (homing, trails, landing). */
     private static void tickArrows(MinecraftServer server, long now) {
         for (UUID id : new ArrayList<>(ARROWS.keySet())) {
             Tracked t = ARROWS.get(id);
@@ -789,6 +824,7 @@ public final class RangerSkills {
         }
     }
 
+    /** Stops tracking an arrow and ends its glow. */
     private static void drop(UUID id, Tracked t) {
         if (t.glow != null) {
             dev.gatebound.skill.fx.RangerFx.endGlow(t.glow);
@@ -797,6 +833,7 @@ public final class RangerSkills {
         ARROWS.remove(id);
     }
 
+    /** Runs an arrow's landing effect and stops tracking it. */
     private static void land(Tracked t) {
         if (t.onLand != null && t.lastPos != null) {
             Consumer<Vec3> run = t.onLand;
@@ -805,6 +842,7 @@ public final class RangerSkills {
         }
     }
 
+    /** Per-tick upkeep of Apex Predator (strikes, mana drain, end). */
     private static void tickApex(MinecraftServer server, long now) {
         for (UUID id : new ArrayList<>(APEX.keySet())) {
             Apex a = APEX.get(id);
@@ -846,6 +884,7 @@ public final class RangerSkills {
 
     // ---------------------------------------------------------------- skills
 
+    /** Eagle Eye: nearby enemies glow. */
     public static boolean eagleEye(ServerPlayer p, ServerLevel level, PlayerData data) {
         begin(p, EAGLE_COST, false);
         List<LivingEntity> seen = foes(p, level, 24);
@@ -916,10 +955,12 @@ public final class RangerSkills {
         return true;
     }
 
+    /** Piercing Shot: next shot becomes a ray through up to three enemies. */
     public static boolean piercingShot(ServerPlayer p, ServerLevel level, PlayerData data) {
         return prime(p, PIERCING_COST, Kind.PIERCING, "Piercing Shot");
     }
 
+    /** Fires the piercing ray. */
     private static void firePiercing(ServerPlayer p, ServerLevel level, PlayerData data) {
         List<LivingEntity> hits = SkillTargeting.ray(p, level, 40, 3, null);
         dev.gatebound.skill.fx.RangerFx.pierce(p, hits);
@@ -931,6 +972,7 @@ public final class RangerSkills {
         }
     }
 
+    /** Hunter's Quarry: marks the target; arrows hit it harder. */
     public static boolean huntersQuarry(ServerPlayer p, ServerLevel level, PlayerData data) {
         begin(p, QUARRY_COST, false);
         List<LivingEntity> hits = SkillTargeting.ray(p, level, 48, 1, null);
@@ -945,6 +987,7 @@ public final class RangerSkills {
         return true;
     }
 
+    /** Evasive Roll: backward dash with brief invulnerability that looses a shot at the nearest enemy. */
     public static boolean evasiveRoll(ServerPlayer p, ServerLevel level, PlayerData data) {
         begin(p, ROLL_COST, false);
         Vec3 look = p.getLookAngle();
@@ -963,22 +1006,27 @@ public final class RangerSkills {
         return true;
     }
 
+    /** Poison Arrow: imbues the next arrow with poison. */
     public static boolean poisonArrow(ServerPlayer p, ServerLevel level, PlayerData data) {
         return prime(p, POISON_COST, Kind.POISON, "Poison Arrow");
     }
 
+    /** Snare Arrow: next arrow pins its target in place. */
     public static boolean snareArrow(ServerPlayer p, ServerLevel level, PlayerData data) {
         return prime(p, SNARE_COST, Kind.SNARE, "Snare Arrow");
     }
 
+    /** Multishot: next shot splits into a fan of arrows. */
     public static boolean multishot(ServerPlayer p, ServerLevel level, PlayerData data) {
         return prime(p, MULTISHOT_COST, Kind.MULTISHOT, "Multishot");
     }
 
+    /** Ricochet: next shot is a ray that bounces between enemies. */
     public static boolean ricochet(ServerPlayer p, ServerLevel level, PlayerData data) {
         return prime(p, RICOCHET_COST, Kind.RICOCHET, "Ricochet");
     }
 
+    /** Fires the ricochet ray. */
     private static void fireRicochet(ServerPlayer p, ServerLevel level, PlayerData data) {
         List<LivingEntity> first = SkillTargeting.ray(p, level, 40, 1, null);
         sound(p, level, GateboundSounds.of(SoundEvents.ARROW_SHOOT), 1.5f);
@@ -1006,14 +1054,17 @@ public final class RangerSkills {
         dev.gatebound.skill.fx.RangerFx.ricochet(p, bounces);
     }
 
+    /** Rain of Arrows: where the next arrow lands, arrows rain in. */
     public static boolean rainOfArrows(ServerPlayer p, ServerLevel level, PlayerData data) {
         return prime(p, RAIN_COST, Kind.RAIN, "Rain of Arrows (rains down where it lands)");
     }
 
+    /** Headshot: next shot is a devastating ray, finishing wounded non-bosses. */
     public static boolean headshot(ServerPlayer p, ServerLevel level, PlayerData data) {
         return prime(p, HEADSHOT_COST, Kind.HEADSHOT, "Headshot");
     }
 
+    /** Fires the headshot ray. */
     private static void fireHeadshot(ServerPlayer p, ServerLevel level, PlayerData data) {
         List<LivingEntity> hits = SkillTargeting.ray(p, level, 48, 1, null);
         sound(p, level, GateboundSounds.of(SoundEvents.CROSSBOW_SHOOT), 0.8f);
@@ -1032,6 +1083,7 @@ public final class RangerSkills {
         dev.gatebound.skill.fx.RangerFx.headshot(p, t);
     }
 
+    /** Hunter's Trance: skills cost no mana, faster, arrows seek. */
     public static boolean huntersTrance(ServerPlayer p, ServerLevel level, PlayerData data) {
         int ticks = (RangerConfig.tranceBaseSeconds + data.level / 10) * 20;
         TRANCE.put(p.getUUID(), now(p) + ticks);
@@ -1041,10 +1093,12 @@ public final class RangerSkills {
         return true;
     }
 
+    /** Arrow Barrage: next shot unleashes seeking arrows over every enemy nearby. */
     public static boolean arrowBarrage(ServerPlayer p, ServerLevel level, PlayerData data) {
         return prime(p, BARRAGE_COST, Kind.BARRAGE, "Arrow Barrage");
     }
 
+    /** Fires the barrage volley. */
     private static void fireBarrage(ServerPlayer p, ServerLevel level, PlayerData data) {
         float damage = dmg(data, 4);
         dev.gatebound.skill.fx.RangerFx.barrage(p, RangerConfig.barrageArrows);
@@ -1068,6 +1122,7 @@ public final class RangerSkills {
         }
     }
 
+    /** Apex Predator: ultimate; spectral arrows strike every enemy each second, drains mana until empty. */
     public static boolean apexPredator(ServerPlayer p, ServerLevel level, PlayerData data) {
         int ticks = (RangerConfig.apexBaseSeconds + data.level / 10) * 20;
         long now = now(p);

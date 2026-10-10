@@ -39,13 +39,16 @@ public final class WindSkills {
 
     private static final String BARRIER = "wind_barrier";
 
+    /** Static holder; not instantiable. */
     private WindSkills() {
     }
 
+    /** Registers the Wind hurt hook. */
     public static void init() {
         EntityEvent.LIVING_HURT.register(WindSkills::onHurt);
     }
 
+    /** Hurt hook: Wind Barrier deflection. */
     private static EventResult onHurt(LivingEntity victim, DamageSource source, float amount) {
         if (MageCore.applying() || amount <= 0 || victim instanceof ServerPlayer || !(source.getEntity() instanceof ServerPlayer p)) {
             return EventResult.pass();
@@ -59,6 +62,7 @@ public final class WindSkills {
 
     // ---------------------------------------------------------------- skills
 
+    /** Gust: cone of wind that hurls enemies away. */
     public static boolean gust(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.WIND, GUST_COST);
         Vec3 look = p.getLookAngle();
@@ -74,6 +78,7 @@ public final class WindSkills {
         return true;
     }
 
+    /** Cyclone: pulls nearby enemies in and lifts them. */
     public static boolean cyclone(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.WIND, CYCLONE_COST);
         for (LivingEntity e : MageCore.foes(p, level, 8)) {
@@ -89,6 +94,7 @@ public final class WindSkills {
         return true;
     }
 
+    /** Air Dash: fast dash with a moment of invulnerability. */
     public static boolean airDash(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.WIND, DASH_COST);
         Vec3 dir = MageCore.flatLook(p);
@@ -101,6 +107,7 @@ public final class WindSkills {
         return true;
     }
 
+    /** Updraft: launches you and allies upward and slows the fall. */
     public static boolean updraft(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.WIND, UPDRAFT_COST);
         for (ServerPlayer other : level.getPlayers(o -> o.isAlive() && o.distanceToSqr(p) <= 36)) {
@@ -114,6 +121,7 @@ public final class WindSkills {
         return true;
     }
 
+    /** Wind Blades: three fast slicing blades of wind. */
     public static boolean windBlades(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.WIND, BLADES_COST);
         Vec3 look = p.getLookAngle();
@@ -136,6 +144,7 @@ public final class WindSkills {
         return true;
     }
 
+    /** Wind Barrier: turns back missiles that come near. */
     public static boolean windBarrier(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.WIND, BARRIER_COST);
         MageCore.buff(p, BARRIER, 160);
@@ -160,6 +169,7 @@ public final class WindSkills {
         return true;
     }
 
+    /** Tornado: sweeps up and spins enemies inside it. */
     public static boolean tornado(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.WIND, TORNADO_COST);
         Vec3 spot = MageCore.aimSpot(p, level, 25);
@@ -185,6 +195,7 @@ public final class WindSkills {
         return true;
     }
 
+    /** Tempest Flight: timed flight with no fall damage. */
     public static boolean tempestFlight(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.WIND, FLIGHT_COST);
         MageCore.flight(p, 200);
@@ -195,6 +206,7 @@ public final class WindSkills {
         return true;
     }
 
+    /** Wind Avatar: ultimate wind form with flight and knockback. */
     public static boolean windAvatar(ServerPlayer p, ServerLevel level, PlayerData data) {
         int ticks = MageConfig.formSeconds * 20;
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 1));

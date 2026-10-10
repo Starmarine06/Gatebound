@@ -33,9 +33,11 @@ import java.util.List;
  * SEEK (scout for a gate and report it). Mob-specific abilities come from EchoKits.
  */
 final class EchoBrain {
+    /** Static holder; not instantiable. */
     private EchoBrain() {
     }
 
+    /** Per-tick AI for an echo: orders, targets, fighting and following. */
     static void tick(EchoEntity e, ServerLevel level) {
         EchoManager.Info info = EchoManager.info(e);
         if (info == null) {
@@ -110,12 +112,14 @@ final class EchoBrain {
         return mode == EchoRoster.SEEK || mode == EchoRoster.GOTO;
     }
 
+    /** True if the target is valid for the echo to attack. */
     static boolean validTarget(EchoEntity e, LivingEntity t, ServerPlayer owner) {
         return t.isAlive() && t.level() == e.level() && !(t instanceof Player) && !(t instanceof EchoEntity)
                 && !(t instanceof dev.gatebound.trade.GateboundNpc) && !EchoManager.isEcho(t)
                 && t.distanceToSqr(owner) < 40 * 40;
     }
 
+    /** True if the mob is hostile or is targeting the owner or echo. */
     private static boolean threat(LivingEntity m, EchoEntity e, ServerPlayer owner) {
         if (m instanceof Enemy) {
             return true;
@@ -123,6 +127,7 @@ final class EchoBrain {
         return m instanceof Mob mob && (mob.getTarget() == owner || mob.getTarget() == e);
     }
 
+    /** Picks a target according to the echo's order mode. */
     private static void acquire(EchoEntity e, ServerPlayer owner, ServerLevel level, int mode) {
         LivingEntity current = e.getTarget();
         if (current != null && validTarget(e, current, owner)) {
@@ -192,6 +197,7 @@ final class EchoBrain {
 
     // ---------------------------------------------------------------- fighting
 
+    /** Fights a target using its kit (melee, ranged or support). */
     private static void fight(EchoEntity e, LivingEntity target, EchoKits.Kit kit, ServerLevel level) {
         e.setAggressive(true);
         e.getLookControl().setLookAt(target, 30, 30);
@@ -246,6 +252,7 @@ final class EchoBrain {
         strike(e, target, kit, level);
     }
 
+    /** Moves the echo toward its target. */
     private static void approach(EchoEntity e, LivingEntity target) {
         if (--e.repath <= 0) {
             e.repath = 8;
@@ -253,6 +260,7 @@ final class EchoBrain {
         }
     }
 
+    /** Melee attack by the echo's kit. */
     private static void strike(EchoEntity e, LivingEntity target, EchoKits.Kit kit, ServerLevel level) {
         float dealt = (float) (e.attackDamage() * kit.damageMult() * e.damageMultiplier(target));
         target.hurtServer(level, level.damageSources().mobAttack(e), dealt);
@@ -270,6 +278,7 @@ final class EchoBrain {
         }
     }
 
+    /** Ranged attack by the echo's kit. */
     private static void shoot(EchoEntity e, LivingEntity target, EchoKits.Kit kit, ServerLevel level) {
         Compat.swing(e, InteractionHand.MAIN_HAND, false);
         trail(level, e.getEyePosition(), target.getEyePosition(), kit.trail());
@@ -277,6 +286,7 @@ final class EchoBrain {
         strike(e, target, kit, level);
     }
 
+    /** Draws a particle line between two points. */
     static void trail(ServerLevel level, Vec3 from, Vec3 to, net.minecraft.core.particles.ParticleOptions particle) {
         if (particle == null) {
             return;
@@ -323,6 +333,7 @@ final class EchoBrain {
 
     // ---------------------------------------------------------------- healing (witch, allay)
 
+    /** Support echoes heal a hurt owner (splash and regeneration) on a cooldown. */
     private static void support(EchoEntity e, ServerPlayer owner, ServerLevel level) {
         if (e.abilityCooldown > 0) {
             return;
@@ -352,6 +363,7 @@ final class EchoBrain {
 
     // ---------------------------------------------------------------- movement orders
 
+    /** Follows the owner, starting beyond one distance and stopping within another. */
     private static void follow(EchoEntity e, ServerPlayer owner, double start, double stop) {
         double d2 = e.distanceToSqr(owner);
         if (d2 > start * start) {
@@ -435,14 +447,17 @@ final class EchoBrain {
 
     private static final java.util.Map<String, java.util.Set<Long>> EXPLORED = new java.util.HashMap<>();
 
+    /** Key of the owner's explored set for a dimension. */
     private static String exploredKey(ServerPlayer owner, ServerLevel level) {
         return owner.getUUID() + "@" + level.dimension().toString();
     }
 
+    /** Packs a 16-block map cell into a key. */
     private static long cell(double x, double z) {
         return (((long) Math.floor(x / 16.0)) << 32) ^ (((long) Math.floor(z / 16.0)) & 0xFFFFFFFFL);
     }
 
+    /** Marks the cells around the echo as explored (throttled). */
     private static void markExplored(EchoEntity e, ServerPlayer owner, ServerLevel level) {
         if (e.tickCount % 10 != 0) {
             return;
@@ -459,6 +474,7 @@ final class EchoBrain {
         }
     }
 
+    /** Counts visited cells around a position. */
     private static int visitedAround(java.util.Set<Long> set, double x, double z) {
         int n = 0;
         for (int dx = -2; dx <= 2; dx++) {
@@ -611,10 +627,12 @@ final class EchoBrain {
 
     private static final java.util.Map<String, java.util.Map<Long, Claim>> CLAIMS = new java.util.HashMap<>();
 
+    /** Packs a block position into a sector key. */
     private static long sector(BlockPos p) {
         return ((long) Math.floorDiv(p.getX(), SECTOR) << 32) ^ (Math.floorDiv(p.getZ(), SECTOR) & 0xFFFFFFFFL);
     }
 
+    /** Waypoints to scout on a floor. */
     private static List<BlockPos> waypoints(ServerLevel level, int floor, int total, boolean generate) {
         List<BlockPos> list = WAYPOINTS.get(floor);
         if (list == null && generate) {
@@ -636,6 +654,7 @@ final class EchoBrain {
         return list;
     }
 
+    /** Waypoints already seen by the owner on a floor. */
     private static java.util.Set<Long> seenWaypoints(ServerPlayer owner, int floor) {
         return SEEN_WAYPOINTS.computeIfAbsent(owner.getUUID() + "#" + floor, k -> new java.util.HashSet<>());
     }
@@ -823,6 +842,7 @@ final class EchoBrain {
         return true;
     }
 
+    /** Finds a gate within sight of the echo. */
     private static BlockPos findGate(EchoEntity e, ServerLevel level, double sight) {
         DungeonStore store = DungeonStore.get(level.getServer());
         BlockPos best = null;
@@ -853,6 +873,7 @@ final class EchoBrain {
         return best;
     }
 
+    /** Short readable description of a position. */
     private static String describe(ServerLevel level, BlockPos pos) {
         DungeonStore store = DungeonStore.get(level.getServer());
         int total = store.ensureTower(level.getServer());
@@ -868,6 +889,7 @@ final class EchoBrain {
         return "Gate";
     }
 
+    /** Tells the owner about something the echo found. */
     private static void announce(EchoEntity e, ServerPlayer owner, ServerLevel level, BlockPos pos) {
         String what = describe(level, pos);
         EchoManager.Found gate = new EchoManager.Found(level.dimension(), pos, what, e.mobName());

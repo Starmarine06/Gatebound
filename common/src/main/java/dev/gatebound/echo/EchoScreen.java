@@ -43,11 +43,13 @@ final class EchoScreen extends Screen {
         this.data = data;
     }
 
+    /** Replaces the screen's data with a new roster update. */
     void update(EchoRosterPayload newData) {
         this.data = newData;
         rebuildWidgets();
     }
 
+    /** Number of entries in a group. */
     private int countIn(int group) {
         int n = 0;
         for (EchoRosterPayload.Row r : data.rows()) {
@@ -58,14 +60,17 @@ final class EchoScreen extends Screen {
         return n;
     }
 
+    /** Number of pages in the list. */
     private int pages() {
         return Math.max(1, (data.rows().size() + PER_PAGE - 1) / PER_PAGE);
     }
 
+    /** Sends an order action to the server. */
     private void send(int kind, int a, int b) {
         NetworkManager.sendToServer(new EchoOrderPayload(kind, a, b));
     }
 
+    /** Button label for an order mode. */
     private Component orderLabel(int mode, int selected) {
         Component base = Component.literal(ORDERS[mode]);
         return mode == selected ? Component.literal("> ").append(base).withStyle(ChatFormatting.GOLD) : base;

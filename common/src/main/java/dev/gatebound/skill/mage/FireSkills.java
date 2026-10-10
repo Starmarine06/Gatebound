@@ -55,9 +55,11 @@ public final class FireSkills {
 
     private static final Map<UUID, Scorched> SCORCHED = new HashMap<>();
 
+    /** Static holder; not instantiable. */
     private FireSkills() {
     }
 
+    /** Registers the Fire hurt and death hooks. */
     public static void init() {
         EntityEvent.LIVING_HURT.register(FireSkills::onHurt);
         EntityEvent.LIVING_DEATH.register((entity, source) -> {
@@ -69,6 +71,7 @@ public final class FireSkills {
 
     // ---------------------------------------------------------------- helpers
 
+    /** Fire damage scaled by the player's level, stats and the target. */
     private static float fireDmg(PlayerData data, double base, LivingEntity target) {
         float amount = MageCore.dmg(data, base);
         return target.isOnFire() ? (float) (amount * (1 + MageConfig.scorchBonus)) : amount;
@@ -80,12 +83,14 @@ public final class FireSkills {
         ignite(p, target, fireTicks);
     }
 
+    /** Sets a target on fire for some ticks. */
     private static void ignite(ServerPlayer p, LivingEntity target, int ticks) {
         target.setRemainingFireTicks(Math.max(target.getRemainingFireTicks(), ticks));
         long now = p.level().getServer().getTickCount();
         SCORCHED.put(target.getUUID(), new Scorched(p.getUUID(), now + Math.max(MageConfig.scorchTicks, ticks)));
     }
 
+    /** Small explosion visual at a point. */
     private static void blast(ServerLevel level, Vec3 at, float size) {
         Fx.impact(level, FIRE, at, size * 2.2);
         MageCore.particles(level, ParticleTypes.EXPLOSION, at, 1, size * 0.2, 0);
@@ -94,6 +99,7 @@ public final class FireSkills {
 
     // ---------------------------------------------------------------- events
 
+    /** Hurt hook: burning bonuses. */
     private static EventResult onHurt(LivingEntity victim, DamageSource source, float amount) {
         if (MageCore.applying() || amount <= 0 || !(victim.level() instanceof ServerLevel level) || victim instanceof ServerPlayer) {
             return EventResult.pass();
@@ -116,6 +122,7 @@ public final class FireSkills {
         return EventResult.pass();
     }
 
+    /** Death hook: burning kills spread fire. */
     private static void onDeath(LivingEntity entity, DamageSource source) {
         Scorched s = SCORCHED.remove(entity.getUUID());
         if (s == null || !(entity.level() instanceof ServerLevel level)) {
@@ -138,6 +145,7 @@ public final class FireSkills {
 
     // ---------------------------------------------------------------- skills
 
+    /** Fireball: explodes and sets enemies alight. */
     public static boolean fireball(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.FIRE, FIREBALL_COST);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.BLAZE_SHOOT), 1.0f, 1.0f);
@@ -171,6 +179,7 @@ public final class FireSkills {
         return true;
     }
 
+    /** Flame Burst: burst of flame around you. */
     public static boolean flameBurst(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.FIRE, BURST_COST);
         for (LivingEntity e : MageCore.foes(p, level, 5)) {
@@ -186,6 +195,7 @@ public final class FireSkills {
         return true;
     }
 
+    /** Ignite: weapon and arrows set targets alight; fire resistance. */
     public static boolean ignite(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.FIRE, IGNITE_COST);
         int ticks = MageConfig.buffSeconds * 20;
@@ -209,6 +219,7 @@ public final class FireSkills {
         return true;
     }
 
+    /** Flame Wall: wall of fire where you aim. */
     public static boolean flameWall(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.FIRE, WALL_COST);
         Vec3 flat = MageCore.flatLook(p);
@@ -252,6 +263,7 @@ public final class FireSkills {
         return true;
     }
 
+    /** Immolate: burning aura around you. */
     public static boolean immolate(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.FIRE, IMMOLATE_COST);
         int ticks = 240;
@@ -278,6 +290,7 @@ public final class FireSkills {
         return true;
     }
 
+    /** Combustion: detonates every burning enemy nearby. */
     public static boolean combustion(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.FIRE, COMBUSTION_COST);
         List<LivingEntity> burning = MageCore.foes(p, level, 20).stream().filter(LivingEntity::isOnFire).toList();
@@ -298,6 +311,7 @@ public final class FireSkills {
         return !burning.isEmpty();
     }
 
+    /** Meteor: calls a meteor onto the aimed spot. */
     public static boolean meteor(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.FIRE, METEOR_COST);
         Vec3 spot = MageCore.aimSpot(p, level, 40);
@@ -344,6 +358,7 @@ public final class FireSkills {
         return true;
     }
 
+    /** Inferno: vast field of fire at the aimed spot. */
     public static boolean inferno(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.FIRE, INFERNO_COST);
         Vec3 spot = MageCore.aimSpot(p, level, 30);
@@ -374,6 +389,7 @@ public final class FireSkills {
         return true;
     }
 
+    /** Ifrit Form: ultimate fire form with a burning aura. */
     public static boolean ifritForm(ServerPlayer p, ServerLevel level, PlayerData data) {
         p.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, MageConfig.formSeconds * 20, 0));
         MageCore.form(p, Element.FIRE, 20, o -> {

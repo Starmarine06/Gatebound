@@ -63,6 +63,7 @@ public final class WarriorSkills {
     public static final int EARTHBREAKER_COST = 60;
     public static final int AVATAR_COST = 80;
 
+    /** A delayed server action due at tick `at`. */
     private record Task(long at, Consumer<MinecraftServer> run) {
     }
 
@@ -75,6 +76,7 @@ public final class WarriorSkills {
         }
     }
 
+    /** An in-flight Leap Slam or Earthbreaker jump. */
     private record Leap(long start, boolean earth) {
     }
 
@@ -98,11 +100,13 @@ public final class WarriorSkills {
     /** Guards our own damage (reflect) from re-entering the hurt event. */
     private static boolean applying;
 
+    /** Static holder; not instantiable. */
     private WarriorSkills() {
     }
 
     // ---------------------------------------------------------------- lifecycle
 
+    /** Registers the Warrior tick and hurt hooks. */
     public static void init() {
         TickEvent.SERVER_POST.register(WarriorSkills::tick);
         EntityEvent.LIVING_HURT.register(WarriorSkills::onHurt);
@@ -124,6 +128,7 @@ public final class WarriorSkills {
         });
     }
 
+    /** Drops all of a player's Warrior state. */
     private static void clearPlayer(UUID id) {
         CHARGE.remove(id);
         LEAP.remove(id);
@@ -134,14 +139,17 @@ public final class WarriorSkills {
 
     // ---------------------------------------------------------------- helpers
 
+    /** Current game time for the player's level. */
     private static long now(ServerPlayer p) {
         return p.level().getServer().getTickCount();
     }
 
+    /** Plays a sound at the player. */
     private static void sound(ServerPlayer player, ServerLevel level, SoundEvent sound, float pitch) {
         level.playSound(null, player.blockPosition(), sound, SoundSource.PLAYERS, 1.0f, pitch);
     }
 
+    /** True while Berserker Rage is active. */
     private static boolean enraged(ServerPlayer p, long now) {
         return RAGE.getOrDefault(p.getUUID(), 0L) > now || AVATAR.containsKey(p.getUUID());
     }
@@ -151,11 +159,13 @@ public final class WarriorSkills {
         return (float) ((base + WarriorConfig.damagePerStrength * data.get(Stat.STRENGTH)) * (1 + WarriorConfig.damagePerLevel * data.level));
     }
 
+    /** Deals magic damage from the player, ignoring invulnerability frames. */
     private static void strike(ServerPlayer p, ServerLevel level, LivingEntity target, float amount) {
         Compat.setInvulnerableTime(target, 0);
         target.hurtServer(level, level.damageSources().indirectMagic(p, p), amount);
     }
 
+    /** Knocks an entity away from a point. */
     private static void knock(LivingEntity e, Vec3 from, double power, double up) {
         Vec3 away = e.position().subtract(from);
         Vec3 dir = new Vec3(away.x, 0, away.z);
@@ -164,19 +174,23 @@ public final class WarriorSkills {
         e.needsSync = true;
     }
 
+    /** Stuns an entity with heavy Slowness and Weakness. */
     private static void stun(LivingEntity e, int ticks) {
         e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, ticks, 10));
         e.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, ticks, 2));
     }
 
+    /** Runs an action for the player after some ticks. */
     private static void after(ServerPlayer p, int ticks, Consumer<MinecraftServer> run) {
         TASKS.add(new Task(now(p) + ticks, run));
     }
 
+    /** True if the entity is a valid Warrior target. */
     private static boolean valid(LivingEntity e) {
         return e.isAlive() && !(e instanceof Mob mob && EchoManager.isEcho(mob));
     }
 
+    /** Valid targets around the player within a radius. */
     private static List<LivingEntity> foes(ServerPlayer p, ServerLevel level, double radius) {
         List<LivingEntity> out = new ArrayList<>();
         for (LivingEntity e : SkillTargeting.creaturesAround(p, level, radius)) {
@@ -187,16 +201,19 @@ public final class WarriorSkills {
         return out;
     }
 
+    /** The player's look direction flattened onto the horizontal plane. */
     private static Vec3 flatLook(ServerPlayer p) {
         Vec3 look = p.getLookAngle();
         Vec3 flat = new Vec3(look.x, 0, look.z);
         return flat.lengthSqr() < 1.0e-4 ? new Vec3(0, 0, 1) : flat.normalize();
     }
 
+    /** Syncs the player's skill state to the client. */
     private static void send(ServerPlayer p) {
         p.connection.send(new ClientboundSetEntityMotionPacket(p));
     }
 
+    /** Removes harmful effects from the player. */
     private static void cleanse(ServerPlayer p) {
         for (MobEffectInstance inst : new ArrayList<>(p.getActiveEffects())) {
             if (!inst.getEffect().value().isBeneficial()) {
@@ -205,6 +222,7 @@ public final class WarriorSkills {
         }
     }
 
+    /** Shared ground-slam: damage, knockback, stun and visuals in a radius. */
     private static void slamEffects(ServerPlayer p, ServerLevel level, double radius, float damage, double knock, double up, int stunTicks) {
         for (LivingEntity e : foes(p, level, radius)) {
             strike(p, level, e, damage);
@@ -219,6 +237,7 @@ public final class WarriorSkills {
 
     // ---------------------------------------------------------------- events
 
+    /** Hurt hook: Bulwark reflect, passive Warrior strike and Rage/Avatar lifesteal. */
     private static EventResult onHurt(LivingEntity victim, DamageSource source, float amount) {
         if (applying || amount <= 0 || !(victim.level() instanceof ServerLevel level)) {
             return EventResult.pass();
@@ -248,6 +267,7 @@ public final class WarriorSkills {
         return EventResult.pass();
     }
 
+    /** Per-tick driver for tasks, charges, leaps and Avatars. */
     private static void tick(MinecraftServer server) {
         long now = server.getTickCount();
         if (!TASKS.isEmpty()) {
@@ -277,11 +297,13 @@ public final class WarriorSkills {
         }
     }
 
+    /** Looks a player up by UUID. */
     private static ServerPlayer playerOf(MinecraftServer server, UUID id) {
         ServerPlayer p = server.getPlayerList().getPlayer(id);
         return p != null && p.isAlive() ? p : null;
     }
 
+    /** Per-tick upkeep of active Charges. */
     private static void tickCharges(MinecraftServer server, long now) {
         for (UUID id : new ArrayList<>(CHARGE.keySet())) {
             Charge c = CHARGE.get(id);
@@ -307,6 +329,7 @@ public final class WarriorSkills {
         }
     }
 
+    /** Per-tick upkeep of active leaps and their landings. */
     private static void tickLeaps(MinecraftServer server, long now) {
         for (UUID id : new ArrayList<>(LEAP.keySet())) {
             Leap leap = LEAP.get(id);
@@ -333,6 +356,7 @@ public final class WarriorSkills {
         }
     }
 
+    /** Per-tick upkeep of Avatar of War (aura, pulses, end). */
     private static void tickAvatars(MinecraftServer server, long now) {
         for (UUID id : new ArrayList<>(AVATAR.keySet())) {
             Avatar a = AVATAR.get(id);
@@ -362,11 +386,13 @@ public final class WarriorSkills {
 
     // ---------------------------------------------------------------- skills
 
+    /** Shockwave: slams the ground, damaging and hurling back enemies around you. */
     public static boolean shockwave(ServerPlayer p, ServerLevel level, PlayerData data) {
         slamEffects(p, level, 4, dmg(data, 4), 0.9, 0.35, 0);
         return true;
     }
 
+    /** Charge: rush forward untouchable, bowling over and stunning enemies touched. */
     public static boolean charge(ServerPlayer p, ServerLevel level, PlayerData data) {
         Vec3 flat = flatLook(p);
         p.setDeltaMovement(flat.x * WarriorConfig.chargeSpeed, 0.15, flat.z * WarriorConfig.chargeSpeed);
@@ -377,6 +403,7 @@ public final class WarriorSkills {
         return true;
     }
 
+    /** War Cry: Strength and Resistance for you; nearby enemies turn on you. */
     public static boolean warCry(ServerPlayer p, ServerLevel level, PlayerData data) {
         int ticks = (10 + data.level / 10) * 20;
         int amp = Math.min(2, data.level / 40);
@@ -392,6 +419,7 @@ public final class WarriorSkills {
         return true;
     }
 
+    /** Cleave: wide sweep hitting every enemy in front. */
     public static boolean cleave(ServerPlayer p, ServerLevel level, PlayerData data) {
         Vec3 look = flatLook(p);
         int hits = 0;
@@ -413,6 +441,7 @@ public final class WarriorSkills {
         return hits > 0;
     }
 
+    /** Iron Skin: long Resistance II and Absorption. */
     public static boolean ironSkin(ServerPlayer p, ServerLevel level, PlayerData data) {
         int ticks = (8 + data.level / 8) * 20;
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, ticks, 1));
@@ -422,6 +451,7 @@ public final class WarriorSkills {
         return true;
     }
 
+    /** Leap Slam: leap forward and crash down, launching enemies where you land. */
     public static boolean leapSlam(ServerPlayer p, ServerLevel level, PlayerData data) {
         Vec3 flat = flatLook(p);
         p.setDeltaMovement(flat.x * WarriorConfig.leapForward, WarriorConfig.leapUp, flat.z * WarriorConfig.leapForward);
@@ -433,6 +463,7 @@ public final class WarriorSkills {
         return true;
     }
 
+    /** Rending Strike: heavy blow that leaves the target bleeding. */
     public static boolean rendingStrike(ServerPlayer p, ServerLevel level, PlayerData data) {
         List<LivingEntity> hits = SkillTargeting.ray(p, level, 4, 1, ParticleTypes.CRIT);
         sound(p, level, GateboundSounds.of(SoundEvents.PLAYER_ATTACK_STRONG), 0.8f);
@@ -454,6 +485,7 @@ public final class WarriorSkills {
         return true;
     }
 
+    /** Bulwark: Resistance III and part of melee damage is struck back. */
     public static boolean bulwark(ServerPlayer p, ServerLevel level, PlayerData data) {
         int ticks = (WarriorConfig.bulwarkSeconds + data.level / 20) * 20;
         BULWARK.put(p.getUUID(), now(p) + ticks);
@@ -463,6 +495,7 @@ public final class WarriorSkills {
         return true;
     }
 
+    /** Whirlwind: spin, hitting everything around you several times. */
     public static boolean whirlwind(ServerPlayer p, ServerLevel level, PlayerData data) {
         WarriorFx.whirlwind(p);
         for (int i = 0; i < 4; i++) {
@@ -481,6 +514,7 @@ public final class WarriorSkills {
         return true;
     }
 
+    /** Second Wind: heals a third of health, cleanses and grants speed. */
     public static boolean secondWind(ServerPlayer p, ServerLevel level, PlayerData data) {
         p.heal((float) (p.getMaxHealth() * (0.3 + data.level / 500.0)));
         cleanse(p);
@@ -490,6 +524,7 @@ public final class WarriorSkills {
         return true;
     }
 
+    /** Crushing Blow: devastating stunning hit, stronger on wounded enemies. */
     public static boolean crushingBlow(ServerPlayer p, ServerLevel level, PlayerData data) {
         List<LivingEntity> hits = SkillTargeting.ray(p, level, 4.5, 1, ParticleTypes.CRIT);
         sound(p, level, GateboundSounds.of(SoundEvents.MACE_SMASH_GROUND), 1.0f);
@@ -507,6 +542,7 @@ public final class WarriorSkills {
         return true;
     }
 
+    /** Berserker Rage: Strength II, Speed and lifesteal. */
     public static boolean berserkerRage(ServerPlayer p, ServerLevel level, PlayerData data) {
         int ticks = (WarriorConfig.rageBaseSeconds + data.level / 10) * 20;
         RAGE.put(p.getUUID(), now(p) + ticks);
@@ -518,6 +554,7 @@ public final class WarriorSkills {
         return true;
     }
 
+    /** Earthbreaker: spring up and break the earth on landing. */
     public static boolean earthbreaker(ServerPlayer p, ServerLevel level, PlayerData data) {
         p.setDeltaMovement(0, 1.0, 0);
         send(p);
@@ -528,6 +565,7 @@ public final class WarriorSkills {
         return true;
     }
 
+    /** Landing of Earthbreaker: three shockwaves that launch and stun. */
     private static void earthbreak(ServerPlayer p, ServerLevel level, PlayerData data) {
         double r = WarriorConfig.earthbreakerRadius;
         for (int wave = 0; wave < 3; wave++) {
@@ -553,6 +591,7 @@ public final class WarriorSkills {
         }
     }
 
+    /** Avatar of War: ultimate form with huge buffs, pulses, lifesteal and a final slam. */
     public static boolean avatarOfWar(ServerPlayer p, ServerLevel level, PlayerData data) {
         int ticks = (WarriorConfig.avatarBaseSeconds + data.level / 10) * 20;
         long now = now(p);
@@ -635,12 +674,14 @@ public final class WarriorSkills {
         }
     }
 
+    /** Fails a cast with a message and no cost. */
     private static boolean miss(ServerPlayer p, int cost) {
         ManaState.add(p, cost * 0.5);
         Compat.overlay(p, net.minecraft.network.chat.Component.literal("No target in reach."));
         return false;
     }
 
+    /** True if the player is a Warrior. */
     public static boolean isWarrior(ServerPlayer p) {
         return GateboundClass.WARRIOR.id().equals(PlayerDataStore.of(p).classId);
     }
