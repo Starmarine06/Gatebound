@@ -579,9 +579,6 @@ public final class RogueSkills {
         if (now % 20 == 0 && !MARKS.isEmpty()) {
             MARKS.values().removeIf(m -> m.until() <= now);
         }
-        if (now % 5 == 0) {
-            enforceArmor(server);
-        }
         if (now % 4 == 0) {
             hideFromWardens(server);
         }
@@ -639,25 +636,6 @@ public final class RogueSkills {
                 warden.clearAnger(p);
                 if (warden.getTarget() == p) {
                     warden.getBrain().eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET);
-                }
-            }
-        }
-    }
-
-    /** Rogues can only wear chainmail: anything else they put on is handed straight back. */
-    private static void enforceArmor(MinecraftServer server) {
-        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
-            if (!p.isAlive() || p.isSpectator() || !isRogue(p)) {
-                continue;
-            }
-            for (net.minecraft.world.entity.EquipmentSlot slot : KnifeItems.ARMOR_SLOTS) {
-                net.minecraft.world.item.ItemStack stack = p.getItemBySlot(slot);
-                if (KnifeItems.isForbiddenArmor(stack)) {
-                    p.setItemSlot(slot, net.minecraft.world.item.ItemStack.EMPTY);
-                    if (!p.getInventory().add(stack)) {
-                        p.spawnAtLocation(p.level(), stack);
-                    }
-                    Compat.overlay(p, Component.literal("A Rogue can only wear chainmail.").withStyle(ChatFormatting.GRAY));
                 }
             }
         }
