@@ -17,6 +17,7 @@ public final class GateboundFabricClient implements ClientModInitializer {
             if (renderer instanceof AvatarRenderer<?>) {
                 helper.register(new QuiverBackLayer((RenderLayerParent<AvatarRenderState, PlayerModel>) renderer));
                 helper.register(new dev.gatebound.client.GrappleLeashLayer((RenderLayerParent<AvatarRenderState, PlayerModel>) renderer));
+                helper.register(new dev.gatebound.client.FormBodyLayer((RenderLayerParent<AvatarRenderState, PlayerModel>) renderer));
             }
         });
     }
@@ -37,6 +38,7 @@ public final class GateboundFabricClient implements ClientModInitializer {
             if (renderer instanceof PlayerRenderer player) {
                 helper.register((RenderLayer) new QuiverBackLayer(player));
                 helper.register((RenderLayer) new GrappleLeashLayer(player));
+                helper.register((RenderLayer) new dev.gatebound.client.FormBodyLayer(player));
             }
         });
     }

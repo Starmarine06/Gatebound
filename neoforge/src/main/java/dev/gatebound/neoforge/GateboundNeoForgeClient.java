@@ -22,6 +22,7 @@ public final class GateboundNeoForgeClient {
             if (renderer != null) {
                 renderer.addLayer(new QuiverBackLayer(renderer));
                 renderer.addLayer(new dev.gatebound.client.GrappleLeashLayer(renderer));
+                renderer.addLayer(new dev.gatebound.client.FormBodyLayer(renderer));
             }
         }
     }
@@ -47,6 +48,7 @@ public final class GateboundNeoForgeClient {
             if (event.getSkin(skin) instanceof PlayerRenderer renderer) {
                 renderer.addLayer(new QuiverBackLayer(renderer));
                 renderer.addLayer(new GrappleLeashLayer(renderer));
+                renderer.addLayer(new dev.gatebound.client.FormBodyLayer(renderer));
             }
         }
     }

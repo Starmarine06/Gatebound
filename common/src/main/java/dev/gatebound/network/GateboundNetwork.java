@@ -43,6 +43,9 @@ public final class GateboundNetwork {
         Compat.registerS2C(QuiverSyncPayload.TYPE, QuiverSyncPayload.CODEC, (payload, context) ->
                 context.queue(() -> dev.gatebound.data.ClientQuiverData.update(payload)));
 
+        Compat.registerS2C(FormSyncPayload.TYPE, FormSyncPayload.CODEC, (payload, context) ->
+                context.queue(() -> dev.gatebound.data.ClientFormData.update(payload)));
+
         Compat.registerS2C(ManaSyncPayload.TYPE, ManaSyncPayload.CODEC, (payload, context) ->
                 context.queue(() -> ClientSkillData.update(payload)));
 

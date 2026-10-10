@@ -666,4 +666,84 @@ WriteModel 'void_sphere' 'void_sphere' @(
   (BoxEl @(3.5, 3.5, 3.5) @(12.5, 12.5, 12.5) 'z' 45))
 DrawSlash 'wind_blade.png' $wi.glow $wi.core
 WriteModel 'wind_blade' 'wind_blade' @((PlaneEl 'y'))
+
+# ------------------------------------------------------------------ mage form body skins (64x64 player skin layout, 4 animation frames each)
+# Only the base-layer regions are painted; the outer-layer regions stay transparent, so the overlay never hides hats, jackets or sleeves.
+$formDir = Join-Path $root 'textures\entity\form'
+New-Item -ItemType Directory -Force $formDir | Out-Null
+
+function Hash2($x, $y, $s) {
+  $v = [math]::Sin($x * 12.9898 + $y * 78.233 + $s * 37.719) * 43758.5453
+  return $v - [math]::Floor($v)
+}
+function Mix($a, $b, $t) {
+  $t = [math]::Max(0, [math]::Min(1, $t))
+  return @([int]($a[0] + ($b[0] - $a[0]) * $t), [int]($a[1] + ($b[1] - $a[1]) * $t), [int]($a[2] + ($b[2] - $a[2]) * $t))
+}
+
+# One pixel of one element's skin at animation phase $f (0 to 3).
+function SkinPixel($el, $x, $y, $f) {
+  $ph = $f * [math]::PI / 2
+  switch ($el) {
+    'fire' {
+      $h = 0.5 + 0.5 * [math]::Sin($y * 0.62 - $ph * 1.0 + [math]::Sin($x * 0.8 + $ph) * 1.6) + 0.25 * (Hash2 $x $y $f) - 0.12
+      if ($h -lt 0.5) { return Mix @(110, 18, 6) @(255, 100, 20) ($h * 2) }
+      return Mix @(255, 100, 20) @(255, 232, 130) (($h - 0.5) * 2)
+    }
+    'ice' {
+      $cell = Hash2 ([math]::Floor($x / 4)) ([math]::Floor($y / 4)) 7
+      $c = Mix @(120, 190, 240) @(215, 244, 255) $cell
+      if ((Hash2 $x $y ($f + 3)) -gt 0.955) { return @(255, 255, 255) }
+      return $c
+    }
+    'lightning' {
+      $line = [math]::Abs([math]::Sin($x * 0.75 + $f * 1.9 + [math]::Sin($y * 0.45 + $f) * 2.2))
+      if ($line -lt 0.1) { return @(255, 250, 170) }
+      if ($line -lt 0.28) { return Mix @(255, 230, 90) @(30, 40, 110) (($line - 0.1) / 0.18) }
+      return Mix @(14, 20, 62) @(34, 48, 120) (Hash2 $x $y $f)
+    }
+    'wind' {
+      $s = 0.5 + 0.5 * [math]::Sin($x * 0.95 + $y * 0.25 - $ph * 1.5 + [math]::Sin($y * 0.6) * 1.2)
+      return Mix @(150, 225, 195) @(250, 255, 252) $s
+    }
+    'earth' {
+      $base = Mix @(84, 78, 72) @(132, 124, 114) (Hash2 ([math]::Floor($x / 2)) ([math]::Floor($y / 2)) 5)
+      $crack = [math]::Sin($x * 0.62 + [math]::Sin($y * 0.5) * 2.0) * [math]::Sin($y * 0.7 + [math]::Sin($x * 0.4) * 2.0)
+      if ($crack -gt 0.86) { return Mix @(255, 140, 40) @(255, 230, 120) ($f / 3.0) }
+      return $base
+    }
+    'light' {
+      $d = [math]::Abs([math]::Sin(($x + $y) * 0.35 - $ph))
+      $c = Mix @(255, 232, 150) @(255, 253, 232) (1 - $d)
+      if ((Hash2 $x $y ($f + 9)) -gt 0.97) { return @(255, 255, 255) }
+      return $c
+    }
+    'dark' {
+      $s = 0.5 + 0.5 * [math]::Sin(($x + $y) * 0.5 - $ph * 1.2 + [math]::Sin($x * 0.5) * 1.4)
+      return Mix @(12, 4, 22) @(120, 46, 190) ([math]::Pow($s, 3))
+    }
+  }
+}
+
+function DrawSkin($el, $f, $eye) {
+  $bmp = New-Object System.Drawing.Bitmap 64, 64, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+  $regions = @(@(0, 0, 32, 16), @(16, 16, 24, 16), @(40, 16, 16, 16), @(0, 16, 16, 16), @(32, 48, 16, 16), @(16, 48, 16, 16))
+  foreach ($r in $regions) {
+    for ($y = $r[1]; $y -lt $r[1] + $r[3]; $y++) {
+      for ($x = $r[0]; $x -lt $r[0] + $r[2]; $x++) {
+        $c = SkinPixel $el $x $y $f
+        $bmp.SetPixel($x, $y, (C 255 $c[0] $c[1] $c[2]))
+      }
+    }
+  }
+  # glowing eyes on the face (the head's front is the 8x8 block at 8,8)
+  foreach ($ex in @(9, 10, 13, 14)) { foreach ($ey in @(12, 13)) { $bmp.SetPixel($ex, $ey, (C 255 $eye[0] $eye[1] $eye[2])) } }
+  $bmp.Save((Join-Path $formDir ("{0}_{1}.png" -f $el, $f)), [System.Drawing.Imaging.ImageFormat]::Png)
+  $bmp.Dispose()
+}
+
+$eyes = @{ fire = @(255, 255, 220); ice = @(255, 255, 255); lightning = @(255, 255, 255); wind = @(70, 150, 120); earth = @(255, 200, 80); light = @(255, 255, 255); dark = @(255, 60, 230) }
+foreach ($el in @('fire', 'ice', 'lightning', 'wind', 'earth', 'light', 'dark')) {
+  for ($f = 0; $f -lt 4; $f++) { DrawSkin $el $f $eyes[$el] }
+}
 Write-Output 'done'

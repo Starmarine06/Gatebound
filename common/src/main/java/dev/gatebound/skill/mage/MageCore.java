@@ -108,6 +108,7 @@ public final class MageCore {
         EntityEvent.LIVING_HURT.register(MageCore::onHurt);
         dev.gatebound.skill.fx.Props.init();
         dev.gatebound.skill.fx.FormFx.init();
+        dev.gatebound.skill.fx.FormSync.init();
         FireSkills.init();
         IceSkills.init();
         LightningSkills.init();
@@ -463,6 +464,17 @@ public final class MageCore {
             return false;
         }
         return true;
+    }
+
+    /** Every player currently in a form, with its element (used to tell clients whom to skin). */
+    public static Map<UUID, Element> activeForms(long now) {
+        Map<UUID, Element> out = new HashMap<>();
+        for (Map.Entry<UUID, Form> e : FORMS.entrySet()) {
+            if (e.getValue().until() > now) {
+                out.put(e.getKey(), e.getValue().element());
+            }
+        }
+        return out;
     }
 
     public static boolean inForm(ServerPlayer p, Element element) {
