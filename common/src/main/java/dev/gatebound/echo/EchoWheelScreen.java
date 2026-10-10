@@ -28,26 +28,32 @@ final class EchoWheelScreen extends Screen {
         this.heldAtOpen = EchoClient.selectHeld();
     }
 
+    /** Option labels shown on the wheel. */
     private List<String> labels() {
         return data.labels();
     }
 
+    /** Radius of the wheel. */
     private double radius() {
         return Math.min(150, 58 + labels().size() * 8);
     }
 
+    /** Angle of option i around the wheel. */
     private double angleOf(int i) {
         return -Math.PI / 2 + 2 * Math.PI * i / Math.max(1, labels().size());
     }
 
+    /** Screen x of option i's box. */
     private int boxX(int i) {
         return (int) (this.width / 2 + Math.cos(angleOf(i)) * radius() * 1.35) - BOX_W / 2;
     }
 
+    /** Screen y of option i's box. */
     private int boxY(int i) {
         return (int) (this.height / 2 + Math.sin(angleOf(i)) * radius()) - BOX_H / 2;
     }
 
+    /** Updates which option the mouse is over. */
     private void updateHover(int mouseX, int mouseY) {
         double dx = mouseX - this.width / 2.0;
         double dy = mouseY - this.height / 2.0;
@@ -65,6 +71,7 @@ final class EchoWheelScreen extends Screen {
         }
     }
 
+    /** Sends the hovered choice and closes the wheel. */
     private void choose() {
         if (hovered >= 0 && hovered < labels().size()) {
             NetworkManager.sendToServer(new EchoWheelPickPayload(data.entityId(), hovered));

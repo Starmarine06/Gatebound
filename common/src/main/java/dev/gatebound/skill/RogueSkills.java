@@ -84,6 +84,7 @@ public final class RogueSkills {
 
     private enum State { NONE, SHADOW, MELD, DANCE }
 
+    /** A marked target and when its mark expires. */
     private record MarkInfo(UUID owner, long until) {
     }
 
@@ -133,6 +134,7 @@ public final class RogueSkills {
         }
     }
 
+    /** A delayed server action due at tick `at`. */
     private record Task(long at, Consumer<MinecraftServer> run) {
     }
 
@@ -151,11 +153,13 @@ public final class RogueSkills {
     /** Guards our own damage from re-entering the hurt event. */
     private static boolean applying;
 
+    /** Static holder; not instantiable. */
     private RogueSkills() {
     }
 
     // ---------------------------------------------------------------- lifecycle
 
+    /** Registers the Rogue tick, death and hurt hooks. */
     public static void init() {
         TickEvent.SERVER_POST.register(RogueSkills::tick);
         EntityEvent.LIVING_DEATH.register((entity, source) -> {
@@ -198,6 +202,7 @@ public final class RogueSkills {
         });
     }
 
+    /** Drops all of a player's Rogue state (on leave or class change). */
     private static void clearPlayer(MinecraftServer server, UUID id) {
         if (HIDDEN.contains(id) && server != null && playerOf(server, id) != null) {
             setHidden(playerOf(server, id), false);
@@ -213,6 +218,7 @@ public final class RogueSkills {
         endPossession(server, id, false);
     }
 
+    /** Pays out Mark for Death and clears state when a marked/bound entity dies. */
     private static void onDeath(LivingEntity entity, DamageSource source) {
         MARKS.remove(entity.getUUID());
         MinecraftServer server = entity.level().getServer();
@@ -234,6 +240,7 @@ public final class RogueSkills {
         }
     }
 
+    /** Forgets a possession record for one player. */
     private static void forget(Poss ps, UUID id) {
         ps.bound.remove(id);
         ps.boundAt.remove(id);
@@ -244,26 +251,32 @@ public final class RogueSkills {
 
     // ---------------------------------------------------------------- helpers
 
+    /** Current game time for the player's level. */
     private static long now(ServerPlayer p) {
         return p.level().getServer().getTickCount();
     }
 
+    /** Plays a sound at the player. */
     private static void sound(ServerPlayer player, ServerLevel level, SoundEvent sound, float pitch) {
         level.playSound(null, player.blockPosition(), sound, SoundSource.PLAYERS, 1.0f, pitch);
     }
 
+    /** True if the player is a Rogue. */
     private static boolean isRogue(ServerPlayer p) {
         return GateboundClass.ROGUE.id().equals(PlayerDataStore.of(p).classId);
     }
 
+    /** Registry id of an entity's type as a string. */
     private static String typeId(Entity e) {
         return BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).toString();
     }
 
+    /** True if the entity is a valid Rogue target (alive, not the player, not a bystander). */
     private static boolean validTarget(LivingEntity e, ServerPlayer p) {
         return e != p && e.isAlive() && !(e instanceof Player) && !EchoManager.isEcho(e) && !(e instanceof dev.gatebound.trade.GateboundNpc);
     }
 
+    /** True for boss-type mobs. */
     private static boolean isBoss(LivingEntity e) {
         String id = typeId(e);
         return RogueConfig.meldBlocked(id) || RogueConfig.possessionBlocked(id);
@@ -283,6 +296,7 @@ public final class RogueSkills {
         return out;
     }
 
+    /** Living enemies around the player within a radius. */
     private static List<LivingEntity> enemies(ServerPlayer p, ServerLevel level, double radius) {
         List<LivingEntity> out = new ArrayList<>();
         for (LivingEntity e : SkillTargeting.enemiesAround(p, level, radius)) {
@@ -317,28 +331,34 @@ public final class RogueSkills {
         return best;
     }
 
+    /** Fails a cast with a hint message and no cost. */
     private static boolean miss(ServerPlayer p, int cost, String hint) {
         ManaState.add(p, cost);
         Compat.overlay(p, Component.literal(hint).withStyle(ChatFormatting.GRAY));
         return true; // the hint replaces the generic no-target message
     }
 
+    /** Queues an action to run at a given game tick. */
     private static void schedule(long at, Consumer<MinecraftServer> run) {
         TASKS.add(new Task(at, run));
     }
 
+    /** Looks a player up by UUID. */
     private static ServerPlayer playerOf(MinecraftServer server, UUID id) {
         return server.getPlayerList().getPlayer(id);
     }
 
+    /** Teleports an entity to a position in a level. */
     private static void moveTo(Entity e, ServerLevel level, Vec3 pos) {
         Compat.moveKeepingRotation(e, level, pos);
     }
 
+    /** True if the straight path between two points is free of solid blocks. */
     private static boolean clear(ServerLevel level, Entity who, Vec3 from, Vec3 to) {
         return level.clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, who)).getType() == HitResult.Type.MISS;
     }
 
+    /** The player's look direction flattened onto the horizontal plane. */
     private static Vec3 flatLook(LivingEntity e) {
         Vec3 look = e.getLookAngle();
         Vec3 flat = new Vec3(look.x, 0, look.z);
@@ -357,10 +377,12 @@ public final class RogueSkills {
 
     // ---------------------------------------------------------------- shadow state
 
+    /** True while Blade Dance is active. */
     private static boolean inDance(ServerPlayer p, long now) {
         return DANCE.getOrDefault(p.getUUID(), 0L) > now;
     }
 
+    /** True while the player is in the shadows (hidden). */
     private static boolean inShadow(ServerPlayer p, long now) {
         return SHADOW.getOrDefault(p.getUUID(), 0L) > now || MELD.containsKey(p.getUUID()) || inDance(p, now);
     }
@@ -370,12 +392,14 @@ public final class RogueSkills {
         return inDance(p, now) || POSSESSION.containsKey(p.getUUID());
     }
 
+    /** Hides the player in the shadows for some ticks. */
     private static void enterShadow(ServerPlayer p, ServerLevel level, int ticks) {
         SHADOW.put(p.getUUID(), now(p) + ticks);
         p.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, ticks + 10, 0, false, false));
         dropAggro(p, level);
     }
 
+    /** Ends the hidden state and reveals the player. */
     private static void breakShadow(ServerPlayer p, ServerLevel level) {
         UUID id = p.getUUID();
         boolean was = SHADOW.remove(id) != null | MELD.remove(id) != null;
@@ -399,6 +423,7 @@ public final class RogueSkills {
         return State.NONE;
     }
 
+    /** Makes nearby mobs forget the player as a target. */
     private static void dropAggro(ServerPlayer p, ServerLevel level) {
         for (Mob m : level.getEntitiesOfClass(Mob.class, p.getBoundingBox().inflate(32), x -> x.getTarget() == p)) {
             m.setTarget(null);
@@ -408,6 +433,7 @@ public final class RogueSkills {
 
     // ---------------------------------------------------------------- damage
 
+    /** Damage multiplier for attacking from the shadows or behind. */
     private static double ambushMult(PlayerData data, State st) {
         return st == State.DANCE ? RogueConfig.danceAmbush : RogueConfig.ambushBase + RogueConfig.ambushPerLevel * data.level;
     }
@@ -461,6 +487,7 @@ public final class RogueSkills {
         return f;
     }
 
+    /** Applies Venom Blade poison to a victim. */
     private static void applyVenom(ServerPlayer p, LivingEntity victim, long now) {
         if (VENOM.getOrDefault(p.getUUID(), 0L) <= now) {
             return;
@@ -483,6 +510,7 @@ public final class RogueSkills {
         RogueFx.cut(level, p, target);
     }
 
+    /** Deals damage that ignores armour and invulnerability frames. */
     private static void rawHurt(ServerPlayer p, ServerLevel level, LivingEntity target, float amount) {
         applying = true;
         try {
@@ -493,6 +521,7 @@ public final class RogueSkills {
         }
     }
 
+    /** Marks a target for death for some ticks. */
     private static void mark(ServerPlayer p, LivingEntity target, int ticks) {
         MARKS.put(target.getUUID(), new MarkInfo(p.getUUID(), now(p) + ticks));
         target.addEffect(new MobEffectInstance(MobEffects.GLOWING, ticks, 0, false, false));
@@ -562,6 +591,7 @@ public final class RogueSkills {
 
     // ---------------------------------------------------------------- tick
 
+    /** Per-tick driver: runs scheduled tasks, shadows, melds, walks and possessions. */
     private static void tick(MinecraftServer server) {
         long now = server.getTickCount();
         if (!TASKS.isEmpty()) {
@@ -652,6 +682,7 @@ public final class RogueSkills {
     private static final Set<UUID> QUIET = new HashSet<>();
     private static final String HIDDEN_TAG = "gatebound_hidden";
 
+    /** Sets the hidden flag and syncs gear/visibility to other clients. */
     private static void setHidden(ServerPlayer p, boolean hidden) {
         UUID id = p.getUUID();
         if (hidden && !HIDDEN.contains(id) && !Compat.isPermanentlyInvulnerable(p)) {
@@ -690,6 +721,7 @@ public final class RogueSkills {
         }
     }
 
+    /** Per-tick upkeep of a hidden player (duration, mana, break conditions). */
     private static void tickShadow(ServerPlayer p, ServerLevel level, long now) {
         UUID id = p.getUUID();
         if (DANCE.containsKey(id) && DANCE.get(id) <= now) {
@@ -711,6 +743,7 @@ public final class RogueSkills {
 
     // ---------------------------------------------------------------- shadow meld
 
+    /** Shadow Meld: hide in a creature's shadow; enemies ignore you. */
     public static boolean shadowMeld(ServerPlayer p, ServerLevel level, PlayerData data) {
         UUID id = p.getUUID();
         if (MELD.containsKey(id)) {
@@ -736,6 +769,7 @@ public final class RogueSkills {
         return true;
     }
 
+    /** Ends Shadow Meld with a message. */
     private static void endMeld(ServerPlayer p, ServerLevel level, String message) {
         if (MELD.remove(p.getUUID()) == null) {
             return;
@@ -747,6 +781,7 @@ public final class RogueSkills {
         }
     }
 
+    /** Per-tick upkeep of Shadow Meld. */
     private static void tickMeld(ServerPlayer p, ServerLevel level, long now) {
         UUID id = p.getUUID();
         Meld m = MELD.get(id);
@@ -793,6 +828,7 @@ public final class RogueSkills {
 
     // ---------------------------------------------------------------- shadow walk
 
+    /** Per-tick upkeep of Shadow Walk. */
     private static void tickWalk(ServerPlayer p, ServerLevel level, long now) {
         UUID id = p.getUUID();
         Walk w = WALK.get(id);
@@ -829,6 +865,7 @@ public final class RogueSkills {
         sound(p, level, GateboundSounds.of(SoundEvents.ENDERMAN_TELEPORT), 1.6f);
     }
 
+    /** Moves a Shadow Walk to its next shadow. */
     private static void advanceWalk(ServerPlayer p, ServerLevel level, Walk w, long now) {
         UUID id = p.getUUID();
         Vec3 target = w.dest;
@@ -866,6 +903,7 @@ public final class RogueSkills {
         return new Vec3(h.getX(), h.getBoundingBox().maxY + 0.2, h.getZ());
     }
 
+    /** Completes a Shadow Walk, emerging at the destination. */
     private static void finishWalk(ServerPlayer p, ServerLevel level, Walk w, Entity into, long now) {
         UUID id = p.getUUID();
         WALK.remove(id);
@@ -983,6 +1021,7 @@ public final class RogueSkills {
 
     // ---------------------------------------------------------------- basic skills
 
+    /** Shadow Step: dash forward in a blur, untouchable for a moment. */
     public static boolean shadowStep(ServerPlayer player, ServerLevel level, PlayerData data) {
         Vec3 look = player.getLookAngle();
         Vec3 flat = new Vec3(look.x, 0, look.z).normalize();
@@ -995,6 +1034,7 @@ public final class RogueSkills {
         return true;
     }
 
+    /** Throwing Knives: hurls knives at up to three enemies in a line, marking them. */
     public static boolean throwingKnives(ServerPlayer p, ServerLevel level, PlayerData data) {
         List<LivingEntity> hits = targets(p, level, 24, 3, ParticleTypes.CRIT);
         sound(p, level, GateboundSounds.of(SoundEvents.ARROW_SHOOT), 1.6f);
@@ -1010,6 +1050,7 @@ public final class RogueSkills {
         return true;
     }
 
+    /** Vanish: slip into Shadow (invisible, faster); the next strike is an Ambush. */
     public static boolean vanish(ServerPlayer p, ServerLevel level, PlayerData data) {
         int ticks = (6 + data.level / 10) * 20;
         enterShadow(p, level, ticks);
@@ -1018,6 +1059,7 @@ public final class RogueSkills {
         return true;
     }
 
+    /** Mark for Death: the target takes more damage from you; Ambush on it always crits. */
     public static boolean markForDeath(ServerPlayer p, ServerLevel level, PlayerData data) {
         List<LivingEntity> hits = targets(p, level, 30, 1, ParticleTypes.SQUID_INK);
         if (hits.isEmpty()) {
@@ -1032,6 +1074,7 @@ public final class RogueSkills {
         return true;
     }
 
+    /** Venom Blade: hits poison, and wither marked enemies. */
     public static boolean venomBlade(ServerPlayer p, ServerLevel level, PlayerData data) {
         VENOM.put(p.getUUID(), now(p) + 400);
         RogueFx.venomStart(p);
@@ -1054,6 +1097,7 @@ public final class RogueSkills {
         return null;
     }
 
+    /** Teleports the Rogue behind a target, facing it. */
     private static boolean jumpBehind(ServerPlayer p, ServerLevel level, LivingEntity t) {
         Vec3 dest = behindSpot(p, level, t);
         if (dest == null) {
@@ -1067,6 +1111,7 @@ public final class RogueSkills {
         return true;
     }
 
+    /** Backstab: teleport behind the target and strike it. */
     public static boolean backstab(ServerPlayer p, ServerLevel level, PlayerData data) {
         List<LivingEntity> hits = targets(p, level, 24, 1, ParticleTypes.SQUID_INK);
         if (hits.isEmpty()) {
@@ -1082,6 +1127,7 @@ public final class RogueSkills {
         return true;
     }
 
+    /** Smoke Bomb: blinds and slows nearby enemies, drops their aggro and hides you briefly. */
     public static boolean smokeBomb(ServerPlayer p, ServerLevel level, PlayerData data) {
         for (LivingEntity e : enemies(p, level, 6)) {
             e.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 80, 0));
@@ -1096,6 +1142,7 @@ public final class RogueSkills {
         return true;
     }
 
+    /** Fan of Knives: knives in every direction, hurting and marking nearby enemies. */
     public static boolean fanOfKnives(ServerPlayer p, ServerLevel level, PlayerData data) {
         List<LivingEntity> around = enemies(p, level, 6);
         if (around.isEmpty()) {
@@ -1120,6 +1167,7 @@ public final class RogueSkills {
         }).thenComparingDouble(e -> e.distanceToSqr(p)));
     }
 
+    /** Blade Dance: teleport through nearby enemies in rapid strikes, then return. */
     public static boolean bladeDance(ServerPlayer p, ServerLevel level, PlayerData data) {
         List<LivingEntity> around = enemies(p, level, 12);
         if (around.isEmpty()) {
@@ -1156,6 +1204,7 @@ public final class RogueSkills {
         return true;
     }
 
+    /** Execute: stronger against wounded enemies; kills non-bosses at low health. */
     public static boolean execute(ServerPlayer p, ServerLevel level, PlayerData data) {
         List<LivingEntity> hits = targets(p, level, 30, 1, ParticleTypes.SQUID_INK);
         if (hits.isEmpty()) {
@@ -1189,6 +1238,7 @@ public final class RogueSkills {
         return true;
     }
 
+    /** Shadow Dance: Shadow never breaks and every hit is an Ambush. */
     public static boolean shadowDance(ServerPlayer p, ServerLevel level, PlayerData data) {
         long now = now(p);
         DANCE.put(p.getUUID(), now + 200);
@@ -1200,6 +1250,7 @@ public final class RogueSkills {
         return true;
     }
 
+    /** Thousand Cuts: marks every enemy nearby, then slashes each in sequence. */
     public static boolean thousandCuts(ServerPlayer p, ServerLevel level, PlayerData data) {
         List<LivingEntity> around = enemies(p, level, 16);
         if (around.isEmpty()) {
@@ -1238,6 +1289,7 @@ public final class RogueSkills {
 
     // ---------------------------------------------------------------- shadow possession
 
+    /** Binds a mob to the possessing Rogue. */
     private static void bind(ServerPlayer p, ServerLevel level, Poss ps, Mob mob, long now) {
         if (BOUND_ALL.contains(mob.getUUID())) {
             return;
@@ -1263,6 +1315,7 @@ public final class RogueSkills {
         RogueFx.bindMark(mob, (int) Math.max(20, ps.until - now));
     }
 
+    /** Releases all mobs bound by a player. */
     private static void release(MinecraftServer server, UUID id) {
         BOUND_ALL.remove(id);
         for (ServerLevel l : server.getAllLevels()) {
@@ -1280,6 +1333,7 @@ public final class RogueSkills {
         }
     }
 
+    /** Ends Shadow Possession, optionally announcing it. */
     private static void endPossession(MinecraftServer server, UUID owner, boolean announce) {
         Poss ps = POSSESSION.remove(owner);
         if (ps == null) {
@@ -1296,11 +1350,13 @@ public final class RogueSkills {
         }
     }
 
+    /** The Rogue's attack damage used by possession strikes. */
     private static double attackPower(ServerPlayer p, PlayerData data) {
         double base = Math.max(p.getAttributeValue(Attributes.ATTACK_DAMAGE), 4 + 0.25 * data.get(Stat.AGILITY));
         return base * (1 + 0.01 * data.level);
     }
 
+    /** Shadow Possession: binds, pulls, strikes and finally possesses enemies in front. */
     public static boolean shadowPossession(ServerPlayer p, ServerLevel level, PlayerData data) {
         UUID id = p.getUUID();
         long now = now(p);
@@ -1359,6 +1415,7 @@ public final class RogueSkills {
         return true;
     }
 
+    /** The mobs currently bound by a possession. */
     private static List<Mob> boundMobs(ServerLevel level, Poss ps) {
         List<Mob> out = new ArrayList<>();
         for (UUID id : ps.bound) {
@@ -1369,6 +1426,7 @@ public final class RogueSkills {
         return out;
     }
 
+    /** Pulls bound mobs toward the Rogue. */
     private static boolean pullBound(ServerPlayer p, ServerLevel level, Poss ps, long now) {
         int n = 0;
         for (Mob m : boundMobs(level, ps)) {
@@ -1384,6 +1442,7 @@ public final class RogueSkills {
         return true;
     }
 
+    /** Hops the Rogue to a bound mob. */
     private static boolean hopToBound(ServerPlayer p, ServerLevel level, Poss ps, PlayerData data) {
         Mob nearest = null;
         double best = Double.MAX_VALUE;
@@ -1431,6 +1490,7 @@ public final class RogueSkills {
         armStrike(p, level, ps, data);
     }
 
+    /** Arms the bound mobs for a combined strike. */
     private static void armStrike(ServerPlayer p, ServerLevel level, Poss ps, PlayerData data) {
         List<Mob> targets = new ArrayList<>();
         for (Mob m : boundMobs(level, ps)) {
@@ -1451,6 +1511,7 @@ public final class RogueSkills {
         sound(p, level, GateboundSounds.of(SoundEvents.PLAYER_ATTACK_SWEEP), 0.7f);
     }
 
+    /** Per-tick upkeep of an active possession. */
     private static void tickPossession(MinecraftServer server, ServerPlayer p, ServerLevel level, long now) {
         UUID id = p.getUUID();
         Poss ps = POSSESSION.get(id);

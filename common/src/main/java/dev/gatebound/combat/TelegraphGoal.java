@@ -36,11 +36,13 @@ public final class TelegraphGoal extends Goal {
     private int timer;
     private int recoverFor;
 
+    /** Creates the goal for a mob. */
     private TelegraphGoal(PathfinderMob mob) {
         this.mob = mob;
         setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
     }
 
+    /** Installs the goal on a mob when it joins a level. */
     public static void install(Entity entity, Level level) {
         if (level.isClientSide() || !(entity instanceof Monster monster) || hasGoal(monster)) {
             return;
@@ -51,10 +53,12 @@ public final class TelegraphGoal extends Goal {
         }
     }
 
+    /** True if the mob already has this goal. */
     public static boolean hasGoal(Mob mob) {
         return Compat.goals(mob).getAvailableGoals().stream().anyMatch(w -> w.getGoal() instanceof TelegraphGoal);
     }
 
+    /** True if the mob is mid-strike. */
     public static boolean isStriking(Mob mob) {
         return striking == mob;
     }
@@ -64,10 +68,12 @@ public final class TelegraphGoal extends Goal {
         return striking != null && striking == attacker && strikingHeavy;
     }
 
+    /** The player the mob is targeting, if any. */
     private ServerPlayer target() {
         return mob.getTarget() instanceof ServerPlayer p && p.isAlive() && !p.isSpectator() ? p : null;
     }
 
+    /** True if the mob is staggered and cannot attack. */
     private boolean staggered() {
         return CombatState.isStaggered(mob.getUUID(), mob.level().getServer().getTickCount());
     }
@@ -101,6 +107,7 @@ public final class TelegraphGoal extends Goal {
         recovering = false;
     }
 
+    /** Starts the telegraphed wind-up. */
     private void beginWindup() {
         recovering = false;
         timer = 0;
@@ -148,6 +155,7 @@ public final class TelegraphGoal extends Goal {
         }
     }
 
+    /** Executes the telegraphed strike on the player. */
     private void strike(ServerPlayer t, ServerLevel level) {
         Compat.swing(mob, InteractionHand.MAIN_HAND, true);
         if (mob.isWithinMeleeAttackRange(t)) {

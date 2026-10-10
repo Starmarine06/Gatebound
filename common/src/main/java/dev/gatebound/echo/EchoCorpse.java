@@ -29,20 +29,24 @@ public class EchoCorpse extends EchoEntity {
     private String bodyName = "";
     private int age;
 
+    /** Creates a corpse entity. */
     public EchoCorpse(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
         Compat.setPermanentlyInvulnerable(this, true);
     }
 
+    /** Sets the owner's id and name. */
     public void setOwner(UUID id, String name) {
         this.owner = id;
         this.bodyName = name;
     }
 
+    /** The owner's id. */
     public UUID owner() {
         return owner;
     }
 
+    /** The owner's name shown on the body. */
     public String bodyName() {
         return bodyName;
     }
@@ -113,6 +117,7 @@ public class EchoCorpse extends EchoEntity {
         return InteractionResult.PASS;
     }
 
+    /** Opens the corpse's item menu for a player. */
     void openMenu(ServerPlayer player) {
         PlayerData data = PlayerDataStore.of(player);
         List<Integer> modes = new ArrayList<>();

@@ -48,9 +48,11 @@ public final class PlayerCombat {
 
     private static final Map<UUID, Info> INFO = new HashMap<>();
 
+    /** Static holder; not instantiable. */
     private PlayerCombat() {
     }
 
+    /** Registers the stamina/parry/dodge hooks. */
     public static void init() {
         // Must register before CombatHandler so i-frames and unauthorised mob hits are resolved before parry logic.
         EntityEvent.LIVING_HURT.register(PlayerCombat::onHurt);
@@ -74,6 +76,7 @@ public final class PlayerCombat {
         PlayerEvent.PLAYER_QUIT.register(player -> INFO.remove(player.getUUID()));
     }
 
+    /** Per-player combat info (created on demand). */
     private static Info info(ServerPlayer player) {
         Info i = INFO.computeIfAbsent(player.getUUID(), id -> new Info());
         if (i.stamina < 0) {
@@ -82,15 +85,18 @@ public final class PlayerCombat {
         return i;
     }
 
+    /** Player's maximum stamina. */
     public static int maxStamina(ServerPlayer player) {
         var data = PlayerDataStore.of(player);
         return 40 + 3 * data.get(Stat.AGILITY) + 2 * data.get(Stat.VITALITY);
     }
 
+    /** Player's current stamina. */
     public static double stamina(ServerPlayer player) {
         return info(player).stamina;
     }
 
+    /** Sets the player's stamina (clamped). */
     public static void setStamina(ServerPlayer player, double value) {
         Info i = info(player);
         i.stamina = Math.max(0, Math.min(maxStamina(player), value));
@@ -105,10 +111,12 @@ public final class PlayerCombat {
         send(player, i, true);
     }
 
+    /** True if the player is staggered. */
     public static boolean isStaggered(ServerPlayer player) {
         return info(player).staggeredUntil > player.level().getServer().getTickCount();
     }
 
+    /** True if the player has invulnerability frames. */
     public static boolean hasIFrames(ServerPlayer player) {
         return info(player).iframeUntil > player.level().getServer().getTickCount();
     }
@@ -120,6 +128,7 @@ public final class PlayerCombat {
         i.perfectDone = true;
     }
 
+    /** Per-tick stamina regeneration and state upkeep. */
     private static void tick(ServerPlayer player, int now) {
         Info i = info(player);
         double max = maxStamina(player);
@@ -138,6 +147,7 @@ public final class PlayerCombat {
         }
     }
 
+    /** Syncs stamina/state to the client when changed or forced. */
     private static void send(ServerPlayer player, Info i, boolean force) {
         int now = player.level().getServer().getTickCount();
         int[] snap = {(int) i.stamina, maxStamina(player), (int) i.posture, (int) CombatConfig.playerPostureMax,
@@ -216,6 +226,7 @@ public final class PlayerCombat {
         send(player, i, true);
     }
 
+    /** Hurt hook: applies parry, dodge and stamina rules. */
     private static EventResult onHurt(LivingEntity victim, DamageSource source, float amount) {
         if (amount <= 0 || !(victim instanceof ServerPlayer player) || !(player.level() instanceof ServerLevel level)) {
             return EventResult.pass();
@@ -241,6 +252,7 @@ public final class PlayerCombat {
         return EventResult.pass();
     }
 
+    /** Perfect dodge reward: refunds stamina and cuts skill cooldowns. */
     private static void perfectDodge(ServerPlayer player, Info i, ServerLevel level) {
         i.stamina = Math.min(maxStamina(player), i.stamina + CombatConfig.perfectDodgeRefund);
         i.dodgeReadyAt = 0;

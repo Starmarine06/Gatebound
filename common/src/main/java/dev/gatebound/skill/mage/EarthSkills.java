@@ -54,9 +54,11 @@ public final class EarthSkills {
 
     private static final Map<UUID, Armor> ARMOR = new HashMap<>();
 
+    /** Static holder; not instantiable. */
     private EarthSkills() {
     }
 
+    /** Registers the Earth hurt hook. */
     public static void init() {
         EntityEvent.LIVING_HURT.register(EarthSkills::onHurt);
         LifecycleEvent.SERVER_STOPPED.register(server -> ARMOR.clear());
@@ -64,10 +66,12 @@ public final class EarthSkills {
 
     // ---------------------------------------------------------------- helpers
 
+    /** Rock-chunk particle. */
     private static ParticleOptions rock() {
         return new BlockParticleOption(ParticleTypes.BLOCK, Blocks.STONE.defaultBlockState());
     }
 
+    /** Adds stone armour stacks to the player. */
     private static void gainArmor(ServerPlayer p, int stacks) {
         long now = p.level().getServer().getTickCount();
         Armor a = ARMOR.computeIfAbsent(p.getUUID(), k -> new Armor());
@@ -79,12 +83,14 @@ public final class EarthSkills {
         p.setAbsorptionAmount(Math.max(p.getAbsorptionAmount(), a.stacks * 2.0f));
     }
 
+    /** Earth damage scaled by the player's level and stats. */
     private static float earthDmg(ServerPlayer p, PlayerData data, double base) {
         Armor a = ARMOR.get(p.getUUID());
         int stacks = a != null && a.until > p.level().getServer().getTickCount() ? a.stacks : 0;
         return (float) (MageCore.dmg(data, base) * (1 + 0.1 * stacks));
     }
 
+    /** Damages, launches and slows an entity with an earth hit. */
     private static void smash(ServerPlayer p, ServerLevel level, PlayerData data, LivingEntity e, double base, double up, int slowTicks) {
         MageCore.strike(p, level, e, earthDmg(p, data, base));
         if (up > 0) {
@@ -99,6 +105,7 @@ public final class EarthSkills {
 
     // ---------------------------------------------------------------- events
 
+    /** Hurt hook: stone armour absorbs damage. */
     private static EventResult onHurt(LivingEntity victim, DamageSource source, float amount) {
         if (MageCore.applying() || amount <= 0 || victim instanceof ServerPlayer || !(victim.level() instanceof ServerLevel level)
                 || !(source.getEntity() instanceof ServerPlayer p) || !MageCore.inForm(p, Element.EARTH)) {
@@ -117,6 +124,7 @@ public final class EarthSkills {
 
     // ---------------------------------------------------------------- skills
 
+    /** Stone Spike: spikes erupt ahead, hurting and rooting enemies. */
     public static boolean stoneSpike(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.EARTH, SPIKE_COST);
         gainArmor(p, 1);
@@ -141,6 +149,7 @@ public final class EarthSkills {
         return true;
     }
 
+    /** Stone Skin: Resistance and Stone Armor stacks. */
     public static boolean stoneSkin(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.EARTH, SKIN_COST);
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 200, 1));
@@ -150,6 +159,7 @@ public final class EarthSkills {
         return true;
     }
 
+    /** Stone Wall: raises a wall of stone that crumbles later. */
     public static boolean stoneWall(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.EARTH, WALL_COST);
         gainArmor(p, 1);
@@ -172,6 +182,7 @@ public final class EarthSkills {
         return placed > 0;
     }
 
+    /** Tremor: hurts, stuns and weakens nearby enemies. */
     public static boolean tremor(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.EARTH, TREMOR_COST);
         gainArmor(p, 1);
@@ -184,6 +195,7 @@ public final class EarthSkills {
         return true;
     }
 
+    /** Boulder: rolls a boulder that crushes the first enemy it meets. */
     public static boolean boulder(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.EARTH, BOULDER_COST);
         gainArmor(p, 1);
@@ -209,6 +221,7 @@ public final class EarthSkills {
         return true;
     }
 
+    /** Bedrock: maximum Stone Armor, resistance and absorption. */
     public static boolean bedrock(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.EARTH, BEDROCK_COST);
         gainArmor(p, MAX_STACKS);
@@ -221,6 +234,7 @@ public final class EarthSkills {
         return true;
     }
 
+    /** Earthquake: the ground erupts repeatedly around you. */
     public static boolean earthquake(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.EARTH, QUAKE_COST);
         gainArmor(p, 2);
@@ -238,6 +252,7 @@ public final class EarthSkills {
         return true;
     }
 
+    /** Landslide: a wave of rock sweeps forward. */
     public static boolean landslide(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.EARTH, LANDSLIDE_COST);
         gainArmor(p, 2);
@@ -269,6 +284,7 @@ public final class EarthSkills {
         return true;
     }
 
+    /** Titan Form: ultimate earth form with huge health and strength. */
     public static boolean titanForm(ServerPlayer p, ServerLevel level, PlayerData data) {
         int ticks = MageConfig.formSeconds * 20;
         p.addEffect(new MobEffectInstance(MobEffects.HEALTH_BOOST, ticks, 4));

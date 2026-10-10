@@ -47,9 +47,11 @@ public final class LightSkills {
 
     private static final String BLESSED = "resurrection";
 
+    /** Static holder; not instantiable. */
     private LightSkills() {
     }
 
+    /** Registers the Light hooks. */
     public static void init() {
         EntityEvent.LIVING_DEATH.register(LightSkills::onDeath);
     }
@@ -61,6 +63,7 @@ public final class LightSkills {
         MageCore.strike(p, level, target, target.typeHolder().is(EntityTypeTags.UNDEAD) ? amount * 1.5f : amount);
     }
 
+    /** Heals allies around the player. */
     private static void healAround(ServerPlayer p, ServerLevel level, double radius, float amount) {
         for (ServerPlayer other : level.getPlayers(o -> o.isAlive() && o.distanceToSqr(p) <= radius * radius)) {
             other.heal(amount);
@@ -89,6 +92,7 @@ public final class LightSkills {
 
     // ---------------------------------------------------------------- skills
 
+    /** Radiant Bolt: bolt of light that heals you a little. */
     public static boolean radiantBolt(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.LIGHT, BOLT_COST);
         MageCore.sound(level, p.position(), GateboundSounds.of(SoundEvents.AMETHYST_BLOCK_CHIME), 0.9f, 1.4f);
@@ -111,6 +115,7 @@ public final class LightSkills {
         return true;
     }
 
+    /** Sanctuary: holy zone that heals those inside and burns undead. */
     public static boolean sanctuary(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.LIGHT, SANCTUARY_COST);
         Vec3 center = p.position();
@@ -148,6 +153,7 @@ public final class LightSkills {
         return true;
     }
 
+    /** Mending Light: heals you and nearby players. */
     public static boolean mendingLight(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.LIGHT, MENDING_COST);
         healAround(p, level, 9, MageCore.dmg(data, 6));
@@ -163,6 +169,7 @@ public final class LightSkills {
         return true;
     }
 
+    /** Blinding Flash: blinds nearby enemies and makes them lose track of you. */
     public static boolean blindingFlash(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.LIGHT, FLASH_COST);
         for (LivingEntity e : MageCore.foes(p, level, 10)) {
@@ -186,6 +193,7 @@ public final class LightSkills {
         return true;
     }
 
+    /** Holy Smite: heavy blow of light on the target. */
     public static boolean holySmite(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.LIGHT, SMITE_COST);
         List<LivingEntity> hit = SkillTargeting.ray(p, level, 30, 1, ParticleTypes.END_ROD);
@@ -211,6 +219,7 @@ public final class LightSkills {
         return true;
     }
 
+    /** Aegis: absorption and resistance for you and nearby players. */
     public static boolean aegis(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.LIGHT, AEGIS_COST);
         for (ServerPlayer other : level.getPlayers(o -> o.isAlive() && o.distanceToSqr(p) <= 100)) {
@@ -358,6 +367,7 @@ public final class LightSkills {
     }
 
 
+    /** Resurrection: next killing blow instead leaves you at half health. */
     public static boolean resurrection(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.LIGHT, RESURRECTION_COST);
         for (ServerPlayer other : level.getPlayers(o -> o.isAlive() && o.distanceToSqr(p) <= 100)) {
@@ -385,6 +395,7 @@ public final class LightSkills {
         return true;
     }
 
+    /** Seraph Form: ultimate light form with flight and a healing aura. */
     public static boolean seraphForm(ServerPlayer p, ServerLevel level, PlayerData data) {
         int ticks = MageConfig.formSeconds * 20;
         p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, ticks, 1));

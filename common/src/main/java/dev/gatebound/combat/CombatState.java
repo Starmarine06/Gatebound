@@ -19,6 +19,7 @@ public final class CombatState {
         int lastHitTick;
     }
 
+    /** Static holder; not instantiable. */
     private CombatState() {
     }
 
@@ -38,6 +39,7 @@ public final class CombatState {
         return start == null ? -1 : now - start;
     }
 
+    /** True if the player is within a parry window. */
     public static boolean isParrying(UUID player, int now) {
         int since = ticksSinceParry(player, now);
         return since >= 0 && since <= CombatConfig.parryWindowTicks;
@@ -52,6 +54,7 @@ public final class CombatState {
         return p.value;
     }
 
+    /** A mob's current posture value. */
     public static double posture(UUID mob, int now) {
         Posture p = POSTURE.get(mob);
         if (p == null) {
@@ -61,10 +64,12 @@ public final class CombatState {
         return p.value;
     }
 
+    /** Resets a mob's posture. */
     public static void resetPosture(UUID mob) {
         POSTURE.remove(mob);
     }
 
+    /** Regenerates posture over time. */
     private static void recover(Posture p, int now) {
         int idle = now - p.lastHitTick - CombatConfig.postureRecoveryDelay;
         if (idle > 0) {
@@ -73,14 +78,17 @@ public final class CombatState {
         }
     }
 
+    /** Staggers a mob. */
     public static void stagger(UUID mob, int now) {
         STAGGERED_UNTIL.put(mob, now + CombatConfig.staggerTicks);
     }
 
+    /** True if the mob is staggered. */
     public static boolean isStaggered(UUID mob, int now) {
         return STAGGERED_UNTIL.getOrDefault(mob, 0) > now;
     }
 
+    /** Clears a mob's stagger. */
     public static void clearStagger(UUID mob) {
         STAGGERED_UNTIL.remove(mob);
     }
@@ -94,6 +102,7 @@ public final class CombatState {
         DEBUG.remove(id);
     }
 
+    /** Toggles combat debug output for a player. */
     public static boolean toggleDebug(UUID player) {
         if (!DEBUG.add(player)) {
             DEBUG.remove(player);
@@ -102,6 +111,7 @@ public final class CombatState {
         return true;
     }
 
+    /** True if combat debug is on for a player. */
     public static boolean debug(UUID player) {
         return DEBUG.contains(player);
     }

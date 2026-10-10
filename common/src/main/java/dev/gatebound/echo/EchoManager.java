@@ -79,9 +79,11 @@ public final class EchoManager {
     /** Roster slot of spectral copies (Legion Call): they are not on the roster and never come back. */
     static final int TEMP_SLOT = -1;
 
+    /** Static holder; not instantiable. */
     private EchoManager() {
     }
 
+    /** Registers the echo tick, add, death and hurt hooks. */
     public static void init() {
         EntityEvent.ADD.register((entity, level) -> {
             // An echo loaded from disk (or otherwise not created by us this session) is a leftover: remove it.
@@ -119,10 +121,12 @@ public final class EchoManager {
 
     // ---------------------------------------------------------------- queries
 
+    /** Active-echo info (owner, slot) for an entity, or null. */
     public static Info info(Entity entity) {
         return ACTIVE.get(entity.getUUID());
     }
 
+    /** True if the entity is an active echo. */
     public static boolean isEcho(Entity entity) {
         return ACTIVE.containsKey(entity.getUUID());
     }
@@ -212,6 +216,7 @@ public final class EchoManager {
     /** The gate the seekers are currently gathering at (the latest one found), per owner. */
     private static final Map<UUID, Found> RALLY = new HashMap<>();
 
+    /** Sets the gate an owner's echoes rally to. */
     static void setRally(ServerPlayer owner, Found gate) {
         RALLY.put(owner.getUUID(), gate);
     }
@@ -237,6 +242,7 @@ public final class EchoManager {
         return f.pos();
     }
 
+    /** Records a discovered gate for an owner. */
     public static void addFound(ServerPlayer owner, Found gate) {
         List<Found> list = FOUND.computeIfAbsent(owner.getUUID(), id -> new ArrayList<>());
         boolean known = list.stream().anyMatch(f -> f.dim().equals(gate.dim()) && f.pos().equals(gate.pos()));
@@ -264,6 +270,7 @@ public final class EchoManager {
         return alive;
     }
 
+    /** The gate currently selected by the owner. */
     public static Found selectedGate(ServerPlayer owner) {
         Found sel = SELECTED.get(owner.getUUID());
         List<Found> alive = foundGates(owner);
@@ -279,6 +286,7 @@ public final class EchoManager {
         return fallback;
     }
 
+    /** Selects a discovered gate by index. */
     public static void selectGate(ServerPlayer owner, int index) {
         List<Found> alive = foundGates(owner);
         if (index >= 0 && index < alive.size()) {
@@ -309,14 +317,17 @@ public final class EchoManager {
         NetworkManager.sendToPlayer(owner, new EchoRosterPayload(open, isSummoner(data), rows, modes, gates, EchoView.viewingName(owner)));
     }
 
+    /** True if the player is a Summoner. */
     public static boolean isSummoner(PlayerData data) {
         return SUMMONER.equals(data.classId);
     }
 
+    /** Number of echo slots the player has. */
     public static int slots(PlayerData data) {
         return EchoConfig.slots(data.get(Stat.INTELLECT), data.echo.bonusSlots);
     }
 
+    /** Number of echoes currently active for an owner. */
     public static int activeCount(UUID owner) {
         int n = 0;
         for (Info i : ACTIVE.values()) {
@@ -340,6 +351,7 @@ public final class EchoManager {
         return out;
     }
 
+    /** True if the owner's slot has an active echo. */
     private static boolean isActive(UUID owner, int slot) {
         for (Info i : ACTIVE.values()) {
             if (i.owner.equals(owner) && i.slot == slot) {
@@ -349,6 +361,7 @@ public final class EchoManager {
         return false;
     }
 
+    /** True if the mob can become an echo. */
     public static boolean eligible(LivingEntity entity) {
         if (!(entity instanceof Mob) || entity instanceof EchoEntity || entity instanceof dev.gatebound.trade.GateboundNpc
                 || isEcho(entity) || entity.entityTags().contains(TAG)) {
@@ -360,6 +373,7 @@ public final class EchoManager {
 
     // ---------------------------------------------------------------- extraction and xp
 
+    /** Death hook: dismisses a fallen owner's echoes (they return on respawn). */
     private static EventResult onDeath(LivingEntity victim, DamageSource source) {
         if (victim.level().isClientSide()) {
             return EventResult.pass();
@@ -450,6 +464,7 @@ public final class EchoManager {
 
     // ---------------------------------------------------------------- damage rules
 
+    /** Hurt hook: echoes can't hurt players or each other and players can't hurt echoes; a lethal hit defeats the echo cleanly. */
     private static EventResult onHurt(LivingEntity victim, DamageSource source, float amount) {
         if (victim.level().isClientSide()) {
             return EventResult.pass();
@@ -477,6 +492,7 @@ public final class EchoManager {
         return EventResult.pass();
     }
 
+    /** Tells the owner an echo fell and removes it. */
     private static void defeat(Mob mob) {
         Info info = ACTIVE.get(mob.getUUID());
         if (mob.level() instanceof ServerLevel level) {
@@ -492,6 +508,7 @@ public final class EchoManager {
         remove(mob);
     }
 
+    /** Removes an echo from tracking, its team and the world. */
     private static void remove(Mob mob) {
         ACTIVE.remove(mob.getUUID());
         if (mob.level() instanceof ServerLevel level) {
@@ -519,6 +536,7 @@ public final class EchoManager {
         Compat.overlay(player, message);
     }
 
+    /** Builds a translatable message with a fallback. */
     private static Component msg(String key, String fallback, Object... args) {
         return Component.translatableWithFallback(key, fallback, args);
     }
@@ -598,6 +616,7 @@ public final class EchoManager {
         return Component.literal(sb.toString());
     }
 
+    /** Dismisses all of a player's echoes, optionally telling them. */
     public static void dismissAll(ServerPlayer player, boolean message) {
         List<UUID> ids = new ArrayList<>();
         for (Map.Entry<UUID, Info> e : ACTIVE.entrySet()) {
@@ -639,6 +658,7 @@ public final class EchoManager {
         return true;
     }
 
+    /** Spawns the echo for a slot. */
     private static Mob spawn(ServerPlayer owner, PlayerData data, int slot) {
         return spawnEntry(owner, data, data.echo.entries.get(slot), slot, 0);
     }
@@ -662,6 +682,7 @@ public final class EchoManager {
         remove(mob);
     }
 
+    /** Spawns an echo from a roster entry with a lifetime. */
     private static Mob spawnEntry(ServerPlayer owner, PlayerData data, EchoRoster.Entry entry, int slot, int lifetimeTicks) {
         Optional<EntityType<?>> type = BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.parse(entry.type()));
         ServerLevel level = owner.level();
@@ -712,12 +733,14 @@ public final class EchoManager {
         return mob;
     }
 
+    /** Multiplies an attribute's base value. */
     private static void scale(AttributeInstance attr, double mult) {
         if (attr != null) {
             attr.setBaseValue(attr.getBaseValue() * mult);
         }
     }
 
+    /** Puts an echo on the normal or selected scoreboard team. */
     private static void joinTeam(ServerLevel level, Mob mob, boolean selected) {
         Scoreboard sb = level.getScoreboard();
         String name = selected ? TEAM + "_sel" : TEAM;
@@ -766,6 +789,7 @@ public final class EchoManager {
         return slot == null ? null : echoInSlot(owner, slot);
     }
 
+    /** The echo entity in an owner's slot, if loaded. */
     private static EchoEntity echoInSlot(ServerPlayer owner, int slot) {
         for (Map.Entry<UUID, Info> e : ACTIVE.entrySet()) {
             if (e.getValue().owner.equals(owner.getUUID()) && e.getValue().slot == slot
@@ -776,6 +800,7 @@ public final class EchoManager {
         return null;
     }
 
+    /** Turns the selected-echo highlight on or off. */
     private static void markSelected(EchoEntity echo, boolean on) {
         echo.setSelected(on);
         if (echo.level() instanceof ServerLevel level) {
@@ -933,6 +958,7 @@ public final class EchoManager {
         return tick - MOVED_AT.getOrDefault(id, tick) >= 10;
     }
 
+    /** Per-tick driver for all echoes. */
     private static void tick(int tick, net.minecraft.server.MinecraftServer server) {
         if (ACTIVE.isEmpty()) {
             return;
@@ -1021,6 +1047,7 @@ public final class EchoManager {
         EchoBrain.resetExploration();
     }
 
+    /** Teleports an echo next to its owner. */
     static void teleportTo(Mob mob, ServerPlayer owner) {
         Vec3 spot = freeSpot(mob, owner);
         mob.getNavigation().stop();
