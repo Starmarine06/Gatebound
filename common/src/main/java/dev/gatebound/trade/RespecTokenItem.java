@@ -19,6 +19,7 @@ import net.minecraft.world.level.Level;
 
 /** Refunds spent stat points. Class, elements, class bonuses and tome bonuses are kept. */
 public class RespecTokenItem extends Item {
+    /** Creates the respec token item. */
     public RespecTokenItem(Properties properties) {
         super(properties);
     }

@@ -15,9 +15,11 @@ import java.util.function.DoubleConsumer;
 
 /** Op-only /gatebound combat tuning for dodge, stamina, telegraphs and player posture. Merged into the existing combat node. */
 public final class Combat4bCommands {
+    /** Static holder; not instantiable. */
     private Combat4bCommands() {
     }
 
+    /** Builds the combat tuning command (changes CombatConfig values live). */
     public static LiteralArgumentBuilder<CommandSourceStack> node() {
         Map<String, DoubleConsumer> tunables = new LinkedHashMap<>();
         tunables.put("dodgecost", v -> CombatConfig.dodgeCost = v);

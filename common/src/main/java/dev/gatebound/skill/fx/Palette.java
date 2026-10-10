@@ -31,6 +31,7 @@ public record Palette(String key, ParticleOptions main, ParticleOptions alt, Par
         };
     }
 
+    /** Palette of an element. */
     public static Palette of(Element element) {
         return switch (element) {
             case FIRE -> new Palette("fire", ParticleTypes.FLAME, ParticleTypes.SMALL_FLAME, ParticleTypes.LAVA, 0xFF6A1A, 0xFFC040,

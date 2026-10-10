@@ -95,22 +95,27 @@ public enum FloorTheme {
         this.heightMax = heightMax;
     }
 
+    /** Three block states from three blocks. */
     private static BlockState[] blocks(Block a, Block b, Block c) {
         return new BlockState[]{a.defaultBlockState(), b.defaultBlockState(), c.defaultBlockState()};
     }
 
+    /** A hanging lantern (soul or normal). */
     private static BlockState lantern(boolean soul) {
         return (soul ? Blocks.SOUL_LANTERN : Blocks.LANTERN).defaultBlockState().setValue(LanternBlock.HANGING, true);
     }
 
+    /** Theme name. */
     public String label() {
         return label;
     }
 
+    /** Theme colour. */
     public ChatFormatting color() {
         return color;
     }
 
+    /** True if floors of this theme are caves. */
     public boolean cave() {
         return cave;
     }
@@ -120,18 +125,22 @@ public enum FloorTheme {
         return fluid;
     }
 
+    /** Wall blocks (weighted). */
     public BlockState[] wall() {
         return wall;
     }
 
+    /** Floor blocks (weighted). */
     public BlockState[] floor() {
         return floor;
     }
 
+    /** Ceiling blocks (weighted). */
     public BlockState[] ceiling() {
         return ceiling;
     }
 
+    /** Light block. */
     public BlockState light() {
         return light;
     }
@@ -141,38 +150,47 @@ public enum FloorTheme {
         return hangLight;
     }
 
+    /** Rubble block. */
     public BlockState rubble() {
         return rubble;
     }
 
+    /** Pillar block. */
     public BlockState pillar() {
         return pillar;
     }
 
+    /** Smallest room size. */
     public int roomMin() {
         return roomMin;
     }
 
+    /** Largest room size. */
     public int roomMax() {
         return roomMax;
     }
 
+    /** Number of rooms. */
     public int roomCount() {
         return roomCount;
     }
 
+    /** Corridor width. */
     public int corridorWidth() {
         return corridorWidth;
     }
 
+    /** Lowest ceiling height. */
     public int heightMin() {
         return heightMin;
     }
 
+    /** Highest ceiling height. */
     public int heightMax() {
         return heightMax;
     }
 
+    /** Theme of a difficulty band. */
     public static FloorTheme ofBand(int band) {
         return switch (Math.max(0, Math.min(5, band))) {
             case 0 -> CATACOMBS;

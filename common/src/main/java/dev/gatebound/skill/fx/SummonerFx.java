@@ -23,6 +23,7 @@ public final class SummonerFx {
     /** Most echoes that get a per-echo effect from one cast (the props are cheap, but not free). */
     private static final int MAX_ECHOES = 8;
 
+    /** Static holder; not instantiable. */
     private SummonerFx() {
     }
 
@@ -33,6 +34,7 @@ public final class SummonerFx {
         return yaw(Math.atan2(-dir.z, dir.x));
     }
 
+    /** Chest height of an entity. */
     private static Vec3 chest(LivingEntity e) {
         return e.position().add(0, e.getBbHeight() * 0.6, 0);
     }
@@ -179,6 +181,7 @@ public final class SummonerFx {
         thread(level, chest(p), chest(echo), 0.5, 8);
     }
 
+    /** Rally: circle and ring around the Summoner. */
     public static void rallyWave(ServerPlayer p) {
         ServerLevel level = lv(p);
         Circles.ground(level, KEY, p.position(), 5.0, 16);

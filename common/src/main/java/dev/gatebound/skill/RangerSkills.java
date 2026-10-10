@@ -1,5 +1,8 @@
 package dev.gatebound.skill;
 
+import static dev.gatebound.skill.fx.Tasks.sound;
+import static dev.gatebound.skill.fx.Tasks.now;
+import static dev.gatebound.skill.fx.Tasks.playerOf;
 import dev.gatebound.sound.GateboundSounds;
 import dev.gatebound.compat.Compat;
 import dev.architectury.event.EventResult;
@@ -21,9 +24,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -210,11 +211,6 @@ public final class RangerSkills {
 
     // ---------------------------------------------------------------- helpers
 
-    /** Current game time for the player's level. */
-    private static long now(ServerPlayer p) {
-        return p.level().getServer().getTickCount();
-    }
-
     /** True if the player is a Ranger. */
     private static boolean isRanger(ServerPlayer p) {
         return GateboundClass.RANGER.id().equals(PlayerDataStore.of(p).classId);
@@ -234,11 +230,6 @@ public final class RangerSkills {
     /** True if any Ranger buff makes arrows seek. */
     private static boolean buffed(ServerPlayer p, long now) {
         return tranced(p, now) || apexed(p, now);
-    }
-
-    /** Plays a sound at the player. */
-    private static void sound(ServerPlayer p, ServerLevel level, SoundEvent sound, float pitch) {
-        level.playSound(null, p.blockPosition(), sound, SoundSource.PLAYERS, 1.0f, pitch);
     }
 
     /** True if the player holds a bow or crossbow. */
@@ -695,12 +686,6 @@ public final class RangerSkills {
         if (!APEX.isEmpty()) {
             tickApex(server, now);
         }
-    }
-
-    /** Looks a player up by UUID. */
-    private static ServerPlayer playerOf(MinecraftServer server, UUID id) {
-        ServerPlayer p = server.getPlayerList().getPlayer(id);
-        return p != null && p.isAlive() ? p : null;
     }
 
     /** The player's current quarry entity, if loaded. */

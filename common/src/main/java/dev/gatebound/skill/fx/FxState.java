@@ -21,9 +21,11 @@ import java.util.UUID;
 public final class FxState {
     private static final Map<UUID, Map<String, Long>> ACTIVE = new HashMap<>();
 
+    /** Static holder; not instantiable. */
     private FxState() {
     }
 
+    /** Registers the client-effect tag upkeep. */
     public static void init() {
         PlayerEvent.PLAYER_QUIT.register(player -> ACTIVE.remove(player.getUUID()));
         PlayerEvent.PLAYER_RESPAWN.register((player, conquered, reason) -> ACTIVE.remove(player.getUUID()));
@@ -36,6 +38,7 @@ public final class FxState {
         ACTIVE.computeIfAbsent(p.getUUID(), k -> new HashMap<>()).put(tag, (long) p.level().getServer().getTickCount() + ticks);
     }
 
+    /** Removes one client-effect tag from a player. */
     public static void clear(ServerPlayer p, String tag) {
         Map<String, Long> map = ACTIVE.get(p.getUUID());
         if (map != null) {
@@ -43,6 +46,7 @@ public final class FxState {
         }
     }
 
+    /** Drops expired tags every second. */
     private static void prune(MinecraftServer server) {
         long now = server.getTickCount();
         if (now % 20 != 0) {

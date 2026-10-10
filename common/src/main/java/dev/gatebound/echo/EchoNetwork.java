@@ -6,9 +6,11 @@ import dev.architectury.utils.EnvExecutor;
 import net.minecraft.server.level.ServerPlayer;
 
 final class EchoNetwork {
+    /** Static holder; not instantiable. */
     private EchoNetwork() {
     }
 
+    /** Registers the echo network packets. */
     static void init() {
         Compat.registerC2S(EchoTogglePayload.TYPE, EchoTogglePayload.CODEC, (payload, context) ->
                 context.queue(() -> {

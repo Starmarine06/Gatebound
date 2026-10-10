@@ -47,16 +47,19 @@ public class GateExitBlock extends Block {
     public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final EnumProperty<DoubleBlockHalf> HALF = BlockStateProperties.DOUBLE_BLOCK_HALF;
 
+    /** Creates the exit portal block. */
     public GateExitBlock(Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(KIND, Kind.HOME).setValue(FACING, Direction.SOUTH)
                 .setValue(HALF, DoubleBlockHalf.LOWER));
     }
 
+    /** State of an exit portal of a kind. */
     public static BlockState state(Kind kind) {
         return state(kind, Direction.SOUTH, DoubleBlockHalf.LOWER);
     }
 
+    /** State of an exit portal of a kind, facing and half. */
     public static BlockState state(Kind kind, Direction facing, DoubleBlockHalf half) {
         return DungeonRegistries.GATE_EXIT.get().defaultBlockState()
                 .setValue(KIND, kind).setValue(FACING, facing).setValue(HALF, half);

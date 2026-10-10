@@ -46,9 +46,11 @@ public final class EchoView {
 
     private static final Map<UUID, Session> SESSIONS = new HashMap<>();
 
+    /** Static holder; not instantiable. */
     private EchoView() {
     }
 
+    /** Registers the view-through-echo tick and quit hooks. */
     public static void init() {
         TickEvent.SERVER_POST.register(EchoView::tick);
         PlayerEvent.PLAYER_QUIT.register(player -> end(player, false));
@@ -114,6 +116,7 @@ public final class EchoView {
         }
     }
 
+    /** Ends the player's echo view, optionally telling them. */
     public static void end(ServerPlayer player, boolean notify) {
         Session s = SESSIONS.remove(player.getUUID());
         if (s == null) {
@@ -129,6 +132,7 @@ public final class EchoView {
         }
     }
 
+    /** Per-tick upkeep of echo views. */
     private static void tick(MinecraftServer server) {
         if (SESSIONS.isEmpty()) {
             return;

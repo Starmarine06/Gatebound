@@ -26,10 +26,12 @@ public final class GateLeaveItem extends Item {
             .arch$tab(GateboundRegistries.MAIN_TAB).stacksTo(16)
             .setId(ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, "gate_leave")))));
 
+    /** Creates the gate-leave item. */
     private GateLeaveItem(Properties properties) {
         super(properties);
     }
 
+    /** Registers the gate-leave item. */
     public static void init() {
         ITEMS.register();
     }

@@ -16,9 +16,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
 public final class GateboundNetwork {
+    /** Static holder; not instantiable. */
     private GateboundNetwork() {
     }
 
+    /** Registers the mod's network packets. */
     public static void init() {
         Compat.registerS2C(PingPayload.TYPE, PingPayload.CODEC, (payload, context) -> {
             context.queue(() -> context.getPlayer().sendSystemMessage(Component.literal("[Gatebound] Server says: " + payload.message())));

@@ -116,11 +116,6 @@ public final class PlayerCombat {
         return info(player).staggeredUntil > player.level().getServer().getTickCount();
     }
 
-    /** True if the player has invulnerability frames. */
-    public static boolean hasIFrames(ServerPlayer player) {
-        return info(player).iframeUntil > player.level().getServer().getTickCount();
-    }
-
     /** Grants invulnerability to attacks for a few ticks without a stamina cost or perfect-dodge reward (Shadow Step). */
     public static void grantIFrames(ServerPlayer player, int ticks) {
         Info i = info(player);

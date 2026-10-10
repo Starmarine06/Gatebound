@@ -10,6 +10,7 @@ import net.minecraft.world.entity.decoration.ArmorStand;
  * so everything goes through here.
  */
 public final class MobTypes {
+    /** Static holder; not instantiable. */
     private MobTypes() {
     }
 

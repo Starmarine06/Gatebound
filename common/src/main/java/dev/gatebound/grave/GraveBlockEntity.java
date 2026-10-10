@@ -28,6 +28,7 @@ public final class GraveBlockEntity extends BlockEntity {
     public String ownerName = "";
     public long created;
 
+    /** Creates the grave's block entity. */
     public GraveBlockEntity(BlockPos pos, BlockState state) {
         super(GraveRegistries.GRAVE_ENTITY.get(), pos, state);
     }

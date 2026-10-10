@@ -21,6 +21,7 @@ public final class SpellFx {
     private static final Random RNG = new Random();
     private static final Map<UUID, Long> MARKED = new HashMap<>();
 
+    /** Static holder; not instantiable. */
     private SpellFx() {
     }
 
@@ -37,6 +38,7 @@ public final class SpellFx {
         holder[0].pose(b.subtract(holder[0].origin()), rot, sx, sy, sz, 1);
     }
 
+    /** Removes a prop held in a one-slot holder. */
     public static void stop(Props.Prop[] holder) {
         if (holder[0] != null) {
             holder[0].remove();
@@ -44,6 +46,7 @@ public final class SpellFx {
         }
     }
 
+    /** Middle of an entity's body. */
     private static Vec3 mid(LivingEntity e) {
         return e.position().add(0, e.getBbHeight() * 0.55, 0);
     }
@@ -178,6 +181,7 @@ public final class SpellFx {
         });
     }
 
+    /** Cyclone: wind funnel with a ground circle and ring. */
     public static void cyclone(ServerPlayer p) {
         ServerLevel level = lv(p);
         funnel(level, p.position(), 7.0, 5.0, 14);

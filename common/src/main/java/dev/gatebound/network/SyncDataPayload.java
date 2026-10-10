@@ -63,6 +63,7 @@ public record SyncDataPayload(int level, int xp, int xpToNext, int statPoints, L
         }
     };
 
+    /** Builds a sync payload from player data. */
     public static SyncDataPayload of(PlayerData data) {
         List<Integer> stats = new ArrayList<>();
         for (int v : data.stats) {

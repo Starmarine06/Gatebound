@@ -27,6 +27,7 @@ public class GateBlock extends Block {
     private static final VoxelShape SHAPE_Z = Block.box(0, 0, 6, 16, 16, 10);
     private static final VoxelShape SHAPE_X = Block.box(6, 0, 0, 10, 16, 16);
 
+    /** Creates the gate block (default rank E, facing north). */
     public GateBlock(Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(RANK, GateRank.E).setValue(FACING, Direction.NORTH));

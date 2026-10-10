@@ -21,6 +21,7 @@ final class EchoClient {
     private static final KeyMapping SELECT = new KeyMapping("key.gatebound.echo_select",
             com.mojang.blaze3d.platform.InputConstants.KEY_C, ClientHooks.CATEGORY);
 
+    /** Static holder; not instantiable. */
     private EchoClient() {
     }
 
@@ -29,6 +30,7 @@ final class EchoClient {
         return dev.gatebound.compat.ClientCompat.keyHeld(SELECT);
     }
 
+    /** Opens the echo order wheel. */
     static void onWheel(EchoWheelPayload payload) {
         net.minecraft.client.Minecraft.getInstance().setScreenAndShow(new EchoWheelScreen(payload));
     }
@@ -53,10 +55,12 @@ final class EchoClient {
         mc.setCameraEntity(target != null ? target : mc.player);
     }
 
+    /** Opens the bind menu for echoes. */
     static void onBindMenu(EchoBindMenuPayload payload) {
         net.minecraft.client.Minecraft.getInstance().setScreenAndShow(new EchoBindScreen(payload));
     }
 
+    /** Registers the echo HUD, keys, renderers and key handlers. */
     static void init() {
         dev.architectury.event.events.client.ClientGuiEvent.RENDER_HUD.register(EchoHud::render);
         KeyMappingRegistry.register(TOGGLE);

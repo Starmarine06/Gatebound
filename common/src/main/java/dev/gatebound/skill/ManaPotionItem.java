@@ -27,6 +27,7 @@ public class ManaPotionItem extends Item {
     /** Always restores at least this much, so it is useful early on. */
     public static final int MINIMUM = 30;
 
+    /** Creates the mana potion item. */
     public ManaPotionItem(Properties properties) {
         super(properties);
     }

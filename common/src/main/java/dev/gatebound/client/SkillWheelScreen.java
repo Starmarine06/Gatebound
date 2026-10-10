@@ -30,16 +30,19 @@ public final class SkillWheelScreen extends Screen {
     private final long openedMs = System.currentTimeMillis();
     private int hovered;
 
+    /** Creates the skill wheel. */
     public SkillWheelScreen() {
         super(Component.literal("Skills"));
         this.skills = available();
         this.hovered = clamp(selected, skills.size());
     }
 
+    /** Skills the player has unlocked. */
     private static List<Skill> available() {
         return Skills.available(ClientPlayerData.classId, ClientPlayerData.elements, ClientPlayerData.picks, ClientPlayerData.level);
     }
 
+    /** Wraps an index into the list size. */
     private static int clamp(int index, int size) {
         return size <= 0 ? 0 : Math.max(0, Math.min(size - 1, index));
     }
@@ -56,18 +59,22 @@ public final class SkillWheelScreen extends Screen {
         return skills.isEmpty() ? null : skills.get(clamp(selected, skills.size()));
     }
 
+    /** Radius of the wheel. */
     private double radius() {
         return Math.min(150, 62 + skills.size() * 7);
     }
 
+    /** Angle of entry i around the wheel. */
     private double angleOf(int i) {
         return -Math.PI / 2 + 2 * Math.PI * i / Math.max(1, skills.size());
     }
 
+    /** Screen x of entry i's box. */
     private int boxX(int i) {
         return (int) (this.width / 2 + Math.cos(angleOf(i)) * radius() * 1.35) - BOX_W / 2;
     }
 
+    /** Screen y of entry i's box. */
     private int boxY(int i) {
         return (int) (this.height / 2 + Math.sin(angleOf(i)) * radius()) - BOX_H / 2;
     }

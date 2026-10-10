@@ -21,6 +21,7 @@ import net.minecraft.world.level.Level;
 public class TomeItem extends Item {
     private final Stat stat;
 
+    /** Creates a tome that raises a stat. */
     public TomeItem(Stat stat, Properties properties) {
         super(properties);
         this.stat = stat;

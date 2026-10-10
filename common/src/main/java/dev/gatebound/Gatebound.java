@@ -16,9 +16,11 @@ public final class Gatebound {
     public static final String MOD_ID = "gatebound";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
+    /** Static holder; not instantiable. */
     private Gatebound() {
     }
 
+    /** Initialises every Gatebound system (config, registries, network, content). */
     public static void init() {
         dev.gatebound.config.GateboundConfig.load();
         GateboundRegistries.init();

@@ -24,6 +24,7 @@ public final class SpellPickScreen extends Screen {
 
     private final List<Skill> options = new ArrayList<>();
 
+    /** Creates the spell-pick screen for the given skill ids. */
     public SpellPickScreen(List<String> ids) {
         super(Component.translatable("screen.gatebound.spellpick.title"));
         for (String id : ids) {
@@ -49,6 +50,7 @@ public final class SpellPickScreen extends Screen {
         }
     }
 
+    /** Sends the chosen spell to the server and closes the screen. */
     private void choose(Skill s) {
         NetworkManager.sendToServer(new ChooseSpellPayload(s.id()));
         onClose();

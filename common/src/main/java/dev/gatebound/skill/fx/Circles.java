@@ -15,6 +15,7 @@ import org.joml.Quaternionf;
 public final class Circles {
     private static final int STEP = 4; // ticks between pose updates while spinning
 
+    /** Static holder; not instantiable. */
     private Circles() {
     }
 
@@ -58,6 +59,7 @@ public final class Circles {
         ground(level, Palette.of(element).key(), center, size, life);
     }
 
+    /** Flat circle on the ground at a point. */
     public static void ground(ServerLevel level, String key, Vec3 center, double size, int life) {
         circle(level, key, center.add(0, 0.06, 0), new Vec3(0, 1, 0), size, life);
     }
@@ -67,6 +69,7 @@ public final class Circles {
         return castCircle(p, Palette.of(element).key(), size, life);
     }
 
+    /** Upright circle in front of the caster; returns its centre. */
     public static Vec3 castCircle(ServerPlayer p, String key, double size, int life) {
         Vec3 look = p.getLookAngle();
         Vec3 center = p.getEyePosition().add(look.scale(2.3)).add(0, -0.2, 0);
@@ -79,6 +82,7 @@ public final class Circles {
         onTarget(level, Palette.of(element).key(), caster, target, size, life);
     }
 
+    /** Upright circle in front of an enemy, facing the caster. */
     public static void onTarget(ServerLevel level, String key, Vec3 caster, LivingEntity target, double size, int life) {
         Vec3 mid = target.position().add(0, target.getBbHeight() * 0.55, 0);
         Vec3 toCaster = caster.subtract(mid);

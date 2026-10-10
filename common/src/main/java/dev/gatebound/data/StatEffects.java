@@ -12,9 +12,11 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 
 /** Maps Gatebound stats onto vanilla attributes with permanent modifiers, replaced on every refresh. */
 public final class StatEffects {
+    /** Static holder; not instantiable. */
     private StatEffects() {
     }
 
+    /** Applies the player's stats as attribute modifiers. */
     public static void apply(ServerPlayer player, PlayerData data) {
         set(player, Attributes.ATTACK_DAMAGE, "strength_damage", bonus(data, Stat.STRENGTH) * 0.15, Operation.ADD_VALUE);
         set(player, Attributes.MOVEMENT_SPEED, "agility_speed", bonus(data, Stat.AGILITY) * 0.004, Operation.ADD_MULTIPLIED_BASE);
@@ -31,10 +33,12 @@ public final class StatEffects {
         }
     }
 
+    /** Stat points above the base value. */
     private static int bonus(PlayerData data, Stat stat) {
         return data.get(stat) - Stat.BASE_VALUE;
     }
 
+    /** Sets (or removes, when zero) a permanent attribute modifier. */
     private static void set(ServerPlayer player, Holder<Attribute> attribute, String key, double amount, Operation op) {
         AttributeInstance instance = player.getAttribute(attribute);
         if (instance == null) {

@@ -15,9 +15,11 @@ import net.minecraft.world.entity.Entity;
 public final class GateboundHud {
     private static final long TARGET_SHOW_MS = 4000;
 
+    /** Static holder; not instantiable. */
     private GateboundHud() {
     }
 
+    /** Draws the mod's HUD (status bars, cooldowns, target posture). */
     public static void render(GuiGraphicsExtractor g, DeltaTracker tracker) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) {
@@ -46,6 +48,7 @@ public final class GateboundHud {
         g.text(mc.font, avatar ? "AVATAR" : "RAGE", x + w + 6, y - 1, 0xFFFF8A70, true);
     }
 
+    /** Draws the status panel: level, class and bars. */
     private static void drawStatus(GuiGraphicsExtractor g, Minecraft mc) {
         int x = 6;
         int y = 6;
@@ -98,6 +101,7 @@ public final class GateboundHud {
         g.text(mc.font, "Tap to cast, hold to choose", x, y + 14, 0xFF888894, true);
     }
 
+    /** Draws the posture bar of the targeted mob. */
     private static void drawTargetPosture(GuiGraphicsExtractor g, Minecraft mc) {
         long age = System.currentTimeMillis() - ClientCombatData.targetUpdatedMs;
         if (ClientCombatData.targetId < 0 || age > TARGET_SHOW_MS || mc.level == null) {

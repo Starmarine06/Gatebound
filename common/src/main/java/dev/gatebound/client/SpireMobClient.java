@@ -30,9 +30,11 @@ import net.minecraft.world.entity.monster.spider.Spider;
  * (textures/entity/&lt;id&gt;.png, found from the entity type held in the render state).
  */
 public final class SpireMobClient {
+    /** Static holder; not instantiable. */
     private SpireMobClient() {
     }
 
+    /** Texture of a custom Spire mob by its type id. */
     private static Identifier texture(EntityRenderState state) {
         Identifier id = BuiltInRegistries.ENTITY_TYPE.getKey(state.entityType);
         return Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, "textures/entity/" + id.getPath() + ".png");

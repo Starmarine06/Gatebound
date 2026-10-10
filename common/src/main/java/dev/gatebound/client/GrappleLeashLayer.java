@@ -23,6 +23,7 @@ import net.minecraft.world.phys.Vec3;
  * It sags while the line is slack and runs straight when taut, exactly like a lead. Registered per loader like QuiverBackLayer.
  */
 public final class GrappleLeashLayer extends RenderLayer<AvatarRenderState, PlayerModel> {
+    /** Creates the layer that draws grapple lines. */
     public GrappleLeashLayer(RenderLayerParent<AvatarRenderState, PlayerModel> parent) {
         super(parent);
     }

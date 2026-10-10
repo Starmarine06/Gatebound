@@ -30,9 +30,11 @@ public final class MobMaterials {
     public static final RegistrySupplier<Item> SOVEREIGN_SIGIL = ITEMS.register("sovereign_sigil", () ->
             new Item(new Item.Properties().arch$tab(GateboundRegistries.MAIN_TAB).rarity(Rarity.EPIC).setId(key("sovereign_sigil"))));
 
+    /** Static holder; not instantiable. */
     private MobMaterials() {
     }
 
+    /** Registers a material item for a difficulty band. */
     private static RegistrySupplier<Item> band(String id, Rarity rarity) {
         RegistrySupplier<Item> s = ITEMS.register(id, () ->
                 new Item(new Item.Properties().arch$tab(GateboundRegistries.MAIN_TAB).rarity(rarity).setId(key(id))));
@@ -45,10 +47,12 @@ public final class MobMaterials {
         return BY_BAND.get(Math.max(0, Math.min(BY_BAND.size() - 1, band))).get();
     }
 
+    /** Registers the material items. */
     public static void init() {
         ITEMS.register();
     }
 
+    /** Item registry key for a path. */
     private static ResourceKey<Item> key(String path) {
         return ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, path));
     }

@@ -18,10 +18,12 @@ public record Skill(String id, GateboundClass owner, Element element, int minLev
         boolean cast(ServerPlayer player, ServerLevel level, PlayerData data);
     }
 
+    /** Lang key of the skill name. */
     public String nameKey() {
         return "skill.gatebound." + id;
     }
 
+    /** Lang key of the skill description. */
     public String descriptionKey() {
         return "skill.gatebound." + id + ".desc";
     }

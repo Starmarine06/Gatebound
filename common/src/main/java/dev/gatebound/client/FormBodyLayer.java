@@ -41,10 +41,12 @@ public final class FormBodyLayer extends RenderLayer<AvatarRenderState, PlayerMo
 
     private final ItemStackRenderState item = new ItemStackRenderState();
 
+    /** Creates the layer that draws form and effect models on a player's body. */
     public FormBodyLayer(RenderLayerParent<AvatarRenderState, PlayerModel> parent) {
         super(parent);
     }
 
+    /** Texture of an element's model for an animation frame. */
     private static Identifier texture(String element, int frame) {
         return TEXTURES.computeIfAbsent(element, key -> {
             Identifier[] list = new Identifier[FRAMES];
@@ -97,6 +99,7 @@ public final class FormBodyLayer extends RenderLayer<AvatarRenderState, PlayerMo
 
     // ---------------------------------------------------------------- attachments (torso space has y down and the back at +z)
 
+    /** Draws the wings, halos, horns and other parts of an element's form. */
     private void attachments(PoseStack ps, SubmitNodeCollector c, AvatarRenderState state, Entity owner, String element, float t) {
         PlayerModel m = getParentModel();
         // every form stands in its own big circle
@@ -281,6 +284,7 @@ public final class FormBodyLayer extends RenderLayer<AvatarRenderState, PlayerMo
         draw(ps, c, state, owner, m.body, model, 0.0f, 0.15f - 0.086f * span, 0.2f, 0, 0, 0, span * flap, span, span);
     }
 
+    /** Draws a halo model above the head. */
     private void halo(PoseStack ps, SubmitNodeCollector c, AvatarRenderState state, Entity owner, PlayerModel m, String model, float size, float spinDeg) {
         draw(ps, c, state, owner, m.head, model, 0.0f, -0.62f, 0.0f, 0, spinDeg, 0, size, size, size);
     }
@@ -290,14 +294,17 @@ public final class FormBodyLayer extends RenderLayer<AvatarRenderState, PlayerMo
         draw(ps, c, state, owner, m.head, model, 0.0f, -0.38f + 0.047f * size, 0.0f, 0, 0, 0, size, size, size);
     }
 
+    /** Draws a spike on one shoulder. */
     private void spike(PoseStack ps, SubmitNodeCollector c, AvatarRenderState state, Entity owner, PlayerModel m, int sign) {
         draw(ps, c, state, owner, m.body, "ice_spike", 0.46f * sign, -0.12f, 0.0f, 0, 0, 25.0f * sign, 0.9f, 0.9f, 0.9f);
     }
 
+    /** Draws a pauldron on one shoulder. */
     private void pauldron(PoseStack ps, SubmitNodeCollector c, AvatarRenderState state, Entity owner, PlayerModel m, int sign) {
         draw(ps, c, state, owner, m.body, "boulder", 0.5f * sign, -0.02f, 0.0f, 0, 20.0f * sign, 0, 0.7f, 0.55f, 0.7f);
     }
 
+    /** Draws a swaying tendril from the back. */
     private void tendril(PoseStack ps, SubmitNodeCollector c, AvatarRenderState state, Entity owner, PlayerModel m, int i, float t) {
         float sway = (float) Math.sin(t * 0.11f + i * 2.1f);
         draw(ps, c, state, owner, m.body, "tendril", (i - 1) * 0.16f, 0.9f, 0.3f, 20.0f + sway * 14.0f, 0, sway * 10.0f, 0.7f, 2.2f, 0.7f);

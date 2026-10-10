@@ -14,11 +14,13 @@ import java.util.UUID;
  * kept small per tick and spread over time instead of one big burst.
  */
 public final class Fx {
+    /** Static holder; not instantiable. */
     private Fx() {
     }
 
     // ---------------------------------------------------------------- particles
 
+    /** Coloured dust particle. */
     public static ParticleOptions dust(int rgb, float size) {
         return dev.gatebound.compat.Compat.dust(rgb, size);
     }
@@ -28,6 +30,7 @@ public final class Fx {
         return dev.gatebound.compat.Compat.fade(from, to, size);
     }
 
+    /** Spawns one particle at a point. */
     public static void put(ServerLevel level, ParticleOptions type, Vec3 at) {
         level.sendParticles(type, at.x, at.y, at.z, 1, 0, 0, 0, 0);
     }
@@ -126,36 +129,6 @@ public final class Fx {
 
     // ---------------------------------------------------------------- runes
 
-    /** One tick of a magic circle: two rings turning against each other and spokes between them. */
-    public static void runeTick(ServerLevel level, Palette pal, Vec3 c, double radius, long tick) {
-        double spin = tick * 0.12;
-        int n = (int) (radius * 7);
-        for (int i = 0; i < n; i++) {
-            double a = Math.PI * 2 * i / n + spin;
-            put(level, dust(pal.rgb1(), 0.9f), c.add(Math.cos(a) * radius, 0, Math.sin(a) * radius));
-            double b = Math.PI * 2 * i / n - spin * 1.3;
-            put(level, dust(pal.rgb2(), 0.7f), c.add(Math.cos(b) * radius * 0.65, 0, Math.sin(b) * radius * 0.65));
-        }
-        for (int i = 0; i < 6; i++) {
-            double a = Math.PI / 3 * i + spin * 0.5;
-            Vec3 in = c.add(Math.cos(a) * radius * 0.65, 0, Math.sin(a) * radius * 0.65);
-            Vec3 out = c.add(Math.cos(a) * radius, 0, Math.sin(a) * radius);
-            put(level, pal.accent(), in.lerp(out, 0.5));
-        }
-    }
-
-    /** A magic circle on the ground that turns for a while. */
-    public static void rune(ServerLevel level, Palette pal, Vec3 c, double radius, int ticks) {
-        int[] t = {0};
-        Tasks.run((server, now) -> {
-            if (t[0] % 4 == 0) { // ground particles last a second or more, so a redraw every fourth tick looks continuous
-                runeTick(level, pal, c.add(0, 0.08, 0), radius, t[0]);
-            }
-            t[0]++;
-            return t[0] >= ticks;
-        });
-    }
-
     /** Sparks that circle a player for a while, rising as they go. */
     public static void orbit(ServerPlayer p, Palette pal, int ticks) {
         UUID id = p.getUUID();
@@ -177,6 +150,7 @@ public final class Fx {
         });
     }
 
+    /** Random offset in -0.5..0.5. */
     private static double level(ServerLevel lv) {
         return lv.getRandom().nextDouble() - 0.5;
     }

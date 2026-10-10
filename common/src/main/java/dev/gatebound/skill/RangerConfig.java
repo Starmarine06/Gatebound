@@ -2,6 +2,7 @@ package dev.gatebound.skill;
 
 /** Tunables for the Ranger's bow skills and Quarry system. Section "ranger" in config/gatebound.json. */
 public final class RangerConfig {
+    /** Static holder; not instantiable. */
     private RangerConfig() {
     }
 

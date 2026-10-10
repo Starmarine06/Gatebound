@@ -14,9 +14,11 @@ import net.minecraft.server.level.ServerPlayer;
 
 /** /gatebound echo list|summon|dismiss|release <index>|mode guard|attack|chance <percent>. */
 final class EchoCommands {
+    /** Static holder; not instantiable. */
     private EchoCommands() {
     }
 
+    /** Registers the echo commands. */
     static void init() {
         CommandRegistrationEvent.EVENT.register((dispatcher, registry, selection) -> {
             LiteralArgumentBuilder<CommandSourceStack> echo = Commands.literal("echo");
@@ -111,6 +113,7 @@ final class EchoCommands {
         return 1;
     }
 
+    /** Sets the personal order mode (attack or guard). */
     private static int setMode(ServerPlayer player, boolean attack) {
         EchoManager.setGroupMode(player, -1, attack ? EchoRoster.ATTACK : EchoRoster.GUARD);
         player.sendSystemMessage(Component.literal("All echoes will now " + (attack ? "attack nearby enemies." : "guard you.")));

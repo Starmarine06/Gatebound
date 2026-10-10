@@ -15,9 +15,11 @@ public final class ClientCombatData {
     public static long parryWindowMs;
     public static long parryCooldownMs;
 
+    /** Static holder; not instantiable. */
     private ClientCombatData() {
     }
 
+    /** Stores the latest posture sync. */
     public static void update(PostureSyncPayload p) {
         targetId = p.entityId();
         posture = p.value();
@@ -26,6 +28,7 @@ public final class ClientCombatData {
         targetUpdatedMs = System.currentTimeMillis();
     }
 
+    /** Stores the latest parry state. */
     public static void update(ParryStatePayload p) {
         parryStartMs = System.currentTimeMillis();
         parryWindowMs = p.windowTicks() * 50L;

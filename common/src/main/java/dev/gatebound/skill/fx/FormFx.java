@@ -30,9 +30,11 @@ public final class FormFx {
     private static final Set<UUID> ACTIVE = new HashSet<>();
     private static final Random RNG = new Random();
 
+    /** Static holder; not instantiable. */
     private FormFx() {
     }
 
+    /** Clears running forms when the server stops. */
     public static void init() {
         LifecycleEvent.SERVER_STOPPED.register(server -> ACTIVE.clear());
     }
@@ -48,6 +50,7 @@ public final class FormFx {
         return new Vec3(-Math.sin(b), 0, Math.cos(b));
     }
 
+    /** Vector to the left of a facing direction. */
     private static Vec3 left(Vec3 facing) {
         return new Vec3(facing.z, 0, -facing.x);
     }
@@ -64,21 +67,25 @@ public final class FormFx {
 
     // ---------------------------------------------------------------- the element, launched from the body
 
+    /** The nearest foes within range, up to a maximum. */
     private static List<LivingEntity> nearest(ServerPlayer o, ServerLevel level, double range, int max) {
         List<LivingEntity> foes = new ArrayList<>(MageCore.foes(o, level, range));
         foes.sort(Comparator.comparingDouble(e -> e.distanceToSqr(o)));
         return foes.size() > max ? foes.subList(0, max) : foes;
     }
 
+    /** Middle of an entity's body. */
     private static Vec3 mid(LivingEntity e) {
         return e.position().add(0, e.getBbHeight() * 0.55, 0);
     }
 
+    /** Position of the player's left or right hand. */
     private static Vec3 hand(ServerPlayer o, int sign) {
         Vec3 f = facing(o);
         return o.position().add(f.scale(0.5)).add(left(f).scale(0.45 * sign)).add(0, 1.1, 0);
     }
 
+    /** Position above the player's left or right shoulder. */
     private static Vec3 shoulder(ServerPlayer o, int sign) {
         return o.position().add(left(facing(o)).scale(0.55 * sign)).add(0, 1.85, 0);
     }
@@ -88,6 +95,7 @@ public final class FormFx {
     /** Volley hits are many and fast, so each one hits for a fraction of a single skill's damage. */
     private static final float HIT_SCALE = 0.6f;
 
+    /** Damages a foe with a fraction of a skill's damage. */
     private static void hit(ServerPlayer o, ServerLevel level, LivingEntity e, double base) {
         if (e.isAlive()) {
             MageCore.strike(o, level, e, MageCore.dmg(PlayerDataStore.of(o), base) * HIT_SCALE);
@@ -117,6 +125,7 @@ public final class FormFx {
         Circles.ground(level, Element.EARTH, base, 2.8, 14);
     }
 
+    /** Per-frame emitters of an element's form. */
     private static void emit(ServerPlayer o, ServerLevel level, Element element, int age) {
         Palette pal = Palette.of(element);
         String key = pal.key();

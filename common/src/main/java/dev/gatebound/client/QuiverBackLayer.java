@@ -27,6 +27,7 @@ public final class QuiverBackLayer extends RenderLayer<AvatarRenderState, Player
     private final ItemStackRenderState item = new ItemStackRenderState();
     private ItemStack stack;
 
+    /** Creates the layer that draws a quiver on the back. */
     public QuiverBackLayer(RenderLayerParent<AvatarRenderState, PlayerModel> parent) {
         super(parent);
     }

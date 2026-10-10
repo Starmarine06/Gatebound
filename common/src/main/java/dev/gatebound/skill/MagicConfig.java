@@ -7,6 +7,7 @@ public final class MagicConfig {
     /** Chance, given a second element, of a third. */
     public static volatile double thirdElementChance = 0.12;
 
+    /** Static holder; not instantiable. */
     private MagicConfig() {
     }
 }

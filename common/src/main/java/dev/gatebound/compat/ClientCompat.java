@@ -14,6 +14,7 @@ import java.util.List;
 
 /** Client-side Minecraft API differences between versions; see {@link Compat}. */
 public final class ClientCompat {
+    /** Static holder; not instantiable. */
     private ClientCompat() {
     }
 
@@ -26,6 +27,7 @@ public final class ClientCompat {
         *///?}
     }
 
+    /** Rotates the pose stack by degrees about an axis. */
     public static void rotateDegrees(PoseStack poseStack, Axis axis, float degrees) {
         //? if >=26.3 {
         poseStack.rotateDegrees(axis, degrees);
@@ -71,6 +73,7 @@ public final class ClientCompat {
         *///?}
     }
 
+    /** Applies post-processing effects to the player (or clears them). */
     public static void setPostEffects(LocalPlayer player, List<Identifier> effects) {
         //? if >=26.3 {
         player.setActivePostEffects(effects);

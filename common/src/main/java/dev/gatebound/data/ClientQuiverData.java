@@ -10,13 +10,16 @@ import java.util.UUID;
 public final class ClientQuiverData {
     private static volatile Set<UUID> carriers = Set.of();
 
+    /** Static holder; not instantiable. */
     private ClientQuiverData() {
     }
 
+    /** Stores which players carry a quiver. */
     public static void update(QuiverSyncPayload payload) {
         carriers = new HashSet<>(payload.carriers());
     }
 
+    /** True if the player carries a quiver. */
     public static boolean has(UUID player) {
         return carriers.contains(player);
     }

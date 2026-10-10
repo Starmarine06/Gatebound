@@ -37,6 +37,7 @@ public final class GraveBlock extends Block implements EntityBlock {
     private static final VoxelShape SHAPE = Shapes.or(Block.box(1, 0, 2, 15, 2, 14), Block.box(4, 2, 7, 12, 13, 9),
             Block.box(6, 13, 7, 10, 15, 9));
 
+    /** Creates the grave block. */
     public GraveBlock(Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));

@@ -17,9 +17,11 @@ import java.util.UUID;
 public final class ManaState {
     private static final Map<UUID, int[]> LAST_SENT = new HashMap<>();
 
+    /** Static holder; not instantiable. */
     private ManaState() {
     }
 
+    /** Maximum mana from the class's primary stat. */
     public static int max(PlayerData data) {
         Stat primary = RogueConfig.agilityMana && GateboundClass.ROGUE.id().equals(data.classId) ? Stat.AGILITY
                 : RangerConfig.agilityMana && GateboundClass.RANGER.id().equals(data.classId) ? Stat.AGILITY
@@ -30,10 +32,12 @@ public final class ManaState {
     /** Ticks for the pool to refill on its own: half a Minecraft day. Sleeping or a mana potion refills it much faster. */
     public static final int FULL_REGEN_TICKS = 12000;
 
+    /** Mana regenerated per tick. */
     public static double regenPerTick(PlayerData data) {
         return max(data) / (double) FULL_REGEN_TICKS;
     }
 
+    /** Current mana (initialised to full on first use). */
     public static double get(ServerPlayer player) {
         PlayerData data = PlayerDataStore.of(player);
         if (data.mana == PlayerData.MANA_UNSET) {
@@ -42,15 +46,18 @@ public final class ManaState {
         return Math.min(data.mana, max(data));
     }
 
+    /** Sets mana, clamped to 0..max. */
     public static void set(ServerPlayer player, double value) {
         PlayerData data = PlayerDataStore.of(player);
         data.mana = Math.max(0, Math.min(max(data), value));
     }
 
+    /** Adds (or removes) mana. */
     public static void add(ServerPlayer player, double amount) {
         set(player, get(player) + amount);
     }
 
+    /** Spends mana; false if there is not enough. */
     public static boolean spend(ServerPlayer player, int cost) {
         double mana = get(player);
         if (mana < cost) {
@@ -71,6 +78,7 @@ public final class ManaState {
         return now;
     }
 
+    /** Forgets the last-sent mana snapshot for a player. */
     public static void forget(UUID id) {
         LAST_SENT.remove(id);
     }

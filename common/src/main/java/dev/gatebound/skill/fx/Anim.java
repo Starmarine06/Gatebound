@@ -12,6 +12,7 @@ import java.util.UUID;
 final class Anim {
     static final Vec3 UP = new Vec3(0, 1, 0);
 
+    /** Static holder; not instantiable. */
     private Anim() {
     }
 
@@ -20,10 +21,12 @@ final class Anim {
         return (ServerLevel) e.level();
     }
 
+    /** Rotation about the vertical axis. */
     static Quaternionf yaw(double rad) {
         return new Quaternionf().rotationY((float) rad);
     }
 
+    /** Horizontal unit direction of a vector (forward if zero). */
     static Vec3 flat(Vec3 v) {
         Vec3 f = new Vec3(v.x, 0, v.z);
         return f.lengthSqr() < 1.0e-4 ? new Vec3(0, 0, 1) : f.normalize();
@@ -41,6 +44,7 @@ final class Anim {
         return prop;
     }
 
+    /** Spawns a model that pops in, holds, then fades out. */
     static Props.Prop pop(ServerLevel level, Vec3 at, String model, Quaternionf rot, double size, int hold) {
         return pop(level, at, model, rot, size, size, size, hold);
     }
@@ -87,10 +91,12 @@ final class Anim {
         boolean test(ServerPlayer p);
     }
 
+    /** Runs a frame function every few ticks while a player is online. */
     static void during(ServerPlayer p, int ticks, int every, Frame frame, Runnable end) {
         during(p, ticks, every, o -> true, frame, end);
     }
 
+    /** Runs a frame function while the player is online and the condition holds. */
     static void during(ServerPlayer p, int ticks, int every, Alive alive, Frame frame, Runnable end) {
         UUID id = p.getUUID();
         int[] age = {0};
@@ -110,6 +116,7 @@ final class Anim {
         });
     }
 
+    /** Shrinks a prop away and removes it. */
     static void fadeOut(Props.Prop prop, Quaternionf rot) {
         prop.pose(Vec3.ZERO, rot, 0.02, 0.02, 0.02, 4);
         prop.removeAfter(5);

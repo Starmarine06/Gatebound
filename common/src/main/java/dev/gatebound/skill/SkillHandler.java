@@ -25,9 +25,11 @@ public final class SkillHandler {
     /** The tick each Mage last cast, for the one-spell-per-second limit. */
     private static final Map<UUID, Integer> LAST_CAST = new HashMap<>();
 
+    /** Static holder; not instantiable. */
     private SkillHandler() {
     }
 
+    /** Registers per-tick mana regeneration and the skill hooks. */
     public static void init() {
         TickEvent.SERVER_POST.register(server -> {
             int tick = server.getTickCount();
@@ -89,6 +91,7 @@ public final class SkillHandler {
         }
     }
 
+    /** Sends the mana snapshot to the client if it changed (or forced). */
     public static void sendMana(ServerPlayer player, boolean force) {
         int[] snap = ManaState.changedSnapshot(player, force);
         if (snap != null) {

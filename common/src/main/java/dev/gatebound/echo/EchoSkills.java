@@ -43,9 +43,11 @@ public final class EchoSkills {
     private static final int COMMAND_TICKS = 20 * 6;
     private static final int EMPOWER_TICKS = 20 * 20;
 
+    /** Static holder; not instantiable. */
     private EchoSkills() {
     }
 
+    /** Refunds the cost and tells the player when they have no echoes out. */
     private static boolean none(ServerPlayer player, int cost, List<EchoEntity> echoes) {
         if (!echoes.isEmpty()) {
             return false;
@@ -167,6 +169,7 @@ public final class EchoSkills {
         return null;
     }
 
+    /** Refunds the cost and shows a hint when a needed echo is missing. */
     private static boolean needEcho(ServerPlayer player, int cost, String hint) {
         ManaState.add(player, cost);
         Compat.overlay(player, Component.literal(hint).withStyle(ChatFormatting.GRAY));

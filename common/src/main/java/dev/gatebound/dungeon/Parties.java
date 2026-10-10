@@ -39,9 +39,11 @@ public final class Parties {
     private static final Map<UUID, Party> BY_PLAYER = new HashMap<>();
     private static final Map<UUID, Invite> INVITES = new HashMap<>();
 
+    /** Static holder; not instantiable. */
     private Parties() {
     }
 
+    /** Registers the quit hook and the /party commands. */
     public static void init() {
         PlayerEvent.PLAYER_QUIT.register(player -> leave(player.level().getServer(), player.getUUID(), true));
         CommandRegistrationEvent.EVENT.register((dispatcher, registry, selection) -> {
@@ -69,10 +71,12 @@ public final class Parties {
         });
     }
 
+    /** The party the player is in, or null. */
     public static Party of(ServerPlayer p) {
         return BY_PLAYER.get(p.getUUID());
     }
 
+    /** True if the player is in a party. */
     public static boolean inParty(ServerPlayer p) {
         return BY_PLAYER.containsKey(p.getUUID());
     }
@@ -103,10 +107,12 @@ public final class Parties {
         return total <= 0 ? 0 : Math.max(1, total / Math.max(1, ways));
     }
 
+    /** Sends the player a prefixed message. */
     private static void tell(ServerPlayer p, String msg, ChatFormatting color) {
         p.sendSystemMessage(Component.literal(PREFIX + msg).withStyle(color));
     }
 
+    /** Sends every online party member a message. */
     private static void tellAll(MinecraftServer server, Party party, String msg) {
         for (UUID id : party.members) {
             ServerPlayer p = server.getPlayerList().getPlayer(id);
@@ -116,6 +122,7 @@ public final class Parties {
         }
     }
 
+    /** Invites a player to your party. */
     private static int invite(ServerPlayer me, ServerPlayer other) {
         MinecraftServer server = me.level().getServer();
         if (me == other) {
@@ -147,6 +154,7 @@ public final class Parties {
         return 1;
     }
 
+    /** Accepts a pending party invite. */
     private static int accept(ServerPlayer me) {
         MinecraftServer server = me.level().getServer();
         Invite inv = INVITES.remove(me.getUUID());
@@ -175,6 +183,7 @@ public final class Parties {
         return 1;
     }
 
+    /** Kicks a member (leader only). */
     private static int kick(ServerPlayer me, ServerPlayer other) {
         Party party = of(me);
         if (party == null || !party.leader.equals(me.getUUID())) {
@@ -190,6 +199,7 @@ public final class Parties {
         return 1;
     }
 
+    /** Lists the party's members. */
     private static int list(ServerPlayer me) {
         Party party = of(me);
         if (party == null) {
@@ -212,6 +222,7 @@ public final class Parties {
         return 1;
     }
 
+    /** Removes a player from their party. */
     private static void leave(MinecraftServer server, UUID id, boolean silent) {
         Party party = BY_PLAYER.remove(id);
         INVITES.remove(id);

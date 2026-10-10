@@ -23,14 +23,17 @@ public final class GateboundRegistries {
     public static final RegistrySupplier<Item> AWAKENING_STONE = ITEMS.register("awakening_stone", () ->
             new Item(new Item.Properties().arch$tab(MAIN_TAB).stacksTo(1).setId(itemKey("awakening_stone"))));
 
+    /** Static holder; not instantiable. */
     private GateboundRegistries() {
     }
 
+    /** Registers the creative tab and items. */
     public static void init() {
         TABS.register();
         ITEMS.register();
     }
 
+    /** Item registry key for a path. */
     private static ResourceKey<Item> itemKey(String path) {
         return ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, path));
     }

@@ -16,6 +16,7 @@ public final class AwakeningScreen extends Screen {
     private static final int BUTTON_HEIGHT = 20;
     private static final int GAP = 6;
 
+    /** Creates the class-choice screen. */
     public AwakeningScreen() {
         super(Component.translatable("screen.gatebound.awakening.title"));
     }
@@ -35,6 +36,7 @@ public final class AwakeningScreen extends Screen {
         }
     }
 
+    /** Class description with its stat bonuses. */
     private static Component describe(GateboundClass c) {
         Component text = Component.translatable(c.descriptionKey());
         StringBuilder bonus = new StringBuilder();
@@ -47,6 +49,7 @@ public final class AwakeningScreen extends Screen {
         return Component.empty().append(text).append(Component.literal(bonus.toString()));
     }
 
+    /** Sends the chosen class to the server and closes the screen. */
     private void choose(GateboundClass c) {
         NetworkManager.sendToServer(new ChooseClassPayload(c.id()));
         onClose();

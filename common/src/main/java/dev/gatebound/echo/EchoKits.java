@@ -74,18 +74,22 @@ final class EchoKits {
         KITS.put("enderman", new Kit(0, 20, 1.2, null, null, 0, 0, 0, Special.TELEPORTER, false));
     }
 
+    /** Static holder; not instantiable. */
     private EchoKits() {
     }
 
+    /** Registers a ranged kit for a mob type. */
     private static void ranged(String id, double range, int cooldown, double mult, ParticleOptions trail,
                                Holder<MobEffect> effect, int effectTicks, int fire) {
         KITS.put(id, new Kit(range, cooldown, mult, trail, effect, effectTicks, 0, fire, Special.NONE, false));
     }
 
+    /** Registers a melee kit for a mob type. */
     private static void melee(String id, Holder<MobEffect> effect, int effectTicks, boolean knockback) {
         KITS.put(id, new Kit(0, 20, 1.0, null, effect, effectTicks, 0, 0, Special.NONE, knockback));
     }
 
+    /** The kit for a mob type id (melee by default). */
     static Kit of(String typeId) {
         String path = typeId.contains(":") ? typeId.substring(typeId.indexOf(':') + 1) : typeId;
         return KITS.getOrDefault(path, MELEE);

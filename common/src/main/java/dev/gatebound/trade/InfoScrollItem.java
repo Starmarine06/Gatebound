@@ -24,6 +24,7 @@ import java.util.List;
 
 /** Reads out the player's build and gives flavour advice about the nearest hostile mob. */
 public class InfoScrollItem extends Item {
+    /** Creates the info scroll item. */
     public InfoScrollItem(Properties properties) {
         super(properties);
     }
@@ -46,6 +47,7 @@ public class InfoScrollItem extends Item {
         return InteractionResult.SUCCESS;
     }
 
+    /** Sends the player their level, class and stat report. */
     private static void report(ServerPlayer sp) {
         PlayerData d = PlayerDataStore.of(sp);
         GateboundClass cls = GateboundClass.byId(d.classId);
@@ -95,6 +97,7 @@ public class InfoScrollItem extends Item {
         }
     }
 
+    /** Combat tip for a mob type. */
     private static String tip(String type, float maxHealth) {
         String flavour = switch (type) {
             case "zombie", "husk", "drowned" -> "Slow and sturdy; a perfectly timed parry staggers it fast.";

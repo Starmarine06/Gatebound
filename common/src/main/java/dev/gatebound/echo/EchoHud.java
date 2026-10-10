@@ -14,9 +14,11 @@ final class EchoHud {
     private static final int ROW_H = 12;
     private static final int MAX_ROWS = 14;
 
+    /** Static holder; not instantiable. */
     private EchoHud() {
     }
 
+    /** Draws the player's echoes on the HUD. */
     static void render(GuiGraphicsExtractor g, DeltaTracker tracker) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null) {

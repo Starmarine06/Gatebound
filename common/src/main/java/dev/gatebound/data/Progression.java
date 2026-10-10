@@ -22,9 +22,11 @@ import net.minecraft.world.entity.monster.Enemy;
 
 /** Server-side progression logic: kill XP, level-ups, applying stats and syncing to the client. */
 public final class Progression {
+    /** Static holder; not instantiable. */
     private Progression() {
     }
 
+    /** Registers join/respawn refresh, the awakening prompt and XP for enemy kills. */
     public static void init() {
         PlayerEvent.PLAYER_JOIN.register(player -> {
             refresh(player);
@@ -113,6 +115,7 @@ public final class Progression {
         openAwakeningIfNeeded(player);
     }
 
+    /** Opens the class (or element) choice if the player has not made it yet. */
     public static void openAwakeningIfNeeded(ServerPlayer player) {
         PlayerData data = PlayerDataStore.of(player);
         if (data.classId.isEmpty()) {
@@ -123,6 +126,7 @@ public final class Progression {
         }
     }
 
+    /** Gives XP, announcing level-ups and offering spell picks. */
     public static void giveXp(ServerPlayer player, int amount) {
         PlayerData data = PlayerDataStore.of(player);
         int gained = data.addXp(amount);
@@ -156,6 +160,7 @@ public final class Progression {
         }
     }
 
+    /** Records the player's spell choice and refreshes. */
     public static void chooseSpell(ServerPlayer player, String skillId) {
         PlayerData data = PlayerDataStore.of(player);
         if (!SpellPicks.choose(data, skillId)) {
@@ -166,6 +171,7 @@ public final class Progression {
         openSpellPickIfNeeded(player); // another tier may be waiting
     }
 
+    /** Re-applies stat effects and syncs the player's data to the client. */
     public static void refresh(ServerPlayer player) {
         PlayerData data = PlayerDataStore.of(player);
         SpellPicks.resolve(data); // fills in tiers that need no real choice

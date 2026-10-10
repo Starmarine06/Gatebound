@@ -13,6 +13,7 @@ import java.util.TreeSet;
  * A tier that cannot be a real choice (only one spell exists at it) is filled in automatically.
  */
 public final class SpellPicks {
+    /** Static holder; not instantiable. */
     private SpellPicks() {
     }
 
@@ -26,6 +27,7 @@ public final class SpellPicks {
         return elementCount <= 1 || picks.contains(s.id());
     }
 
+    /** Level tiers at which Mages choose spells. */
     private static TreeSet<Integer> tiers() {
         TreeSet<Integer> out = new TreeSet<>();
         for (Skill s : Skills.ALL) {
@@ -36,6 +38,7 @@ public final class SpellPicks {
         return out;
     }
 
+    /** Spells on offer at a tier for the player's elements. */
     private static List<Skill> optionsAt(PlayerData data, int tier) {
         List<Skill> out = new ArrayList<>();
         for (String elementId : data.elements) {
@@ -48,6 +51,7 @@ public final class SpellPicks {
         return out;
     }
 
+    /** How many spells of a tier the player has picked. */
     private static int pickedAt(PlayerData data, int tier) {
         int n = 0;
         for (Skill s : optionsAt(data, tier)) {

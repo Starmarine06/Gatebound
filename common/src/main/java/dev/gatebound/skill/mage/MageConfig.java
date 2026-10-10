@@ -2,6 +2,7 @@ package dev.gatebound.skill.mage;
 
 /** Tunables for the Mage ladders. */
 public final class MageConfig {
+    /** Static holder; not instantiable. */
     private MageConfig() {
     }
 
