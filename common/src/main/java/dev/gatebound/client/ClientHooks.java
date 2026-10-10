@@ -34,6 +34,7 @@ public final class ClientHooks {
     /** X. Casts the selected skill. */
     public static final KeyMapping CAST = new KeyMapping("key.gatebound.cast_skill", InputConstants.KEY_X, CATEGORY);
 
+    /** Static holder; not instantiable. */
     private ClientHooks() {
     }
 
@@ -42,6 +43,7 @@ public final class ClientHooks {
         return ClientCompat.keyHeld(WHEEL);
     }
 
+    /** Registers client keys, tick handlers and screens. */
     public static void init() {
         DevUser.pin();
         KeyMappingRegistry.register(OPEN_STATUS);
@@ -102,6 +104,7 @@ public final class ClientHooks {
 
     private static boolean wasGrounded;
 
+    /** Remembers whether the player was on the ground this tick. */
     private static void notePowerJump(Minecraft mc) {
         wasGrounded = mc.player != null && mc.player.onGround();
     }
@@ -123,14 +126,17 @@ public final class ClientHooks {
         }
     }
 
+    /** Opens the class-choice screen. */
     public static void openAwakening() {
         Minecraft.getInstance().setScreenAndShow(new AwakeningScreen());
     }
 
+    /** Opens the spell-pick screen for the given options. */
     public static void openSpellPick(java.util.List<String> options) {
         Minecraft.getInstance().setScreenAndShow(new SpellPickScreen(options));
     }
 
+    /** Opens the element-choice screen. */
     public static void openElement() {
         Minecraft.getInstance().setScreenAndShow(new ElementScreen());
     }

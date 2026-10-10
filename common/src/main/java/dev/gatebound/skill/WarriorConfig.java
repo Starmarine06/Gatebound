@@ -2,6 +2,7 @@ package dev.gatebound.skill;
 
 /** Tunables for the Warrior's skills and Rage. Section "warrior" in config/gatebound.json. */
 public final class WarriorConfig {
+    /** Static holder; not instantiable. */
     private WarriorConfig() {
     }
 

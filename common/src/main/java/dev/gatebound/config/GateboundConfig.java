@@ -29,13 +29,16 @@ import java.nio.file.Path;
 public final class GateboundConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
+    /** Static holder; not instantiable. */
     private GateboundConfig() {
     }
 
+    /** Config sections (classes whose static fields are settings). */
     private static Class<?>[] sections() {
         return new Class<?>[]{CombatConfig.class, MagicConfig.class, EchoConfig.class, TradeConfig.class, DungeonConfig.class, RogueConfig.class, dev.gatebound.skill.WarriorConfig.class, dev.gatebound.skill.RangerConfig.class};
     }
 
+    /** Loads the config file, writing defaults when missing. */
     public static void load() {
         Path file = Platform.getConfigFolder().resolve("gatebound.json");
         JsonObject root = new JsonObject();
@@ -80,6 +83,7 @@ public final class GateboundConfig {
         }
     }
 
+    /** Sets a config field from JSON by type. */
     private static void apply(Field field, JsonElement value) throws IllegalAccessException {
         Class<?> type = field.getType();
         if (type == int.class) {
@@ -103,6 +107,7 @@ public final class GateboundConfig {
         }
     }
 
+    /** Reads a config field as JSON. */
     private static JsonElement read(Field field) throws IllegalAccessException {
         Class<?> type = field.getType();
         if (type == int.class) {

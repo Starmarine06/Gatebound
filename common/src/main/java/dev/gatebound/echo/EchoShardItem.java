@@ -17,6 +17,7 @@ import net.minecraft.world.level.Level;
 
 /** Using an Echo Shard permanently adds one Echo slot. Only Summoners can use it. */
 public class EchoShardItem extends Item {
+    /** Creates the echo shard item. */
     public EchoShardItem(Properties properties) {
         super(properties);
     }

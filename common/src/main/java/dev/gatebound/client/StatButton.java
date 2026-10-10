@@ -17,6 +17,7 @@ public final class StatButton extends AbstractButton {
     private final Font font;
     private final Runnable action;
 
+    /** Creates a stat button with a click action. */
     public StatButton(int x, int y, int width, int height, Component label, Font font, Runnable action) {
         super(x, y, width, height, label);
         this.font = font;

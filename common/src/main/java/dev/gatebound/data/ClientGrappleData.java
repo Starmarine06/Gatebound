@@ -10,9 +10,11 @@ import java.util.UUID;
 public final class ClientGrappleData {
     private static volatile Map<UUID, GrappleSyncPayload.Line> lines = Map.of();
 
+    /** Static holder; not instantiable. */
     private ClientGrappleData() {
     }
 
+    /** Stores the latest grapple lines. */
     public static void update(GrappleSyncPayload payload) {
         Map<UUID, GrappleSyncPayload.Line> next = new HashMap<>();
         for (GrappleSyncPayload.Line l : payload.lines()) {
@@ -21,6 +23,7 @@ public final class ClientGrappleData {
         lines = next;
     }
 
+    /** The grapple line of a player, or null. */
     public static GrappleSyncPayload.Line of(UUID player) {
         return lines.get(player);
     }

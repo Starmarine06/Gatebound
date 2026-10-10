@@ -9,6 +9,7 @@ import net.minecraft.world.phys.Vec3;
 
 /** The cast animation every Mage spell shares, plus the bigger one for the level 100 forms. */
 public final class CastFx {
+    /** Static holder; not instantiable. */
     private CastFx() {
     }
 

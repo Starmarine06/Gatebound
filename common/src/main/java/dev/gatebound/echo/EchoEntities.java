@@ -29,6 +29,7 @@ public final class EchoEntities {
                     .clientTrackingRange(10)
                     .build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, "soul_body"))));
 
+    /** Static holder; not instantiable. */
     private EchoEntities() {
     }
 

@@ -14,9 +14,11 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 public final class Combat4bClient {
     public static final KeyMapping DODGE = new KeyMapping("key.gatebound.dodge", com.mojang.blaze3d.platform.InputConstants.KEY_LALT, ClientHooks.CATEGORY);
 
+    /** Static holder; not instantiable. */
     private Combat4bClient() {
     }
 
+    /** Registers the dodge key and sends the dodge direction to the server. */
     public static void init() {
         KeyMappingRegistry.register(DODGE);
         ClientTickEvent.CLIENT_POST.register(mc -> {

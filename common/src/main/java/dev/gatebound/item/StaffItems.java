@@ -46,13 +46,16 @@ public final class StaffItems {
         }
     }
 
+    /** Static holder; not instantiable. */
     private StaffItems() {
     }
 
+    /** Registers the staff items. */
     public static void init() {
         ITEMS.register();
     }
 
+    /** True if the stack is a staff. */
     public static boolean isStaff(ItemStack stack) {
         if (stack.isEmpty()) {
             return false;

@@ -30,23 +30,28 @@ final class SelfTestBot {
     private static BlockPos gatePos;
     private static boolean finished;
 
+    /** Static holder; not instantiable. */
     private SelfTestBot() {
     }
 
+    /** True once the self test is over. */
     static boolean finished() {
         return finished;
     }
 
+    /** Logs a self-test line. */
     private static void log(String msg, Object... args) {
         Gatebound.LOGGER.info("SELFTEST BOT " + msg, args);
     }
 
+    /** Describes where a player is (dimension, floor, position). */
     private static String where(ServerPlayer p) {
         int total = DungeonStore.get(p.level().getServer()).totalFloors;
         return p.level().dimension().identifier() + " floor " + Spire.floorAt(p.getX(), p.getZ(), total) + " at "
                 + (int) p.getX() + "," + (int) p.getY() + "," + (int) p.getZ();
     }
 
+    /** Per-tick driver of the self test. */
     static void tick(MinecraftServer server, DungeonStore store) {
         if (finished) {
             return;
@@ -64,6 +69,7 @@ final class SelfTestBot {
         }
     }
 
+    /** Runs the current self-test step. */
     private static void run(MinecraftServer server, DungeonStore store, ServerLevel ow) {
         int total = store.totalFloors;
         switch (step) {
@@ -256,6 +262,7 @@ final class SelfTestBot {
         }
     }
 
+    /** Gate shards the bot carries. */
     private static int countShards() {
         int n = 0;
         for (ItemStack s : bot.getInventory().getNonEquipmentItems()) {
@@ -266,6 +273,7 @@ final class SelfTestBot {
         return n;
     }
 
+    /** Rounds to 3 decimals. */
     private static double round(double d) {
         return Math.round(d * 1000) / 1000.0;
     }

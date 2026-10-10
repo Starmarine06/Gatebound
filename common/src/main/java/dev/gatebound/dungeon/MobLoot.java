@@ -15,9 +15,11 @@ import java.util.List;
  * Custom monsters pay far better than the vanilla ones that fill the lower floors; guardians always drop a bundle.
  */
 public final class MobLoot {
+    /** Static holder; not instantiable. */
     private MobLoot() {
     }
 
+    /** Chance-based material drop from a dungeon mob. */
     public static void drop(ServerLevel level, Entity mob, int floor, int total, List<ServerPlayer> here) {
         RandomSource rng = level.getRandom();
         int band = Spire.band(floor, total);
@@ -30,6 +32,7 @@ public final class MobLoot {
         mob.spawnAtLocation(level, new ItemStack(MobMaterials.ofBand(band), count));
     }
 
+    /** Drops the boss's materials and rewards. */
     public static void dropBoss(ServerLevel level, Entity boss, int floor, int total, List<ServerPlayer> here) {
         RandomSource rng = level.getRandom();
         int band = Spire.band(floor, total);

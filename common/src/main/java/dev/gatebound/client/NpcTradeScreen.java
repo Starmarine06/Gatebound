@@ -31,15 +31,18 @@ public final class NpcTradeScreen extends Screen {
     private int top;
     private int panelH;
 
+    /** Creates the trade screen from the NPC's offers. */
     public NpcTradeScreen(NpcOffersPayload data) {
         super(Component.translatable(data.broker() ? "npc.gatebound.broker" : "npc.gatebound.scholar"));
         this.data = data;
     }
 
+    /** Id of the NPC this screen trades with. */
     public int npcId() {
         return data.entityId();
     }
 
+    /** Replaces the offers with a fresh list. */
     public void update(NpcOffersPayload fresh) {
         this.data = fresh;
         this.rebuildWidgets();
@@ -60,15 +63,18 @@ public final class NpcTradeScreen extends Screen {
         }
     }
 
+    /** Y position of offer row i. */
     private int rowY(int i) {
         return top + HEADER_H + i * ROW_H;
     }
 
+    /** Item by registry id (barrier if unknown). */
     private static Item item(String id) {
         Identifier key = Identifier.tryParse(id);
         return key == null ? Items.BARRIER : BuiltInRegistries.ITEM.getOptional(key).orElse(Items.BARRIER);
     }
 
+    /** How many of an item the player carries. */
     private static int count(Item item) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) {

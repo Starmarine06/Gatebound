@@ -12,9 +12,11 @@ import net.minecraft.server.level.ServerPlayer;
 
 /** /gatebound gate spawn|leave (via build(), attached by GateboundCommands) and /gatebound tower ... (registered here). */
 public final class DungeonCommands {
+    /** Static holder; not instantiable. */
     private DungeonCommands() {
     }
 
+    /** Builds the dungeon command tree (spawn gates, build tower, floors). */
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         LiteralArgumentBuilder<CommandSourceStack> spawn = Commands.literal("spawn")
                 .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS));
@@ -134,6 +136,7 @@ public final class DungeonCommands {
         });
     }
 
+    /** Starts building the tower and reports where it stands. */
     private static int startTower(CommandSourceStack source, int[] xz) {
         MinecraftServer server = source.getServer();
         if (!DungeonManager.buildTower(server, xz, () -> source.sendSuccess(

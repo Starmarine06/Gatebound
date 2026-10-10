@@ -20,14 +20,17 @@ public final class PortalPlacer {
     public record Spot(BlockPos pos, Direction facing) {
     }
 
+    /** Static holder; not instantiable. */
     private PortalPlacer() {
     }
 
+    /** True if the block can hold a portal part (air or passable). */
     private static boolean clear(ServerLevel level, BlockPos pos) {
         BlockState s = level.getBlockState(pos);
         return s.isAir() || s.getBlock() instanceof GateExitBlock || s.getCollisionShape(level, pos).isEmpty();
     }
 
+    /** True if there is a solid wall behind the position. */
     private static boolean wall(ServerLevel level, BlockPos pos, Direction towardWall) {
         return level.getBlockState(pos).isFaceSturdy(level, pos, towardWall.getOpposite());
     }
@@ -64,6 +67,7 @@ public final class PortalPlacer {
         return s.pos();
     }
 
+    /** Places a block only into air. */
     private static void put(ServerLevel level, BlockPos pos, BlockState state) {
         if (level.getBlockState(pos).isAir()) {
             level.setBlock(pos, state, 3);

@@ -19,19 +19,23 @@ import java.util.UUID;
 public final class Props {
     private static final String TAG = "gatebound_fx";
 
+    /** Static holder; not instantiable. */
     private Props() {
     }
 
+    /** Registers the cleanup of leftover prop entities. */
     public static void init() {
         LifecycleEvent.SERVER_STOPPING.register(Props::sweep);
         LifecycleEvent.SERVER_STARTED.register(Props::sweep);
         PlayerEvent.PLAYER_JOIN.register(player -> sweep(player.level().getServer()));
     }
 
+    /** Kills every leftover prop entity. */
     private static void sweep(MinecraftServer server) {
         run(server, null, null, "kill @e[tag=" + TAG + "]");
     }
 
+    /** Runs a command silently at a place. */
     private static void run(MinecraftServer server, ServerLevel level, Vec3 at, String command) {
         net.minecraft.commands.CommandSourceStack source = server.createCommandSourceStack().withSuppressedOutput();
         if (level != null) {
@@ -48,10 +52,12 @@ public final class Props {
         }
     }
 
+    /** Formats a number for a command. */
     private static String num(double v) {
         return String.format(Locale.ROOT, "%.3ff", v);
     }
 
+    /** Formats a UUID as NBT. */
     private static String uuidNbt(UUID id) {
         long m = id.getMostSignificantBits();
         long l = id.getLeastSignificantBits();
@@ -129,6 +135,7 @@ public final class Props {
         }
     }
 
+    /** Transformation NBT for offset, scale and spin. */
     private static String transformation(Vec3 off, double sx, double sy, double sz, double spinDeg) {
         double half = Math.toRadians(spinDeg) / 2;
         // Rotation about the vertical axis as a quaternion [x, y, z, w]; the scale is applied before it, then the offset.

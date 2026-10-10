@@ -38,10 +38,12 @@ public final class PlayerData {
     /** Summoner's saved Echoes (bound mobs). */
     public dev.gatebound.echo.EchoRoster echo = new dev.gatebound.echo.EchoRoster();
 
+    /** Creates fresh player data. */
     public PlayerData() {
         this(1, 0, 0, List.of(), "", List.of(), MANA_UNSET, new dev.gatebound.echo.EchoRoster(), List.of());
     }
 
+    /** Creates player data from saved values. */
     private PlayerData(int level, int xp, int statPoints, List<Integer> savedStats, String classId,
                        List<String> savedElements, double mana, dev.gatebound.echo.EchoRoster echo, List<String> savedPicks) {
         this.echo = echo.copy();
@@ -57,6 +59,7 @@ public final class PlayerData {
         }
     }
 
+    /** Converts a stat array to a list. */
     private static List<Integer> toList(int[] arr) {
         List<Integer> out = new ArrayList<>(arr.length);
         for (int v : arr) {
@@ -65,18 +68,22 @@ public final class PlayerData {
         return out;
     }
 
+    /** Current value of a stat. */
     public int get(Stat stat) {
         return stats[stat.ordinal()];
     }
 
+    /** True if the player has the element. */
     public boolean hasElement(Element element) {
         return elements.contains(element.id());
     }
 
+    /** XP needed to reach the next level from a level. */
     public static int xpToNext(int level) {
         return 50 + level * level * 10;
     }
 
+    /** XP needed for this player's next level. */
     public int xpToNext() {
         return xpToNext(level);
     }
@@ -112,6 +119,7 @@ public final class PlayerData {
         statPoints = Math.max(0, (newLevel - 1) * STAT_POINTS_PER_LEVEL - spent);
     }
 
+    /** Spends stat points on a stat; false if not enough. */
     public boolean spend(Stat stat, int points) {
         if (points <= 0 || points > statPoints) {
             return false;

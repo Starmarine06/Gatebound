@@ -18,22 +18,27 @@ public enum GateboundClass {
         this.bonuses.putAll(bonuses);
     }
 
+    /** Class id. */
     public String id() {
         return name().toLowerCase(Locale.ROOT);
     }
 
+    /** Starting bonus for a stat. */
     public int bonus(Stat stat) {
         return bonuses.getOrDefault(stat, 0);
     }
 
+    /** Lang key of the class name. */
     public String nameKey() {
         return "class.gatebound." + id();
     }
 
+    /** Lang key of the class description. */
     public String descriptionKey() {
         return "class.gatebound." + id() + ".desc";
     }
 
+    /** Class by id, or null. */
     public static GateboundClass byId(String id) {
         for (GateboundClass c : values()) {
             if (c.id().equals(id)) {

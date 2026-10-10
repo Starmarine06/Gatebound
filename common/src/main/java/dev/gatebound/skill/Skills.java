@@ -1,5 +1,6 @@
 package dev.gatebound.skill;
 
+import static dev.gatebound.skill.fx.Tasks.sound;
 import dev.gatebound.sound.GateboundSounds;
 import dev.gatebound.data.Element;
 import dev.gatebound.data.GateboundClass;
@@ -8,9 +9,7 @@ import dev.gatebound.data.Stat;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import dev.gatebound.skill.mage.DarkSkills;
 import dev.gatebound.skill.mage.EarthSkills;
 import dev.gatebound.skill.mage.FireSkills;
@@ -165,14 +164,17 @@ public final class Skills {
     public static final Skill ECLIPSE = add(new Skill("eclipse", GateboundClass.MAGE, Element.DARK, 85, DarkSkills.ECLIPSE_COST, 0, DarkSkills::eclipse));
     public static final Skill VOID_LORD = add(new Skill("void_lord", GateboundClass.MAGE, Element.DARK, 100, DarkSkills.VOID_COST, 0, DarkSkills::voidLord));
 
+    /** Static holder; not instantiable. */
     private Skills() {
     }
 
+    /** Registers a skill in the list. */
     private static Skill add(Skill s) {
         ALL.add(s);
         return s;
     }
 
+    /** Skill by id, or null. */
     public static Skill byId(String id) {
         for (Skill s : ALL) {
             if (s.id().equals(id)) {
@@ -214,20 +216,19 @@ public final class Skills {
 
     // ---- Effects ---------------------------------------------------------------------------------------------
 
+    /** Magic damage source attributed to the player. */
     private static DamageSource magic(ServerPlayer player, ServerLevel level) {
         return level.damageSources().indirectMagic(player, player);
     }
 
-    private static void sound(ServerPlayer player, ServerLevel level, SoundEvent sound, float pitch) {
-        level.playSound(null, player.blockPosition(), sound, SoundSource.PLAYERS, 1.0f, pitch);
-    }
-
+    /** Base value plus a scale times the player's intellect. */
     private static float intel(PlayerData data, double base, double scale) {
         return (float) (base + scale * data.get(Stat.INTELLECT));
     }
 
     // Summoner
 
+    /** Spirit Ward: heals the Summoner, grants absorption and wisps. */
     private static boolean spiritWard(ServerPlayer player, ServerLevel level, PlayerData data) {
         player.heal(intel(data, 6, 0.5));
         player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 200, 0));
@@ -236,6 +237,7 @@ public final class Skills {
         return true;
     }
 
+    /** Soul Drain: damages the target and heals the Summoner for half. */
     private static boolean soulDrain(ServerPlayer player, ServerLevel level, PlayerData data) {
         List<LivingEntity> hits = SkillTargeting.ray(player, level, 16, 1, ParticleTypes.SOUL);
         sound(player, level, GateboundSounds.of(SoundEvents.SOUL_ESCAPE.value()), 1.0f);

@@ -30,9 +30,11 @@ public final class GateLabels {
     private record Label(BlockPos pos, double baseY, Component top, Component bottom) {
     }
 
+    /** Static holder; not instantiable. */
     private GateLabels() {
     }
 
+    /** Registers the periodic label upkeep. */
     public static void init() {
         TickEvent.SERVER_POST.register(server -> {
             if (server.getTickCount() % 40 == 7) {
@@ -43,6 +45,7 @@ public final class GateLabels {
         });
     }
 
+    /** Updates the labels near a player (gate, exit and entrance). */
     private static void update(MinecraftServer server, ServerPlayer player) {
         ServerLevel level = player.level();
         DungeonStore store = DungeonStore.get(server);
@@ -96,6 +99,7 @@ public final class GateLabels {
         }
     }
 
+    /** Label for a gate (rank and name). */
     private static Label gateLabel(DungeonStore store, ServerLevel level, BlockPos pos, int total) {
         for (DungeonStore.GateRef g : store.gates) {
             if (g.dim.equals(level.dimension()) && g.pos.equals(pos) && Spire.isGate(g.floor)) {
@@ -111,6 +115,7 @@ public final class GateLabels {
                 Component.literal("Destination unknown").withStyle(ChatFormatting.GRAY));
     }
 
+    /** Label for an exit portal. */
     private static Label exitLabel(ServerLevel level, BlockPos pos, GateExitBlock.Kind kind, boolean inSpire, int total) {
         int floor = inSpire ? Spire.floorAt(pos.getX() + 0.5, pos.getZ() + 0.5, total) : 0;
         double y = pos.getY() + 1.9; // above the two-block pane
@@ -140,6 +145,7 @@ public final class GateLabels {
         };
     }
 
+    /** Places both lines of a label. */
     private static void place(ServerLevel level, Label label) {
         double x = label.pos.getX() + 0.5;
         double z = label.pos.getZ() + 0.5;
@@ -147,6 +153,7 @@ public final class GateLabels {
         ensure(level, label, 1, x, label.baseY, z, label.bottom);
     }
 
+    /** Ensures one label line exists as an armour stand. */
     private static void ensure(ServerLevel level, Label label, int line, double x, double y, double z, Component text) {
         String lineTag = TAG + "_" + line;
         AABB box = new AABB(x - 0.3, label.pos.getY(), z - 0.3, x + 0.3, label.pos.getY() + 4, z + 0.3);

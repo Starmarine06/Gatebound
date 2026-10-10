@@ -23,9 +23,11 @@ public final class ClassCastFx {
     /** Ranger skills that are utilities rather than shots: a lighter circle. */
     private static final Set<String> RANGER_QUIET = Set.of("eagle_eye", "hunters_quarry", "evasive_roll", "hunters_trance");
 
+    /** Static holder; not instantiable. */
     private ClassCastFx() {
     }
 
+    /** Plays the class cast animation for a skill. */
     public static void cast(ServerPlayer p, Skill skill) {
         if (skill.minLevel() >= 100) {
             return;

@@ -67,6 +67,7 @@ final class SoundPaths {
         "ui.toast.challenge_complete",
     };
 
+    /** Static holder; not instantiable. */
     private SoundPaths() {
     }
 }

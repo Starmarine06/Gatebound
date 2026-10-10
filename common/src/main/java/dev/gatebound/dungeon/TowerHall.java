@@ -20,13 +20,16 @@ import java.util.List;
  * idempotent: the dais centre block is the marker, so it also repairs towers built before the hall existed.
  */
 public final class TowerHall {
+    /** Static holder; not instantiable. */
     private TowerHall() {
     }
 
+    /** Default state of a block. */
     private static BlockState b(Block block) {
         return block.defaultBlockState();
     }
 
+    /** Builds the tower hall and NPCs once the tower exists. */
     public static void ensure(MinecraftServer server, DungeonStore store) {
         if (!store.towerBuilt) {
             return;
@@ -75,6 +78,7 @@ public final class TowerHall {
         }
     }
 
+    /** Builds the hall, dais and pillars. */
     private static void build(ServerLevel level, BlockPos c, int r) {
         int pillarR = Math.max(8, r - 9);
         int hallH = 15;
@@ -120,6 +124,7 @@ public final class TowerHall {
         }
     }
 
+    /** Spawns the Broker and Scholar if missing. */
     private static void npcs(ServerLevel level, BlockPos c) {
         AABB hall = new AABB(c).inflate(10, 6, 10);
         List<GateboundNpc> existing = level.getEntitiesOfClass(GateboundNpc.class, hall);

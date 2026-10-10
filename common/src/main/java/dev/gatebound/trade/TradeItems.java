@@ -47,13 +47,16 @@ public final class TradeItems {
             new RespecTokenItem(new Item.Properties().arch$tab(GateboundRegistries.MAIN_TAB).stacksTo(16)
                     .rarity(Rarity.EPIC).setId(key("respec_token"))));
 
+    /** Static holder; not instantiable. */
     private TradeItems() {
     }
 
+    /** Registers the trade items. */
     public static void init() {
         ITEMS.register();
     }
 
+    /** Item registry key for a path. */
     private static ResourceKey<Item> key(String path) {
         return ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, path));
     }

@@ -26,14 +26,17 @@ public final class RangerAimFx {
 
     private static Integer savedFov;
 
+    /** Static holder; not instantiable. */
     private RangerAimFx() {
     }
 
+    /** True if the player is aiming a bow. */
     private static boolean aiming(LocalPlayer p) {
         return GateboundClass.RANGER.id().equals(ClientPlayerData.classId) && p.isUsingItem()
                 && (p.getUseItem().getItem() instanceof BowItem || p.getUseItem().getItem() instanceof CrossbowItem);
     }
 
+    /** Per-tick aim handling: zoom, walking pace and restore. */
     public static void tick(Minecraft mc) {
         LocalPlayer p = mc.player;
         if (p == null) {
@@ -64,6 +67,7 @@ public final class RangerAimFx {
         ClientCompat.setPostEffects(p, next);
     }
 
+    /** Zooms the FOV in while aiming and back out afterwards. */
     private static void zoom(Minecraft mc, boolean aim) {
         var option = mc.options.fov();
         if (aim) {
@@ -80,6 +84,7 @@ public final class RangerAimFx {
         }
     }
 
+    /** Returns the FOV to its saved value, instantly or gradually. */
     private static void restoreFov(Minecraft mc, boolean immediately) {
         if (savedFov == null) {
             return;

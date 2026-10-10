@@ -8,12 +8,10 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 //? if >=26.1
 import net.minecraft.world.item.ToolMaterial;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
@@ -57,6 +55,7 @@ public final class KnifeItems {
     }
     *///?}
 
+    /** Static holder; not instantiable. */
     private KnifeItems() {
     }
 
@@ -92,10 +91,12 @@ public final class KnifeItems {
     }
     *///?}
 
+    /** Registers the knife items. */
     public static void init() {
         ITEMS.register();
     }
 
+    /** True if the stack is a knife. */
     public static boolean isKnife(ItemStack stack) {
         if (stack.isEmpty()) {
             return false;
@@ -126,16 +127,4 @@ public final class KnifeItems {
         return false;
     }
 
-    private static boolean isChainmail(ItemStack stack) {
-        return stack.is(Items.CHAINMAIL_HELMET) || stack.is(Items.CHAINMAIL_CHESTPLATE)
-                || stack.is(Items.CHAINMAIL_LEGGINGS) || stack.is(Items.CHAINMAIL_BOOTS);
-    }
-
-    /** Armour a Rogue may not wear: any armour piece that is not chainmail. */
-    public static boolean isForbiddenArmor(ItemStack stack) {
-        if (stack.isEmpty() || isChainmail(stack)) {
-            return false;
-        }
-        return stack.is(ItemTags.HEAD_ARMOR) || stack.is(ItemTags.CHEST_ARMOR) || stack.is(ItemTags.LEG_ARMOR) || stack.is(ItemTags.FOOT_ARMOR);
-    }
 }

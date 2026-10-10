@@ -13,9 +13,11 @@ public final class ClientStaminaData {
     public static long dodgeCooldownMs;
     public static long lastPostureMs;
 
+    /** Static holder; not instantiable. */
     private ClientStaminaData() {
     }
 
+    /** Stores the latest stamina/status sync. */
     public static void update(PlayerStatusPayload p) {
         stamina = p.stamina();
         maxStamina = Math.max(1, p.maxStamina());

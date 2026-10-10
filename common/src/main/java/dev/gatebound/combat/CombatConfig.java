@@ -68,6 +68,7 @@ public final class CombatConfig {
     /** How long a staggered player cannot parry or dodge. */
     public static volatile int playerStaggerTicks = 20;
 
+    /** Static holder; not instantiable. */
     private CombatConfig() {
     }
 }

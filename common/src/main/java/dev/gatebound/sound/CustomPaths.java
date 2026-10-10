@@ -37,6 +37,7 @@ final class CustomPaths {
         "skill.legion_call",
     };
 
+    /** Static holder; not instantiable. */
     private CustomPaths() {
     }
 }

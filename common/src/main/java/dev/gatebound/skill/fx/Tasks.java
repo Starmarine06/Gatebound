@@ -29,6 +29,7 @@ public final class Tasks {
 
     private static final List<Ticker> TICKERS = new ArrayList<>();
 
+    /** Static holder; not instantiable. */
     private Tasks() {
     }
 
@@ -38,6 +39,7 @@ public final class Tasks {
         LifecycleEvent.SERVER_STOPPED.register(server -> TICKERS.clear());
     }
 
+    /** Runs every ticker once; drops finished or failing ones. */
     private static void tick(MinecraftServer server) {
         if (TICKERS.isEmpty()) {
             return;
@@ -56,10 +58,12 @@ public final class Tasks {
         }
     }
 
+    /** Starts a ticker that runs every tick until it returns true. */
     public static void run(Ticker ticker) {
         TICKERS.add(ticker);
     }
 
+    /** Runs an action after some ticks. */
     public static void after(int ticks, Consumer<MinecraftServer> action) {
         long[] due = {-1};
         run((server, now) -> {
@@ -74,19 +78,33 @@ public final class Tasks {
         });
     }
 
+    /** Looks a player up by UUID. */
     public static ServerPlayer playerOf(MinecraftServer server, UUID id) {
         ServerPlayer p = server.getPlayerList().getPlayer(id);
         return p != null && p.isAlive() ? p : null;
     }
 
+    /** Plays a sound at the player's feet at full volume. */
+    public static void sound(ServerPlayer player, ServerLevel level, SoundEvent sound, float pitch) {
+        level.playSound(null, player.blockPosition(), sound, SoundSource.PLAYERS, 1.0f, pitch);
+    }
+
+    /** Server tick count, as seen from the player's server. */
+    public static long now(ServerPlayer p) {
+        return p.level().getServer().getTickCount();
+    }
+
+    /** Plays a sound at a position. */
     public static void sound(ServerLevel level, Vec3 at, SoundEvent sound, float volume, float pitch) {
         level.playSound(null, at.x, at.y, at.z, sound, SoundSource.PLAYERS, volume, pitch);
     }
 
+    /** Spawns particles at a position. */
     public static void particles(ServerLevel level, ParticleOptions type, Vec3 at, int count, double spread, double speed) {
         level.sendParticles(type, at.x, at.y, at.z, count, spread, spread * 0.6, spread, speed);
     }
 
+    /** Bright flash of light at a position. */
     public static void flash(ServerLevel level, double x, double y, double z) {
         //? if >=26.1 {
         level.sendParticles(net.minecraft.core.particles.ColorParticleOption.create(ParticleTypes.FLASH, -1), x, y, z, 1, 0, 0, 0, 0);

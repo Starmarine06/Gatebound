@@ -16,12 +16,14 @@ import net.minecraft.world.level.Level;
  * custom Gatebound trade screen on right click. The role is stored as an entity tag.
  */
 public class GateboundNpc extends Villager {
+    /** Creates an NPC (no AI, never despawns). */
     public GateboundNpc(EntityType<? extends Villager> type, Level level) {
         super(type, level);
         this.setNoAi(true);
         this.setPersistenceRequired();
     }
 
+    /** True if this NPC is a Skill Broker. */
     public boolean isBroker() {
         return this.entityTags().contains(NpcHandler.BROKER_TAG);
     }

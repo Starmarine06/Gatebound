@@ -16,9 +16,11 @@ public final class ClientFormData {
     private static volatile Map<UUID, Set<String>> tags = Map.of();
     private static final Map<UUID, Map<String, Long>> SEEN = new HashMap<>(); // when each tag first appeared (client thread)
 
+    /** Static holder; not instantiable. */
     private ClientFormData() {
     }
 
+    /** Stores the latest form tags per player, keeping when each first appeared. */
     public static void update(FormSyncPayload payload) {
         Map<UUID, Set<String>> next = new HashMap<>();
         for (int i = 0; i < payload.players().size() && i < payload.elements().size(); i++) {
@@ -43,6 +45,7 @@ public final class ClientFormData {
     public record Bar(String name, float fraction) {
     }
 
+    /** The active timer bar of a player, or null. */
     public static Bar bar(UUID player) {
         for (String tag : tags(player)) {
             if (tag.startsWith("bar:")) {

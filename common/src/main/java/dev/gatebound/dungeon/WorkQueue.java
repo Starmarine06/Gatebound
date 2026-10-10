@@ -79,13 +79,16 @@ public final class WorkQueue {
     private static final ArrayDeque<Job> QUEUE = new ArrayDeque<>();
     private static final Set<UUID> HOLDING = new HashSet<>();
 
+    /** Static holder; not instantiable. */
     private WorkQueue() {
     }
 
+    /** True if the player is waiting on the queue. */
     public static boolean isHolding(UUID id) {
         return HOLDING.contains(id);
     }
 
+    /** A queued job by key, or null. */
     public static Job find(String key) {
         for (Job j : QUEUE) {
             if (j.key.equals(key)) {
@@ -95,18 +98,22 @@ public final class WorkQueue {
         return null;
     }
 
+    /** True if the queue is empty. */
     public static boolean isIdle() {
         return QUEUE.isEmpty();
     }
 
+    /** Number of queued jobs. */
     public static int size() {
         return QUEUE.size();
     }
 
+    /** Adds a job. */
     public static void enqueue(Job job) {
         QUEUE.add(job);
     }
 
+    /** Cleans up and clears all jobs (server stopping). */
     public static void reset(MinecraftServer server) {
         for (Job j : QUEUE) {
             try {
@@ -119,6 +126,7 @@ public final class WorkQueue {
         HOLDING.clear();
     }
 
+    /** Runs the head job within its budget. */
     public static void tick(MinecraftServer server) {
         Job head = QUEUE.peek();
         if (head == null) {
@@ -182,6 +190,7 @@ public final class WorkQueue {
         }
     }
 
+    /** Finishes a job and sends waiting players on. */
     private static void finish(MinecraftServer server, Job job) {
         for (Map.Entry<UUID, Dest> e : job.waiting.entrySet()) {
             ServerPlayer p = server.getPlayerList().getPlayer(e.getKey());

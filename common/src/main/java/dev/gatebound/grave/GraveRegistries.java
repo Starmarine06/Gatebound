@@ -36,9 +36,11 @@ public final class GraveRegistries {
     public static final RegistrySupplier<BlockEntityType<GraveBlockEntity>> GRAVE_ENTITY = ENTITIES.register("grave", () ->
             dev.gatebound.compat.Compat.blockEntityType(GraveBlockEntity::new, GRAVE.get()));
 
+    /** Static holder; not instantiable. */
     private GraveRegistries() {
     }
 
+    /** Registers the grave block, item and block entity. */
     public static void init() {
         BLOCKS.register();
         ITEMS.register();

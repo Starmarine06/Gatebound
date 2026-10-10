@@ -5,6 +5,7 @@ import java.util.Set;
 
 /** Tunables for the Rogue's Shadow / Mark / Ambush system. Section "rogue" in config/gatebound.json. */
 public final class RogueConfig {
+    /** Static holder; not instantiable. */
     private RogueConfig() {
     }
 
@@ -71,6 +72,7 @@ public final class RogueConfig {
     private static String cachedPossess = null;
     private static Set<String> possessSet = Set.of();
 
+    /** Splits a comma list into a set. */
     private static Set<String> parse(String csv) {
         Set<String> out = new HashSet<>();
         for (String part : csv.split(",")) {
@@ -82,6 +84,7 @@ public final class RogueConfig {
         return out;
     }
 
+    /** True if Shadow Meld is blocked for the entity type. */
     public static boolean meldBlocked(String entityId) {
         if (!bossBlacklist.equals(cachedMeld)) {
             cachedMeld = bossBlacklist;
@@ -90,6 +93,7 @@ public final class RogueConfig {
         return meldSet.contains(entityId);
     }
 
+    /** True if Shadow Possession is blocked for the entity type. */
     public static boolean possessionBlocked(String entityId) {
         if (!possessionBossBlacklist.equals(cachedPossess)) {
             cachedPossess = possessionBossBlacklist;

@@ -19,6 +19,7 @@ import java.util.Optional;
 
 /** Shared targeting helpers for skills. Players are never targeted. */
 public final class SkillTargeting {
+    /** Static holder; not instantiable. */
     private SkillTargeting() {
     }
 
@@ -73,6 +74,7 @@ public final class SkillTargeting {
         return around(player, level, radius, SkillTargeting::targetable);
     }
 
+    /** Entities of a filter within a radius of the player. */
     private static List<LivingEntity> around(ServerPlayer player, ServerLevel level, double radius, java.util.function.Predicate<Entity> filter) {
         AABB box = player.getBoundingBox().inflate(radius);
         List<LivingEntity> out = new ArrayList<>();

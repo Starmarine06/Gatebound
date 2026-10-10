@@ -23,6 +23,7 @@ public final class StatusScreen extends Screen {
     private int left;
     private int top;
 
+    /** Creates the status screen. */
     public StatusScreen() {
         super(Component.translatable("screen.gatebound.status.title"));
     }
@@ -43,10 +44,12 @@ public final class StatusScreen extends Screen {
         }
     }
 
+    /** Y position of stat row i. */
     private int rowY(int index) {
         return top + 78 + index * ROW_H;
     }
 
+    /** Sends a stat spend request to the server. */
     private void spend(Stat stat, int points) {
         if (ClientPlayerData.statPoints >= points) {
             NetworkManager.sendToServer(new SpendStatPayload(stat.id(), points));
@@ -113,6 +116,7 @@ public final class StatusScreen extends Screen {
         g.centeredText(this.font, Component.translatable("screen.gatebound.status.hint").getString(), this.width / 2, top + PANEL_H - 12, 0xFF777777);
     }
 
+    /** Lang key of the player's class name. */
     private static String classKey() {
         GateboundClass c = GateboundClass.byId(ClientPlayerData.classId);
         return c == null ? "screen.gatebound.status.no_class" : c.nameKey();

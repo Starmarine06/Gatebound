@@ -16,9 +16,11 @@ import java.util.UUID;
 final class DevUser {
     static final String NAME = "Player896";
 
+    /** Static holder; not instantiable. */
     private DevUser() {
     }
 
+    /** Dev only: renames the default PlayerNNN dev account to a fixed name. */
     static void pin() {
         try {
             Minecraft mc = Minecraft.getInstance();

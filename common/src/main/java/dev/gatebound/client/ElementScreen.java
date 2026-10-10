@@ -15,6 +15,7 @@ public final class ElementScreen extends Screen {
     private static final int BUTTON_HEIGHT = 20;
     private static final int GAP = 6;
 
+    /** Creates the element-choice screen. */
     public ElementScreen() {
         super(Component.translatable("screen.gatebound.element.title"));
     }
@@ -34,6 +35,7 @@ public final class ElementScreen extends Screen {
         }
     }
 
+    /** Sends the chosen element to the server and closes the screen. */
     private void choose(Element e) {
         NetworkManager.sendToServer(new ChooseElementPayload(e.id()));
         onClose();

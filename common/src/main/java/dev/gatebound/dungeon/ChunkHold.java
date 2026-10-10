@@ -9,13 +9,16 @@ import net.minecraft.world.level.ChunkPos;
  * which was measured to block the server thread for tens to hundreds of milliseconds per chunk.
  */
 public final class ChunkHold {
+    /** Static holder; not instantiable. */
     private ChunkHold() {
     }
 
+    /** Keeps a chunk loaded with a forced ticket. */
     public static void hold(ServerLevel level, int cx, int cz) {
         level.getChunkSource().addTicketWithRadius(TicketType.FORCED, new ChunkPos(cx, cz), 0);
     }
 
+    /** Releases a chunk's forced ticket. */
     public static void release(ServerLevel level, int cx, int cz) {
         level.getChunkSource().removeTicketWithRadius(TicketType.FORCED, new ChunkPos(cx, cz), 0);
         // Older builds used setChunkForced; make sure nothing is left over from them.

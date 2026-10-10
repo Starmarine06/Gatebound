@@ -26,6 +26,7 @@ public final class RangerFx {
     private static final int MAX_GLOWS = 30;
     private static int glows;
 
+    /** Static holder; not instantiable. */
     private RangerFx() {
     }
 
@@ -36,6 +37,7 @@ public final class RangerFx {
 
     // ---------------------------------------------------------------- primitives
 
+    /** Centre of an entity's body. */
     private static Vec3 center(LivingEntity e) {
         return e.position().add(0, e.getBbHeight() * 0.6, 0);
     }
@@ -74,15 +76,18 @@ public final class RangerFx {
         return prop;
     }
 
+    /** Rotation that points the model's x axis along a vector. */
     private static Quaternionf orient(Vec3 v) {
         Vec3 d = v.lengthSqr() < 1.0e-4 ? new Vec3(1, 0, 0) : v.normalize();
         return new Quaternionf().rotationTo(1f, 0f, 0f, (float) d.x, (float) d.y, (float) d.z);
     }
 
+    /** Moves an arrow's glow prop onto the arrow. */
     public static void moveGlow(Props.Prop prop, AbstractArrow arrow) {
         prop.pin(arrow.position(), orient(arrow.getDeltaMovement()), 2.4, 0.8, 0.8, 2);
     }
 
+    /** Fades out an arrow's glow prop. */
     public static void endGlow(Props.Prop prop) {
         glows = Math.max(0, glows - 1);
         prop.pose(Vec3.ZERO, new Quaternionf(), 0.02, 0.02, 0.02, 3);

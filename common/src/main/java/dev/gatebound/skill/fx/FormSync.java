@@ -24,9 +24,11 @@ public final class FormSync {
     private static Map<UUID, List<String>> last = Map.of();
     private static boolean dirty = true;
 
+    /** Static holder; not instantiable. */
     private FormSync() {
     }
 
+    /** Registers the form tag sync tick. */
     public static void init() {
         FxState.init();
         TickEvent.SERVER_POST.register(FormSync::tick);
@@ -34,6 +36,7 @@ public final class FormSync {
         PlayerEvent.PLAYER_QUIT.register(player -> dirty = true);
     }
 
+    /** Every 2 ticks: sends form and effect tags to clients when they change. */
     private static void tick(MinecraftServer server) {
         long now = server.getTickCount();
         if (now % 2 != 0) {

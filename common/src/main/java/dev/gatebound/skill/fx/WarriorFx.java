@@ -22,6 +22,7 @@ public final class WarriorFx {
     private static final Palette P = Palette.of("warrior");
     private static final Random RNG = new Random();
 
+    /** Static holder; not instantiable. */
     private WarriorFx() {
     }
 
@@ -84,6 +85,7 @@ public final class WarriorFx {
         Tasks.flash(level, at.x, at.y + 0.5, at.z);
     }
 
+    /** Earthbreaker start: ground circle and shockwave. */
     public static void earthbreakStart(ServerPlayer p) {
         ServerLevel level = lv(p);
         Circles.ground(level, "warrior", p.position(), 5.0, 22);
@@ -122,6 +124,7 @@ public final class WarriorFx {
         Tasks.particles(level, ParticleTypes.CLOUD, p.position().add(0, 0.15, 0), 3, 0.3, 0.02);
     }
 
+    /** Leap Slam start: shockwave, crack decal and dust. */
     public static void leapStart(ServerPlayer p) {
         ServerLevel level = lv(p);
         Fx.shockwave(level, P, p.position(), 2.6, 6);
@@ -216,6 +219,7 @@ public final class WarriorFx {
         Circles.follow(target, "warrior", Math.max(1.8, target.getBbWidth() * 2.2), bleedTicks, 0.06);
     }
 
+    /** Blood particles on a bleeding target. */
     public static void bleedTick(ServerLevel level, LivingEntity target) {
         Tasks.particles(level, Fx.dust(0xB01818, 1.0f), target.position().add(0, target.getBbHeight() * 0.6, 0), 6, 0.25, 0.0);
     }

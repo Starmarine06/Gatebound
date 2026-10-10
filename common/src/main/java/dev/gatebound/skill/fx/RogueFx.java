@@ -24,6 +24,7 @@ public final class RogueFx {
     private static final Random RNG = new Random();
     private static final Map<UUID, Long> LAST_VENOM = new HashMap<>();
 
+    /** Static holder; not instantiable. */
     private RogueFx() {
     }
 
@@ -137,6 +138,7 @@ public final class RogueFx {
     public static void meld(ServerPlayer p) {
     }
 
+    /** Green circle and ring where Venom Blade starts. */
     public static void venomStart(ServerPlayer p) {
         Circles.ground(lv(p), "venom", p.position(), 2.6, 18);
         Circles.ring(lv(p), "venom", p.position(), 2.4, 6);

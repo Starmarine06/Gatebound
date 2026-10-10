@@ -2,6 +2,7 @@ package dev.gatebound.echo;
 
 /** Tunables for the Echo system. Plain statics so they are easy to tweak or hook to a config later. */
 public final class EchoConfig {
+    /** Static holder; not instantiable. */
     private EchoConfig() {
     }
 
@@ -37,6 +38,7 @@ public final class EchoConfig {
     /** Distance at which a following echo is teleported to its owner. */
     public static double teleportDistance = 24;
 
+    /** Chance in percent to capture an echo, from intellect and level. */
     public static double chancePercent(int intellect, int level) {
         if (chanceOverridePercent >= 0) {
             return Math.min(100, chanceOverridePercent);
@@ -44,6 +46,7 @@ public final class EchoConfig {
         return Math.min(maxChance, baseChance + chancePerIntellect * intellect + chancePerLevel * level);
     }
 
+    /** Number of echo slots, from intellect and bonus slots. */
     public static int slots(int intellect, int bonus) {
         int fromStats = Math.min(hardSlotCap, baseSlots + Math.max(0, intellect) / Math.max(1, intellectPerSlot));
         return Math.min(maxTotalSlots, fromStats + Math.max(0, bonus));

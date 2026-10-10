@@ -73,6 +73,7 @@ public final class TowerJob extends WorkQueue.Job {
         return phase.name();
     }
 
+    /** Number of blocks placed so far. */
     public long placedBlocks() {
         return placed;
     }
@@ -125,6 +126,7 @@ public final class TowerJob extends WorkQueue.Job {
 
     // ------------------------------------------------------------------ phases
 
+    /** Chooses the tower site and size. */
     private void site(MinecraftServer server, ServerLevel level, DungeonStore store) {
         radius = Math.max(10, Math.min(48, DungeonConfig.towerRadius));
         height = Math.max(40, Math.min(250, DungeonConfig.towerHeight));
@@ -154,6 +156,7 @@ public final class TowerJob extends WorkQueue.Job {
         }
     }
 
+    /** Waits until the site's chunks are loaded. */
     private boolean waitForChunks(ServerLevel level) {
         waitTicks++;
         // Tickets are added a few chunks per tick so terrain generation does not hit the server thread all at once.
@@ -179,6 +182,7 @@ public final class TowerJob extends WorkQueue.Job {
         return false;
     }
 
+    /** Starts the build at a ground height sampled around the site. */
     private void startBuild(ServerLevel level, DungeonStore store) {
         if (y0 == 0) {
             long sum = sample(level, cx, cz);
@@ -212,10 +216,12 @@ public final class TowerJob extends WorkQueue.Job {
         Gatebound.LOGGER.info("Building the tower at {} {} {} radius {} height {}", cx, y0, cz, radius, height);
     }
 
+    /** Ground height at a column. */
     private int sample(ServerLevel level, int x, int z) {
         return level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
     }
 
+    /** Places the tower within the work budget. */
     private boolean build(ServerLevel level, WorkQueue.Budget b) {
         int side = half * 2 + 1;
         int cells = side * side;
@@ -254,6 +260,7 @@ public final class TowerJob extends WorkQueue.Job {
         return true;
     }
 
+    /** Finishes the tower: records it in the store. */
     private void finish(MinecraftServer server, ServerLevel level, DungeonStore store) {
         // The entrance arch stays open; the tower's gate stands on the dais in the middle of the hall (see TowerHall).
         store.towerBuilt = true;
@@ -268,15 +275,18 @@ public final class TowerJob extends WorkQueue.Job {
 
     // ------------------------------------------------------------------ shape
 
+    /** True if the column and height are inside the entrance opening. */
     private static boolean inOpening(int dx, int y) {
         int ax = Math.abs(dx);
         return (ax <= 4 && y <= 9) || (ax <= 3 && y == 10) || (ax <= 2 && y == 11);
     }
 
+    /** Default state of a block. */
     private static BlockState b(Block block) {
         return block.defaultBlockState();
     }
 
+    /** Position hash. */
     private static int hash(int x, int y, int z) {
         return (int) (Spire.mix(x, y, z) >>> 40) & 0xFFFF;
     }
@@ -355,6 +365,7 @@ public final class TowerJob extends WorkQueue.Job {
         return null;
     }
 
+    /** Wall block for a tier (varied bricks). */
     private BlockState wall(int tier, int dx, int y, int dz) {
         int h = hash(dx, y, dz) % 100;
         return switch (tier) {
@@ -365,6 +376,7 @@ public final class TowerJob extends WorkQueue.Job {
         };
     }
 
+    /** Crown block at a height and distance from the centre. */
     private BlockState crown(int dx, int yy, int dz, double d) {
         int rTop = radius - 9;
         if (yy == 0) {
@@ -422,6 +434,7 @@ public final class TowerJob extends WorkQueue.Job {
                 c.getX() + r + 1, store.towerTop + 1, c.getZ() + r + 1);
     }
 
+    /** True if the level is the overworld. */
     public static boolean isOverworld(Level level) {
         return level.dimension().equals(Level.OVERWORLD);
     }

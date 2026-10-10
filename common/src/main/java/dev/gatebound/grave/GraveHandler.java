@@ -27,9 +27,11 @@ public final class GraveHandler {
     public record Saved(List<ItemStack> items, int xp, UUID owner, String ownerName, long created) {
     }
 
+    /** Static holder; not instantiable. */
     private GraveHandler() {
     }
 
+    /** Registers the death hook that buries a player's items. */
     public static void init() {
         // Registered after the quiver's death hook so a quiver, not a bare stack, is what gets stored.
         EntityEvent.LIVING_DEATH.register((entity, source) -> {
@@ -41,6 +43,7 @@ public final class GraveHandler {
         });
     }
 
+    /** Collects the player's items to bury them in a grave. */
     private static void bury(ServerPlayer player, ServerLevel level) {
         Inventory inv = player.getInventory();
         List<ItemStack> items = new ArrayList<>();

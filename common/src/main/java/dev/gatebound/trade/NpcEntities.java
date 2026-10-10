@@ -22,9 +22,11 @@ public final class NpcEntities {
                     .clientTrackingRange(10)
                     .build(ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, "npc"))));
 
+    /** Static holder; not instantiable. */
     private NpcEntities() {
     }
 
+    /** Registers the NPC entity type and attributes. */
     public static void init() {
         ENTITY_TYPES.register();
         EntityAttributeRegistry.register(NPC, Villager::createAttributes);

@@ -1,5 +1,7 @@
 package dev.gatebound.skill;
 
+import static dev.gatebound.skill.fx.Tasks.sound;
+import static dev.gatebound.skill.fx.Tasks.now;
 import dev.gatebound.sound.GateboundSounds;
 import dev.gatebound.compat.Compat;
 import dev.architectury.event.EventResult;
@@ -26,9 +28,7 @@ import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -250,16 +250,6 @@ public final class RogueSkills {
     }
 
     // ---------------------------------------------------------------- helpers
-
-    /** Current game time for the player's level. */
-    private static long now(ServerPlayer p) {
-        return p.level().getServer().getTickCount();
-    }
-
-    /** Plays a sound at the player. */
-    private static void sound(ServerPlayer player, ServerLevel level, SoundEvent sound, float pitch) {
-        level.playSound(null, player.blockPosition(), sound, SoundSource.PLAYERS, 1.0f, pitch);
-    }
 
     /** True if the player is a Rogue. */
     private static boolean isRogue(ServerPlayer p) {

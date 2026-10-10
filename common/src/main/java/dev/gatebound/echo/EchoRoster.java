@@ -55,10 +55,12 @@ public final class EchoRoster {
     /** Extra echo slots from Echo Shards. */
     public int bonusSlots;
 
+    /** Creates an empty roster. */
     public EchoRoster() {
         resetModes();
     }
 
+    /** Resets group order modes to their defaults. */
     private void resetModes() {
         for (int i = 0; i < GROUPS; i++) {
             groupModes[i] = i; // out of the box: group 1 guards, 2 attacks, 3 seeks gates, 4 guides
@@ -74,6 +76,7 @@ public final class EchoRoster {
         return r;
     }
 
+    /** Creates a roster from saved entries. */
     private EchoRoster(List<Entry> saved, List<Integer> modes, int bonus) {
         resetModes();
         this.entries.addAll(saved);

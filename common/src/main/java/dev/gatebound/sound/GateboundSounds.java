@@ -35,9 +35,11 @@ public final class GateboundSounds {
         }
     }
 
+    /** Static holder; not instantiable. */
     private GateboundSounds() {
     }
 
+    /** Registers the mod's sound events. */
     public static void init() {
         SOUNDS.register();
     }
@@ -53,11 +55,13 @@ public final class GateboundSounds {
         return own == null ? null : own.get();
     }
 
+    /** The mod's replacement for a vanilla sound, or the vanilla one. */
     public static SoundEvent of(SoundEvent vanilla) {
         RegistrySupplier<SoundEvent> own = EVENTS.get(vanilla.location().getPath());
         return own != null && vanilla.location().getNamespace().equals("minecraft") ? own.get() : vanilla;
     }
 
+    /** The mod's replacement for a vanilla sound holder, or the vanilla one. */
     public static SoundEvent of(Holder<SoundEvent> vanilla) {
         return of(vanilla.value());
     }

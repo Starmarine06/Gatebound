@@ -30,18 +30,22 @@ public final class PlayerDataStore extends SavedData {
 
     private final Map<UUID, PlayerData> players;
 
+    /** Creates an empty store. */
     public PlayerDataStore() {
         this.players = new HashMap<>();
     }
 
+    /** Creates a store from loaded data. */
     private PlayerDataStore(Map<UUID, PlayerData> loaded) {
         this.players = new HashMap<>(loaded);
     }
 
+    /** The server's store. */
     public static PlayerDataStore get(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(TYPE);
     }
 
+    /** A player's data (created on demand). */
     public static PlayerData of(ServerPlayer player) {
         return get(player.level().getServer()).players.computeIfAbsent(player.getUUID(), id -> new PlayerData());
     }
@@ -60,6 +64,7 @@ public final class PlayerDataStore extends SavedData {
                 dev.gatebound.compat.Compat.flushSavedData(player.level().getServer()));
     }
 
+    /** Marks the store as needing a save. */
     public static void markDirty(ServerPlayer player) {
         get(player.level().getServer()).setDirty();
     }

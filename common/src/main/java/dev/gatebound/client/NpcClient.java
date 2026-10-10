@@ -9,6 +9,7 @@ import net.minecraft.client.renderer.entity.VillagerRenderer;
 
 /** Client-only NPC glue: the renderer (vanilla villager look) and the trade screen opener. */
 public final class NpcClient {
+    /** Static holder; not instantiable. */
     private NpcClient() {
     }
 

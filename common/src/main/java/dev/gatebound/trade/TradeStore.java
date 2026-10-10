@@ -33,9 +33,11 @@ public final class TradeStore extends SavedData {
 
     private final Map<UUID, int[]> tomes = new HashMap<>();
 
+    /** Creates an empty store. */
     public TradeStore() {
     }
 
+    /** Creates a store from loaded data. */
     private TradeStore(Map<UUID, List<Integer>> loaded) {
         loaded.forEach((id, list) -> {
             int[] arr = new int[Stat.values().length];
@@ -46,6 +48,7 @@ public final class TradeStore extends SavedData {
         });
     }
 
+    /** Tome counts in saveable list form. */
     private Map<UUID, List<Integer>> toSaved() {
         Map<UUID, List<Integer>> out = new HashMap<>();
         tomes.forEach((id, arr) -> {
@@ -58,15 +61,18 @@ public final class TradeStore extends SavedData {
         return out;
     }
 
+    /** The server's tome store. */
     private static TradeStore get(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(TYPE);
     }
 
+    /** How many tomes of a stat the player has read. */
     public static int tomesRead(ServerPlayer player, Stat stat) {
         int[] arr = get(player.level().getServer()).tomes.get(player.getUUID());
         return arr == null ? 0 : arr[stat.ordinal()];
     }
 
+    /** Records a read tome for the player. */
     public static void addTome(ServerPlayer player, Stat stat) {
         TradeStore store = get(player.level().getServer());
         store.tomes.computeIfAbsent(player.getUUID(), id -> new int[Stat.values().length])[stat.ordinal()]++;

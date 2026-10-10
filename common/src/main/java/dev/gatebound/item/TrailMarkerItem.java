@@ -59,11 +59,13 @@ public final class TrailMarkerItem extends Item {
 
     private final int color;
 
+    /** Creates a trail marker of a colour. */
     private TrailMarkerItem(Properties properties, int color) {
         super(properties);
         this.color = color;
     }
 
+    /** Registers a coloured marker item. */
     private static RegistrySupplier<Item> marker(String id, DyeColor dye) {
         return ITEMS.register(id, () -> new TrailMarkerItem(new Item.Properties()
                 .arch$tab(GateboundRegistries.MAIN_TAB).stacksTo(64)
@@ -71,6 +73,7 @@ public final class TrailMarkerItem extends Item {
                 dye == null ? PLAIN_COLOR : dye.getTextColor() & 0xFFFFFF));
     }
 
+    /** Registers the marker items and their dungeon expiry tick. */
     public static void init() {
         ITEMS.register();
         TickEvent.SERVER_POST.register(server -> {
@@ -132,6 +135,7 @@ public final class TrailMarkerItem extends Item {
         }
     }
 
+    /** Expiry tick stored on a marker stand. */
     private static long expiry(Entity stand) {
         for (String t : stand.entityTags()) {
             if (t.startsWith(TAG + "_")) {

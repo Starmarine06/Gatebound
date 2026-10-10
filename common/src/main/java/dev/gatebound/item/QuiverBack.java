@@ -24,9 +24,11 @@ public final class QuiverBack {
     private static List<UUID> last = List.of();
     private static boolean dirty = true;
 
+    /** Static holder; not instantiable. */
     private QuiverBack() {
     }
 
+    /** Registers the quiver-on-back tick hook. */
     public static void init() {
         TickEvent.SERVER_POST.register(QuiverBack::tick);
         PlayerEvent.PLAYER_JOIN.register(player -> dirty = true);
@@ -41,6 +43,7 @@ public final class QuiverBack {
         });
     }
 
+    /** Every 10 ticks: tells clients which players carry a quiver. */
     private static void tick(MinecraftServer server) {
         long now = server.getTickCount();
         if (now % 10 != 0) {

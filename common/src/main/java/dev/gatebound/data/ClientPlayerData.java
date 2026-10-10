@@ -21,9 +21,11 @@ public final class ClientPlayerData {
         Arrays.fill(STATS, Stat.BASE_VALUE);
     }
 
+    /** Static holder; not instantiable. */
     private ClientPlayerData() {
     }
 
+    /** Stores the latest player data sync. */
     public static void update(SyncDataPayload p) {
         level = p.level();
         xp = p.xp();

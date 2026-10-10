@@ -17,10 +17,12 @@ public final class Spire {
     public static final int GATE_BASE = 2000;
     public static final int GATE_SLOTS = 600;
 
+    /** True if the floor index is a gate dungeon floor. */
     public static boolean isGate(int floor) {
         return floor >= GATE_BASE && floor < GATE_BASE + GATE_SLOTS * 6;
     }
 
+    /** Floor index of a gate slot and rank. */
     public static int gateIndex(int slot, GateRank rank) {
         return GATE_BASE + slot * 6 + rank.ordinal();
     }
@@ -38,14 +40,17 @@ public final class Spire {
         NORMAL, REST, BOSS, FINAL
     }
 
+    /** Static holder; not instantiable. */
     private Spire() {
     }
 
+    /** Floor side length in blocks (multiple of 16). */
     public static int size() {
         int s = Math.max(96, Math.min(256, DungeonConfig.floorSize));
         return (s + 15) / 16 * 16;
     }
 
+    /** World x where a floor starts. */
     public static int originX(int floor) {
         return floor * FLOOR_SPACING;
     }
@@ -67,12 +72,14 @@ public final class Spire {
         return f;
     }
 
+    /** Bounding box of a floor. */
     public static AABB bounds(int floor) {
         int ox = originX(floor);
         int s = size();
         return new AABB(ox - 6, FY - 6, -6, ox + s + 6, FY + 40, s + 6);
     }
 
+    /** Kind of a floor (normal, rest, boss, final). */
     public static Kind kind(int floor, int total) {
         if (isGate(floor)) {
             return Kind.BOSS; // rooms leading to a guardian arena
@@ -100,10 +107,12 @@ public final class Spire {
         return Math.max(0, Math.min(5, (int) Math.floor((floor - 1) * 6.0 / total)));
     }
 
+    /** Gate rank of a floor. */
     public static GateRank rank(int floor, int total) {
         return GateRank.byIndex(band(floor, total));
     }
 
+    /** Visual theme of a floor. */
     public static FloorTheme theme(int floor, int total) {
         Kind k = kind(floor, total);
         return k == Kind.REST ? FloorTheme.SANCTUARY : FloorTheme.ofBand(band(floor, total));
@@ -133,6 +142,7 @@ public final class Spire {
         return Math.max(range[0], Math.min(range[1], range[0] + (int) Math.floor((range[1] - range[0] + 1) * u)));
     }
 
+    /** Short description of a floor. */
     public static String describe(int floor, int total) {
         if (isGate(floor)) {
             return "Gate Dungeon - " + theme(floor, total).label();
@@ -146,6 +156,7 @@ public final class Spire {
         };
     }
 
+    /** World position from floor-local coordinates. */
     public static BlockPos abs(int floor, int i, int y, int j) {
         return new BlockPos(originX(floor) + i, y, j);
     }

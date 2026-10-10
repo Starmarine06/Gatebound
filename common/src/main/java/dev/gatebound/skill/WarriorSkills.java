@@ -1,5 +1,8 @@
 package dev.gatebound.skill;
 
+import static dev.gatebound.skill.fx.Tasks.sound;
+import static dev.gatebound.skill.fx.Tasks.now;
+import static dev.gatebound.skill.fx.Tasks.playerOf;
 import dev.gatebound.sound.GateboundSounds;
 import dev.gatebound.compat.Compat;
 import dev.architectury.event.EventResult;
@@ -24,9 +27,7 @@ import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -138,16 +139,6 @@ public final class WarriorSkills {
     }
 
     // ---------------------------------------------------------------- helpers
-
-    /** Current game time for the player's level. */
-    private static long now(ServerPlayer p) {
-        return p.level().getServer().getTickCount();
-    }
-
-    /** Plays a sound at the player. */
-    private static void sound(ServerPlayer player, ServerLevel level, SoundEvent sound, float pitch) {
-        level.playSound(null, player.blockPosition(), sound, SoundSource.PLAYERS, 1.0f, pitch);
-    }
 
     /** True while Berserker Rage is active. */
     private static boolean enraged(ServerPlayer p, long now) {
@@ -295,12 +286,6 @@ public final class WarriorSkills {
         if (!AVATAR.isEmpty()) {
             tickAvatars(server, now);
         }
-    }
-
-    /** Looks a player up by UUID. */
-    private static ServerPlayer playerOf(MinecraftServer server, UUID id) {
-        ServerPlayer p = server.getPlayerList().getPlayer(id);
-        return p != null && p.isAlive() ? p : null;
     }
 
     /** Per-tick upkeep of active Charges. */
