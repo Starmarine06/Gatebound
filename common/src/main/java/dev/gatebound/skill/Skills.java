@@ -233,7 +233,7 @@ public final class Skills {
     private static boolean spiritWard(ServerPlayer player, ServerLevel level, PlayerData data) {
         player.heal(intel(data, 6, 0.5));
         player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 200, 0));
-        level.sendParticles(ParticleTypes.HAPPY_VILLAGER, player.getX(), player.getY() + 1, player.getZ(), 20, 0.5, 0.8, 0.5, 0);
+        dev.gatebound.skill.fx.SummonerFx.spiritWard(player, 200);
         sound(player, level, GateboundSounds.of(SoundEvents.AMETHYST_BLOCK_CHIME), 1.0f);
         return true;
     }
@@ -245,6 +245,7 @@ public final class Skills {
             return false;
         }
         float damage = intel(data, 4, 0.6);
+        dev.gatebound.skill.fx.SummonerFx.drain(player, hits.get(0));
         hits.get(0).hurtServer(level, magic(player, level), damage);
         player.heal(damage * 0.5f);
         return true;

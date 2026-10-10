@@ -485,7 +485,7 @@ public final class EchoManager {
     private static void defeat(Mob mob) {
         Info info = ACTIVE.get(mob.getUUID());
         if (mob.level() instanceof ServerLevel level) {
-            level.sendParticles(ParticleTypes.SOUL, mob.getX(), mob.getY() + 0.8, mob.getZ(), 20, 0.3, 0.5, 0.3, 0.05);
+            dev.gatebound.skill.fx.SummonerFx.released(level, mob.position());
             if (info != null) {
                 ServerPlayer owner = level.getServer().getPlayerList().getPlayer(info.owner);
                 if (owner != null) {
@@ -615,7 +615,9 @@ public final class EchoManager {
             Entity entity = findAnywhere(player.level().getServer(), id);
             if (entity instanceof Mob mob) {
                 if (mob.level() instanceof ServerLevel level) {
-                    level.sendParticles(ParticleTypes.SOUL, mob.getX(), mob.getY() + 0.8, mob.getZ(), 10, 0.3, 0.5, 0.3, 0.03);
+                    if (player.isAlive() && player.level() == level) {
+                        dev.gatebound.skill.fx.SummonerFx.recalled(level, mob.position(), player);
+                    }
                 }
                 remove(mob);
                 count++;
@@ -711,7 +713,7 @@ public final class EchoManager {
             ACTIVE.remove(mob.getUUID());
             return null;
         }
-        level.sendParticles(ParticleTypes.REVERSE_PORTAL, mob.getX(), mob.getY() + 0.8, mob.getZ(), 25, 0.3, 0.6, 0.3, 0.2);
+        dev.gatebound.skill.fx.SummonerFx.summoned(level, mob.position());
         return mob;
     }
 

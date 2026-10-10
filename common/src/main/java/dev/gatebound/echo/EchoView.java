@@ -72,6 +72,7 @@ public final class EchoView {
                     .withStyle(ChatFormatting.GRAY));
             return true; // the message above replaces the generic no-target hint
         }
+        dev.gatebound.skill.fx.SummonerFx.eye(player, target);
         end(player, false);
         SESSIONS.put(player.getUUID(), new Session(target.getUUID(), player.level().getServer().getTickCount()));
         NetworkManager.sendToPlayer(player, new EchoViewPayload(target.getId()));

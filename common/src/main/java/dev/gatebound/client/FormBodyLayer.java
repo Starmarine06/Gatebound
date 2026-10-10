@@ -120,6 +120,20 @@ public final class FormBodyLayer extends RenderLayer<AvatarRenderState, PlayerMo
                     draw(ps, c, state, owner, m.body, "tendril", (i - 1.5f) * 0.3f, 0.2f, 0.36f, 30.0f + sway * 16.0f, 0, sway * 14.0f, 0.8f, 2.6f, 0.8f);
                 }
             }
+            case "summoner" -> {
+                wings(ps, c, state, owner, m, "wings_summoner", 4.2f, t);
+                horns(ps, c, state, owner, m, "crown_summoner", 0.9f);
+                for (int i = 0; i < 3; i++) { // hooded spirits circling the sovereign
+                    float a = t * 0.12f + i * 2.0944f;
+                    draw(ps, c, state, owner, null, "soul_ghost", (float) Math.cos(a) * 1.7f, 0.3f + (float) Math.sin(t * 0.08f + i) * 0.2f,
+                            (float) Math.sin(a) * 1.7f, 0, 90.0f - (float) Math.toDegrees(a), 0, 1.7f, 1.7f, 1.7f);
+                }
+                for (int i = 0; i < 4; i++) { // wisps spiralling up the body
+                    float a = -t * 0.25f + i * 1.5708f;
+                    draw(ps, c, state, owner, m.body, "soul_wisp", (float) Math.cos(a) * 0.9f, 0.6f - ((t * 0.02f + i * 0.25f) % 1.0f) * 1.4f,
+                            (float) Math.sin(a) * 0.9f, 0, -(float) Math.toDegrees(a), 0, 1.0f, 1.0f, 1.0f);
+                }
+            }
             case "warrior" -> {
                 wings(ps, c, state, owner, m, "wings_warrior", 4.4f, t);
                 horns(ps, c, state, owner, m, "horns_fire", 1.0f);

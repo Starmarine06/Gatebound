@@ -22,6 +22,7 @@ $elements = [ordered]@{
   warrior   = @{ glow = @(210, 58, 34);   core = @(255, 225, 190) }
   rogue     = @{ glow = @(150, 64, 235);  core = @(232, 205, 255) }
   venom     = @{ glow = @(84, 220, 60);   core = @(226, 255, 200) }
+  summoner  = @{ glow = @(63, 216, 200);  core = @(232, 255, 251) }
 }
 
 function NewCanvas($size) {
@@ -164,6 +165,9 @@ function DrawCircle($name, $glow, $core, $seed) {
     'venom'     { PolyStar $g $c $c 156 5 2 (-[math]::PI / 2) $glow $core 1.1
                   for ($i = 0; $i -lt 3; $i++) { $a = $i * 2 * [math]::PI / 3; GlowCircle $g ($c + [math]::Cos($a) * 52) ($c + [math]::Sin($a) * 52) 46 $glow $core 0.9 }
                   GlowCircle $g $c $c 16 $glow $core 1.2 }
+    'summoner'  { PolyStar $g $c $c 158 6 2 (-[math]::PI / 2) $glow $core 1.2
+                  for ($i = 0; $i -lt 3; $i++) { $a = $i * 2 * [math]::PI / 3 - [math]::PI / 2; GlowCircle $g ($c + [math]::Cos($a) * 62) ($c + [math]::Sin($a) * 62) 62 $glow $core 0.8 }
+                  GlowCircle $g $c $c 20 $glow $core 1.2 }
     'dark'      { PolyStar $g $c $c 156 5 2 ([math]::PI / 2) $glow $core 1.2
                   GlowCircle $g $c $c 70 $glow $core 1.0
                   GlowCircle $g $c $c 24 $glow $core 1.2 }
@@ -794,6 +798,108 @@ WriteModel 'wings_rogue' 'wings_rogue' @((PlaneEl 'z'))
 DrawHalo 'halo_rogue.png' $rg.glow $rg.core 10
 WriteModel 'halo_rogue' 'halo_rogue' @((PlaneEl 'y'))
 
+
+# ------------------------------------------------------------------ summoner set
+$sm = $elements['summoner']
+
+# A soul wisp: a bright orb trailing a fading comet tail to the left (128x128).
+function DrawWisp($file, $glow, $core) {
+  $cv = NewCanvas 128; $g = $cv.g
+  for ($i = 0; $i -lt 9; $i++) {
+    $x = 84 - $i * 8.5; $r = 17 - $i * 1.5; $a = [int](170 - $i * 17)
+    $y = 64 + [math]::Sin($i * 0.8) * 5
+    $br = New-Object System.Drawing.SolidBrush (C $a $glow[0] $glow[1] $glow[2]); $g.FillEllipse($br, $x - $r, $y - $r, $r * 2, $r * 2); $br.Dispose()
+  }
+  $br = New-Object System.Drawing.SolidBrush (C 90 $glow[0] $glow[1] $glow[2]); $g.FillEllipse($br, 66, 40, 48, 48); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 255 $core[0] $core[1] $core[2]); $g.FillEllipse($br, 78, 52, 24, 24); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 255 255 255 255); $g.FillEllipse($br, 85, 59, 10, 10); $br.Dispose()
+  SavePng $cv $file
+}
+
+# A watching ghost eye (256x256).
+function DrawEye($file, $glow, $core) {
+  $cv = NewCanvas 256; $g = $cv.g
+  $top = @(); $bot = @()
+  for ($i = 0; $i -le 20; $i++) {
+    $t = $i / 10.0 - 1; $x = 128 + $t * 112; $h = (1 - $t * $t) * 62
+    $top += , (Pt $x (128 - $h)); $bot += , (Pt $x (128 + $h))
+  }
+  $botRev = @($bot[($bot.Count - 1)..0])
+  $shape = PtArr ($top + $botRev)
+  $br = New-Object System.Drawing.SolidBrush (C 235 6 30 38); $g.FillPolygon($br, $shape); $br.Dispose()
+  GlowLines $g (PtArr $top) $glow $core 1.2
+  GlowLines $g (PtArr $bot) $glow $core 1.2
+  $br = New-Object System.Drawing.SolidBrush (C 120 $glow[0] $glow[1] $glow[2]); $g.FillEllipse($br, 90, 90, 76, 76); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 255 $glow[0] $glow[1] $glow[2]); $g.FillEllipse($br, 100, 100, 56, 56); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 255 4 16 22); $g.FillEllipse($br, 120, 96, 16, 64); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 255 $core[0] $core[1] $core[2]); $g.FillEllipse($br, 108, 104, 12, 12); $br.Dispose()
+  for ($i = 0; $i -lt 7; $i++) {
+    $a = Rad (-150 + $i * 20)
+    GlowLines $g (PtArr @((Pt (128 + [math]::Cos($a) * 90) (128 + [math]::Sin($a) * 70)), (Pt (128 + [math]::Cos($a) * 120) (128 + [math]::Sin($a) * 100)))) $glow $core 0.7
+  }
+  SavePng $cv $file
+}
+
+# A hooded ghost with a trailing wavy tail and reaching arms (256x256).
+function DrawGhost($file, $glow, $core) {
+  $cv = NewCanvas 256; $g = $cv.g
+  $left = @(); $right = @()
+  for ($i = 0; $i -le 12; $i++) {
+    $f = $i / 12.0; $y = 96 + $f * 148
+    $w = 44 * (1 - $f * 0.55) + [math]::Sin($f * 9) * 7 * $f
+    $left += , (Pt (128 - $w + [math]::Sin($f * 7) * 10 * $f) $y); $right += , (Pt (128 + $w + [math]::Sin($f * 7 + 1) * 10 * $f) $y)
+  }
+  $rightRev = @($right[($right.Count - 1)..0])
+  $body = PtArr ($left + $rightRev)
+  $br = New-Object System.Drawing.SolidBrush (C 70 $glow[0] $glow[1] $glow[2]); $g.FillEllipse($br, 60, 20, 136, 150); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 215 $core[0] $core[1] $core[2]); $g.FillPolygon($br, $body); $g.FillEllipse($br, 90, 36, 76, 84); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 110 $glow[0] $glow[1] $glow[2]); $g.FillEllipse($br, 100, 50, 56, 60); $br.Dispose()
+  GlowLines $g (PtArr $left) $glow $core 0.8
+  GlowLines $g (PtArr $right) $glow $core 0.8
+  GlowLines $g (PtArr @($left[($left.Count - 1)], $right[($right.Count - 1)])) $glow $core 0.6
+  GlowLines $g (PtArr @((Pt 92 120), (Pt 52 146), (Pt 34 132))) $glow $core 0.9
+  GlowLines $g (PtArr @((Pt 164 120), (Pt 204 146), (Pt 222 132))) $glow $core 0.9
+  $br = New-Object System.Drawing.SolidBrush (C 255 6 34 40); $g.FillEllipse($br, 106, 72, 14, 22); $g.FillEllipse($br, 136, 72, 14, 22); $br.Dispose()
+  SavePng $cv $file
+}
+
+# A latticed ring used as the great circles of the domain dome (256x256).
+function DrawCage($file, $glow, $core) {
+  $cv = NewCanvas 256; $g = $cv.g; $c = 128
+  GlowCircle $g $c $c 118 $glow $core 1.4
+  GlowCircle $g $c $c 110 $glow $core 0.5
+  for ($i = 0; $i -lt 48; $i++) {
+    $a = $i * 2 * [math]::PI / 48
+    $len = if ($i % 4 -eq 0) { 14 } else { 6 }
+    GlowLines $g (PtArr @((Pt ($c + [math]::Cos($a) * 118) ($c + [math]::Sin($a) * 118)), (Pt ($c + [math]::Cos($a) * (118 - $len)) ($c + [math]::Sin($a) * (118 - $len))))) $glow $core 0.6
+  }
+  SavePng $cv $file
+}
+
+DrawWisp 'soul_wisp.png' $sm.glow $sm.core
+WriteModel 'soul_wisp' 'soul_wisp' @((PlaneEl 'z'), (PlaneEl 'x'))
+DrawEye 'soul_eye.png' $sm.glow $sm.core
+WriteModel 'soul_eye' 'soul_eye' @((PlaneEl 'z'))
+DrawGhost 'soul_ghost.png' $sm.glow $sm.core
+WriteModel 'soul_ghost' 'soul_ghost' @((PlaneEl 'z'))
+DrawBeam 'soul_beam.png' $sm.glow $sm.core
+WriteModel 'soul_beam' 'soul_beam' @((PlaneEl 'z'), (PlaneEl 'x'))
+DrawChain 'soul_chain.png' $sm.glow $sm.core
+WriteModel 'soul_chain' 'soul_chain' @((PlaneEl 'z'), (PlaneEl 'x'))
+DrawReticle 'reticle_soul.png' $sm.glow $sm.core
+WriteModel 'reticle_soul' 'reticle_soul' @((PlaneEl 'y'))
+DrawCage 'soul_cage.png' $sm.glow $sm.core
+WriteModel 'soul_cage' 'soul_cage' @(
+  (BoxEl @(0, 0, 7.95) @(16, 16, 8.05) 'y' 0), (BoxEl @(0, 0, 7.95) @(16, 16, 8.05) 'y' 45), (BoxEl @(0, 0, 7.95) @(16, 16, 8.05) 'y' 90),
+  (BoxEl @(0, 0, 7.95) @(16, 16, 8.05) 'y' 135), (PlaneEl 'y'))
+WriteModel 'soul_shackle' 'ring_summoner' @((RingPlane 2 6), (RingPlane 6 6.5), (RingPlane 10 6.5), (RingPlane 14 6))
+DrawWings 'wings_summoner.png' $sm.glow $sm.core @(14, 44, 52) 'feather'
+WriteModel 'wings_summoner' 'wings_summoner' @((PlaneEl 'z'))
+DrawCrown 'crown_summoner.png' $sm.glow $sm.core
+WriteModel 'crown_summoner' 'crown_summoner' @((PlaneEl 'z'))
+DrawHalo 'halo_summoner.png' $sm.glow $sm.core 12
+WriteModel 'halo_summoner' 'halo_summoner' @((PlaneEl 'y'))
+
 # ------------------------------------------------------------------ mage form body skins (64x64 player skin layout, 4 animation frames each)
 # Only the base-layer regions are painted; the outer-layer regions stay transparent, so the overlay never hides hats, jackets or sleeves.
 $formDir = Join-Path $root 'textures\entity\form'
@@ -851,6 +957,12 @@ function SkinPixel($el, $x, $y, $f) {
       if ((Hash2 $x $y ($f + 11)) -gt 0.965) { return @(110, 255, 90) }
       return $c
     }
+    'summoner' {
+      $s = 0.5 + 0.5 * [math]::Sin(($x + $y * 0.6) * 0.45 + $ph * 1.3 + [math]::Sin($y * 0.4) * 1.2)
+      $c = Mix @(6, 30, 40) @(60, 210, 195) ([math]::Pow($s, 3))
+      if ((Hash2 $x $y ($f + 5)) -gt 0.96) { return @(235, 255, 252) }
+      return $c
+    }
     'warrior' {
       if (($x % 8) -eq 0 -or ($y % 8) -eq 0) { return Mix @(200, 50, 24) @(255, 190, 80) (0.5 + 0.5 * [math]::Sin($ph + $x * 0.3)) }
       return Mix @(66, 72, 84) @(150, 158, 172) (Hash2 ([math]::Floor($x / 2)) ([math]::Floor($y / 2)) 3)
@@ -879,8 +991,8 @@ function DrawSkin($el, $f, $eye) {
   $bmp.Dispose()
 }
 
-$eyes = @{ fire = @(255, 255, 220); ice = @(255, 255, 255); lightning = @(255, 255, 255); wind = @(70, 150, 120); earth = @(255, 200, 80); warrior = @(255, 210, 90); rogue = @(120, 255, 90); light = @(255, 255, 255); dark = @(255, 60, 230) }
-foreach ($el in @('fire', 'ice', 'lightning', 'wind', 'earth', 'light', 'dark', 'warrior', 'rogue')) {
+$eyes = @{ fire = @(255, 255, 220); ice = @(255, 255, 255); lightning = @(255, 255, 255); wind = @(70, 150, 120); earth = @(255, 200, 80); warrior = @(255, 210, 90); rogue = @(120, 255, 90); summoner = @(230, 255, 252); light = @(255, 255, 255); dark = @(255, 60, 230) }
+foreach ($el in @('fire', 'ice', 'lightning', 'wind', 'earth', 'light', 'dark', 'warrior', 'rogue', 'summoner')) {
   for ($f = 0; $f -lt 4; $f++) { DrawSkin $el $f $eyes[$el] }
 }
 Write-Output 'done'
