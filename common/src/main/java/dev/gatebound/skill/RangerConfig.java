@@ -63,6 +63,8 @@ public final class RangerConfig {
     public static int tranceBaseSeconds = 12;
     public static int apexBaseSeconds = 20;
     public static double apexRadius = 32;
+    /** Mana Apex Predator drains every second it runs; it ends the moment the pool is empty. */
+    public static double apexManaPerSecond = 6;
     public static double barrageRadius = 30;
     public static int barrageArrows = 20;
     /** Maximum health above which Headshot will not execute a target under 20% health. */

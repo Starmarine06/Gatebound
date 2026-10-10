@@ -817,6 +817,19 @@ public final class RangerSkills {
                 continue;
             }
             a.nextStrike = now + 20;
+            // Upkeep: the longer it runs the more mana it costs, and at zero it stops completely.
+            double left = ManaState.get(p) - RangerConfig.apexManaPerSecond;
+            ManaState.set(p, Math.max(0, left));
+            SkillHandler.sendMana(p, true);
+            if (left <= 0) {
+                APEX.remove(id);
+                p.removeEffect(MobEffects.SPEED);
+                p.removeEffect(MobEffects.STRENGTH);
+                dev.gatebound.skill.fx.FxState.clear(p, "form:ranger");
+                dev.gatebound.skill.fx.FxState.clear(p, "circle:ranger:22");
+                Compat.overlay(p, Component.literal("Out of mana: Apex Predator ends."));
+                continue;
+            }
             ServerLevel level = p.level();
             PlayerData data = PlayerDataStore.of(p);
             int strikes = 0;
