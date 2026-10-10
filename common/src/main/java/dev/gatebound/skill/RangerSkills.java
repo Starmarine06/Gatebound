@@ -82,7 +82,8 @@ public final class RangerSkills {
     /** What the next arrow the Ranger looses will do. Set by casting a bow skill. */
     private enum Kind { HOMING, PIERCING, POISON, SNARE, MULTISHOT, RAIN, RICOCHET, HEADSHOT, BARRAGE }
 
-    private record Primed(Kind kind, long until, UUID target, net.minecraft.core.BlockPos block) {
+    /** Every bow skill cast since the last shot (they stack), until they run out. */
+    private record Primed(java.util.Set<Kind> kinds, long until, UUID target, net.minecraft.core.BlockPos block) {
     }
 
     private static final class Tracked {
@@ -270,6 +271,19 @@ public final class RangerSkills {
         return range * (isQuarry(p, target, now) ? 1 + RangerConfig.quarryBonus : 1);
     }
 
+    /** The bell-like hit sound the game plays when you shoot a player, for any target hit from far away. */
+    private static void ding(ServerPlayer shooter, LivingEntity target) {
+        if (shooter.distanceToSqr(target) >= RangerConfig.dingDistance * RangerConfig.dingDistance) {
+            //? if >=26.1 {
+            shooter.connection.send(new net.minecraft.network.protocol.game.ClientboundGameEventPacket(
+                    net.minecraft.network.protocol.game.ClientboundGameEventPacket.PLAY_ARROW_HIT_SOUND, 0.0f));
+            //?} else {
+            /*shooter.connection.send(new net.minecraft.network.protocol.game.ClientboundGameEventPacket(
+                    net.minecraft.network.protocol.game.ClientboundGameEventPacket.ARROW_HIT_PLAYER, 0.0f));
+            *///?}
+        }
+    }
+
     private static boolean valid(LivingEntity e) {
         return e.isAlive() && !(e instanceof Player) && !(e instanceof Mob mob && EchoManager.isEcho(mob));
     }
@@ -300,6 +314,7 @@ public final class RangerSkills {
 
     /** Instant hit used by ray shots: bonuses are applied here because there is no arrow for the hurt event to see. */
     private static void rayHit(ServerPlayer p, ServerLevel level, LivingEntity target, float base) {
+        ding(p, target);
         applying = true;
         try {
             Compat.setInvulnerableTime(target, 0);
@@ -348,93 +363,143 @@ public final class RangerSkills {
 
     // ---------------------------------------------------------------- bow skills: imbue the next shot
 
+    /** Adds a skill to what the next arrow will do, keeping whatever was primed before it. */
+    private static void addPrime(ServerPlayer p, Kind kind, UUID target, net.minecraft.core.BlockPos block) {
+        Primed old = PRIMED.get(p.getUUID());
+        java.util.Set<Kind> kinds = java.util.EnumSet.noneOf(Kind.class);
+        UUID lockEntity = target;
+        net.minecraft.core.BlockPos lockBlock = block;
+        if (old != null && old.until() > now(p)) {
+            kinds.addAll(old.kinds());
+            if (lockEntity == null && lockBlock == null) {
+                lockEntity = old.target();
+                lockBlock = old.block();
+            }
+        }
+        kinds.add(kind);
+        PRIMED.put(p.getUUID(), new Primed(kinds, now(p) + RangerConfig.primedSeconds * 20L, lockEntity, lockBlock));
+    }
+
+    private static String stackLabel(ServerPlayer p) {
+        Primed pr = PRIMED.get(p.getUUID());
+        StringBuilder sb = new StringBuilder();
+        if (pr != null) {
+            for (Kind k : pr.kinds()) {
+                if (sb.length() > 0) {
+                    sb.append(" + ");
+                }
+                sb.append(k.name().charAt(0)).append(k.name().substring(1).toLowerCase());
+            }
+        }
+        return sb.toString();
+    }
+
     private static boolean prime(ServerPlayer p, int cost, Kind kind, String label) {
         if (!begin(p, cost, true)) {
             return false;
         }
-        PRIMED.put(p.getUUID(), new Primed(kind, now(p) + RangerConfig.primedSeconds * 20L, null, null));
-        Compat.overlay(p, Component.literal("Your next arrow is imbued: " + label));
+        addPrime(p, kind, null, null);
+        Compat.overlay(p, Component.literal("Your next arrow is imbued: " + stackLabel(p)));
         dev.gatebound.skill.fx.RangerFx.primed(p);
         sound(p, p.level(), GateboundSounds.of(SoundEvents.ENCHANTMENT_TABLE_USE), 1.2f);
         return true;
     }
 
-    private static ParticleOptions trailOf(Kind kind) {
-        return switch (kind) {
-            case POISON -> ParticleTypes.ITEM_SLIME;
-            case SNARE -> ParticleTypes.SNOWFLAKE;
-            case RAIN -> ParticleTypes.CLOUD;
-            case MULTISHOT -> ParticleTypes.CRIT;
-            default -> ParticleTypes.END_ROD;
-        };
+    private static ParticleOptions trailOf(java.util.Set<Kind> kinds) {
+        if (kinds.contains(Kind.POISON)) {
+            return ParticleTypes.ITEM_SLIME;
+        } else if (kinds.contains(Kind.SNARE)) {
+            return ParticleTypes.SNOWFLAKE;
+        } else if (kinds.contains(Kind.RAIN)) {
+            return ParticleTypes.CLOUD;
+        } else if (kinds.contains(Kind.MULTISHOT)) {
+            return ParticleTypes.CRIT;
+        }
+        return ParticleTypes.END_ROD;
     }
 
-    /** The Ranger loosed a shot while a bow skill was primed: the arrow becomes the skill, or the skill fires instead of the arrow. */
+    /** The Ranger loosed a shot while bow skills were primed: the arrow becomes them all, or one ray skill fires instead of the arrow. */
     private static EventResult fired(ServerPlayer p, ServerLevel level, AbstractArrow arrow, Primed primed) {
-        Kind kind = primed.kind();
         PlayerData data = PlayerDataStore.of(p);
-        switch (kind) {
-            case PIERCING -> firePiercing(p, level, data);
-            case RICOCHET -> fireRicochet(p, level, data);
-            case HEADSHOT -> fireHeadshot(p, level, data);
-            case BARRAGE -> fireBarrage(p, level, data);
-            default -> {
-                imbue(p, level, data, arrow, primed);
-                return EventResult.pass();
-            }
+        java.util.Set<Kind> kinds = primed.kinds();
+        if (kinds.contains(Kind.BARRAGE)) {
+            fireBarrage(p, level, data);
+        } else if (kinds.contains(Kind.RICOCHET)) {
+            fireRicochet(p, level, data);
+        } else if (kinds.contains(Kind.HEADSHOT)) {
+            fireHeadshot(p, level, data);
+        } else if (kinds.contains(Kind.PIERCING)) {
+            firePiercing(p, level, data);
+        } else {
+            imbue(p, level, data, arrow, primed);
+            return EventResult.pass();
         }
         return EventResult.interruptFalse(); // the shot became the skill; no arrow flies
     }
 
+    /** Poison and snare ride on the arrow as potion effects (arrows divide effect time by 8). */
+    private static void applyEffects(Arrow a, java.util.Set<Kind> kinds, PlayerData data) {
+        if (kinds.contains(Kind.POISON)) {
+            a.addEffect(new MobEffectInstance(MobEffects.POISON, (5 + data.level / 10) * 20 * 8, 1));
+        }
+        if (kinds.contains(Kind.SNARE)) {
+            a.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 3 * 20 * 8, 10));
+        }
+    }
+
     private static void imbue(ServerPlayer p, ServerLevel level, PlayerData data, AbstractArrow arrow, Primed primed) {
-        Kind kind = primed.kind();
+        java.util.Set<Kind> kinds = primed.kinds();
         Vec3 v = arrow.getDeltaMovement();
         double speed = Math.max(v.length(), 1.0);
         double power = Math.min(1.0, speed / 3.0);
-        float base = switch (kind) {
-            case POISON, SNARE -> dmg(data, 5);
-            case MULTISHOT -> dmg(data, 4);
-            case RAIN -> dmg(data, 3);
-            default -> dmg(data, 7);
-        };
+        float base = 0;
+        for (Kind kind : kinds) {
+            base = Math.max(base, switch (kind) {
+                case POISON, SNARE -> dmg(data, 5);
+                case MULTISHOT -> dmg(data, 4);
+                case RAIN -> dmg(data, 3);
+                default -> dmg(data, 7);
+            });
+        }
         arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
         arrow.setBaseDamage(base * (0.4 + 0.6 * power) / speed);
         arrow.addTag(ARROW_TAG);
         arrow.setGlowingTag(true);
-        boolean seeks = kind == Kind.HOMING || buffed(p, now(p));
+        boolean homing = kinds.contains(Kind.HOMING);
+        boolean seeks = homing || buffed(p, now(p));
         if (seeks) {
             arrow.setNoGravity(true);
         }
         Tracked t = new Tracked(p.getUUID(), level.dimension(), now(p), seeks);
         t.speed = speed;
-        t.lockEntity = primed.target();
-        t.lockBlock = primed.block();
-        t.trail = trailOf(kind);
+        t.lockEntity = homing ? primed.target() : null;
+        t.lockBlock = homing ? primed.block() : null;
+        t.trail = trailOf(kinds);
         t.lastPos = arrow.position();
         t.glow = dev.gatebound.skill.fx.RangerFx.glow(level, arrow);
-        t.kind = kind.name().toLowerCase();
+        t.kind = kinds.contains(Kind.POISON) ? "poison" : kinds.contains(Kind.SNARE) ? "snare"
+                : kinds.iterator().next().name().toLowerCase();
         ARROWS.put(arrow.getUUID(), t);
         if (arrow instanceof Arrow a) {
-            if (kind == Kind.POISON) {
-                a.addEffect(new MobEffectInstance(MobEffects.POISON, (5 + data.level / 10) * 20 * 8, 1)); // arrows divide effect time by 8
-            } else if (kind == Kind.SNARE) {
-                a.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 3 * 20 * 8, 10));
-            }
+            applyEffects(a, kinds, data);
         }
-        if (kind == Kind.MULTISHOT) {
+        if (kinds.contains(Kind.MULTISHOT)) {
             for (int i = -2; i <= 2; i++) {
                 if (i == 0) {
                     continue;
                 }
                 double rad = Math.toRadians(i * 9.0);
                 Vec3 dir = new Vec3(v.x * Math.cos(rad) - v.z * Math.sin(rad), v.y, v.x * Math.sin(rad) + v.z * Math.cos(rad));
-                Arrow extra = shootFrom(p, level, arrow.position(), dir.normalize(), speed, base * (float) (0.4 + 0.6 * power), buffed(p, now(p)));
+                Arrow extra = shootFrom(p, level, arrow.position(), dir.normalize(), speed, base * (float) (0.4 + 0.6 * power),
+                        seeks);
                 Tracked et = ARROWS.get(extra.getUUID());
-                et.trail = ParticleTypes.CRIT;
-                et.kind = "multishot";
+                et.trail = trailOf(kinds);
+                et.kind = t.kind;
+                applyEffects(extra, kinds, data);
                 extra.setGlowingTag(true);
             }
-        } else if (kind == Kind.RAIN) {
+        }
+        if (kinds.contains(Kind.RAIN)) {
             t.onLand = spot -> {
                 dev.gatebound.skill.fx.RangerFx.rain(level, spot, RangerConfig.rainRingRadius * 2.2, RangerConfig.rainWaves * 3 + 24);
                 rainAt(p, spot, dmg(data, 3));
@@ -542,6 +607,7 @@ public final class RangerSkills {
             dev.gatebound.skill.fx.RangerFx.impact(level, victim, hitBy.kind);
             hitBy.kind = null;
         }
+        ding(p, victim);
         // Every player's arrows hit harder with Strength and with distance; quarry and Agility bonuses are the Ranger's.
         PlayerData pd = PlayerDataStore.of(p);
         double mult = multiplier(p, victim, now) * (1 + RangerConfig.strengthBowBonus * pd.get(Stat.STRENGTH));
@@ -830,7 +896,7 @@ public final class RangerSkills {
             Compat.overlay(p, Component.literal("Nothing to lock onto: aim at a mob, a player, a button or a target."));
             return false;
         }
-        PRIMED.put(p.getUUID(), new Primed(Kind.HOMING, now(p) + RangerConfig.primedSeconds * 20L, entityId, blockPos));
+        addPrime(p, Kind.HOMING, entityId, blockPos);
         Compat.overlay(p, Component.literal("Locked on: " + name + ". Loose an arrow."));
         dev.gatebound.skill.fx.RangerFx.lock(p, entityId == null ? null : level.getEntity(entityId), blockPos);
         sound(p, level, GateboundSounds.of(SoundEvents.ENCHANTMENT_TABLE_USE), 1.2f);
