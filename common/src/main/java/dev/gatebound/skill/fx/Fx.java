@@ -1,6 +1,5 @@
 package dev.gatebound.skill.fx;
 
-import dev.gatebound.skill.mage.MageCore;
 import net.minecraft.core.particles.DustColorTransitionOptions;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
@@ -13,7 +12,7 @@ import java.util.UUID;
 
 /**
  * Server-side particle shapes: rings, shockwaves, helixes, pillars, runes, arcs and projectile trails. Everything is made of
- * vanilla particles so any client sees it. Effects that last more than a tick run on {@link MageCore#run}. Particle counts are
+ * vanilla particles so any client sees it. Effects that last more than a tick run on {@link Tasks#run}. Particle counts are
  * kept small per tick and spread over time instead of one big burst.
  */
 public final class Fx {
@@ -62,7 +61,7 @@ public final class Fx {
     public static void shockwave(ServerLevel level, Palette pal, Vec3 c, double maxRadius, int ticks) {
         Circles.ring(level, pal.key(), c, maxRadius, ticks);
         int[] t = {0};
-        MageCore.run((server, now) -> {
+        Tasks.run((server, now) -> {
             t[0]++;
             double r = maxRadius * t[0] / ticks;
             int n = (int) Math.min(90, 10 + r * 9);
@@ -89,7 +88,7 @@ public final class Fx {
     /** A helix that winds up (or down) around a point. */
     public static void spiral(ServerLevel level, ParticleOptions type, Vec3 base, double radius, double height, double turns, int ticks) {
         int[] t = {0};
-        MageCore.run((server, now) -> {
+        Tasks.run((server, now) -> {
             int steps = 3;
             for (int s = 0; s < steps; s++) {
                 double f = (t[0] * steps + s) / (double) (ticks * steps);
@@ -105,7 +104,7 @@ public final class Fx {
     /** A column that shoots up from the ground and thins out. */
     public static void pillar(ServerLevel level, Palette pal, Vec3 base, double height, double radius, int ticks) {
         int[] t = {0};
-        MageCore.run((server, now) -> {
+        Tasks.run((server, now) -> {
             t[0]++;
             double top = height * Math.min(1.0, t[0] / (double) Math.max(1, ticks / 2));
             for (double y = 0; y <= top; y += 0.7) {
@@ -150,7 +149,7 @@ public final class Fx {
     /** A magic circle on the ground that turns for a while. */
     public static void rune(ServerLevel level, Palette pal, Vec3 c, double radius, int ticks) {
         int[] t = {0};
-        MageCore.run((server, now) -> {
+        Tasks.run((server, now) -> {
             if (t[0] % 4 == 0) { // ground particles last a second or more, so a redraw every fourth tick looks continuous
                 runeTick(level, pal, c.add(0, 0.08, 0), radius, t[0]);
             }
@@ -163,8 +162,8 @@ public final class Fx {
     public static void orbit(ServerPlayer p, Palette pal, int ticks) {
         UUID id = p.getUUID();
         int[] t = {0};
-        MageCore.run((server, now) -> {
-            ServerPlayer o = MageCore.playerOf(server, id);
+        Tasks.run((server, now) -> {
+            ServerPlayer o = Tasks.playerOf(server, id);
             if (o == null) {
                 return true;
             }
@@ -253,7 +252,7 @@ public final class Fx {
         sphere(level, pal.accent(), at, (int) (4 + size * 3), 0.2);
         ringOut(level, fade(pal.rgb1(), pal.rgb2(), 1.2f), at.add(0, 0.2, 0), 0.4, 14, 0.18 + size * 0.04);
         shockwave(level, pal, at, size * 1.6, 5);
-        MageCore.flash(level, at.x, at.y, at.z);
-        MageCore.sound(level, at, pal.hit(), (float) Math.min(1.5, 0.6 + size * 0.15), 1.0f);
+        Tasks.flash(level, at.x, at.y, at.z);
+        Tasks.sound(level, at, pal.hit(), (float) Math.min(1.5, 0.6 + size * 0.15), 1.0f);
     }
 }

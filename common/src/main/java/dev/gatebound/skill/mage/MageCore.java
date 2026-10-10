@@ -60,8 +60,7 @@ import java.util.function.Predicate;
 public final class MageCore {
     /** Something that runs every server tick until it returns true. */
     @FunctionalInterface
-    public interface Ticker {
-        boolean tick(MinecraftServer server, long now);
+    public interface Ticker extends dev.gatebound.skill.fx.Tasks.Ticker {
     }
 
     /** Called when a bolt ends: target is null when it hit a block or ran out of range. */
@@ -76,7 +75,6 @@ public final class MageCore {
     private record Temp(ServerLevel level, BlockPos pos, BlockState original, Block placed, long restoreAt) {
     }
 
-    private static final List<Ticker> TICKERS = new ArrayList<>();
     private static final Map<UUID, Form> FORMS = new HashMap<>();
     private static final Map<UUID, Map<String, Long>> BUFFS = new HashMap<>();
     private static final List<Temp> TEMPS = new ArrayList<>();
@@ -91,6 +89,7 @@ public final class MageCore {
 
     public static void init() {
         TickEvent.SERVER_POST.register(MageCore::tick);
+        dev.gatebound.skill.fx.Tasks.init();
         EntityEvent.LIVING_DEATH.register((entity, source) -> {
             // A Resurrection blessing is about to cancel this death, so keep the player's state.
             if (entity instanceof ServerPlayer player && !buffed(player, "resurrection")) {
@@ -102,7 +101,6 @@ public final class MageCore {
         PlayerEvent.PLAYER_RESPAWN.register((player, conquered, reason) -> clearPlayer(player.getUUID()));
         LifecycleEvent.SERVER_STOPPING.register(server -> restoreAll());
         LifecycleEvent.SERVER_STOPPED.register(server -> {
-            TICKERS.clear();
             FORMS.clear();
             BUFFS.clear();
             TEMPS.clear();
@@ -176,19 +174,6 @@ public final class MageCore {
         long now = server.getTickCount();
         if (now % 10 == 0) {
             tickStrain(server);
-        }
-        if (!TICKERS.isEmpty()) {
-            for (Ticker t : new ArrayList<>(TICKERS)) {
-                boolean done;
-                try {
-                    done = t.tick(server, now);
-                } catch (RuntimeException e) {
-                    done = true; // a broken effect must not take the tick loop down with it
-                }
-                if (done) {
-                    TICKERS.remove(t);
-                }
-            }
         }
         if (!TEMPS.isEmpty()) {
             for (Temp t : new ArrayList<>(TEMPS)) {
@@ -270,16 +255,15 @@ public final class MageCore {
     }
 
     public static void sound(ServerLevel level, Vec3 at, SoundEvent sound, float volume, float pitch) {
-        level.playSound(null, at.x, at.y, at.z, sound, SoundSource.PLAYERS, volume, pitch);
+        dev.gatebound.skill.fx.Tasks.sound(level, at, sound, volume, pitch);
     }
 
     public static void particles(ServerLevel level, ParticleOptions type, Vec3 at, int count, double spread, double speed) {
-        level.sendParticles(type, at.x, at.y, at.z, count, spread, spread * 0.6, spread, speed);
+        dev.gatebound.skill.fx.Tasks.particles(level, type, at, count, spread, speed);
     }
 
     public static ServerPlayer playerOf(MinecraftServer server, UUID id) {
-        ServerPlayer p = server.getPlayerList().getPlayer(id);
-        return p != null && p.isAlive() ? p : null;
+        return dev.gatebound.skill.fx.Tasks.playerOf(server, id);
     }
 
     public static LivingEntity find(MinecraftServer server, UUID id) {
@@ -301,21 +285,12 @@ public final class MageCore {
     }
 
     public static void flash(ServerLevel level, double x, double y, double z) {
-        //? if >=26.1 {
-        level.sendParticles(net.minecraft.core.particles.ColorParticleOption.create(ParticleTypes.FLASH, -1), x, y, z, 1, 0, 0, 0, 0);
-        //?} else {
-        /*level.sendParticles(ParticleTypes.FLASH, x, y, z, 1, 0, 0, 0, 0);
-        *///?}
+        dev.gatebound.skill.fx.Tasks.flash(level, x, y, z);
     }
 
     /** A line of particles between two points. */
     public static void line(ServerLevel level, ParticleOptions type, Vec3 from, Vec3 to) {
-        Vec3 step = to.subtract(from);
-        int points = (int) Math.max(2, step.length() * 2);
-        for (int i = 0; i <= points; i++) {
-            Vec3 q = from.add(step.scale(i / (double) points));
-            level.sendParticles(type, q.x, q.y, q.z, 1, 0.02, 0.02, 0.02, 0);
-        }
+        dev.gatebound.skill.fx.Tasks.line(level, type, from, to);
     }
 
     /** Pays health for a spell, never taking the last point. */
@@ -360,22 +335,12 @@ public final class MageCore {
 
     // ---------------------------------------------------------------- tickers, bolts, zones
 
-    public static void run(Ticker ticker) {
-        TICKERS.add(ticker);
+    public static void run(dev.gatebound.skill.fx.Tasks.Ticker ticker) {
+        dev.gatebound.skill.fx.Tasks.run(ticker);
     }
 
     public static void after(int ticks, Consumer<MinecraftServer> action) {
-        long[] due = {-1};
-        run((server, now) -> {
-            if (due[0] < 0) {
-                due[0] = now + ticks;
-            }
-            if (now < due[0]) {
-                return false;
-            }
-            action.accept(server);
-            return true;
-        });
+        dev.gatebound.skill.fx.Tasks.after(ticks, action);
     }
 
     /** A projectile that flies tick by tick, hits the first enemy or block in its path, and trails particles. */

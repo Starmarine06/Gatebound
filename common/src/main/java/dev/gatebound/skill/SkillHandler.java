@@ -114,6 +114,8 @@ public final class SkillHandler {
             if (skill.element() != null && skill.minLevel() < 100) { // the level 100 forms play their own transformation
                 dev.gatebound.skill.fx.CastFx.cast(player, skill.element());
             }
+        } else {
+            dev.gatebound.skill.fx.ClassCastFx.cast(player, skill);
         }
 
         boolean connected = skill.effect().cast(player, player.level(), data);

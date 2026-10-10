@@ -15,6 +15,22 @@ import net.minecraft.world.level.block.Blocks;
 public record Palette(String key, ParticleOptions main, ParticleOptions alt, ParticleOptions accent, int rgb1, int rgb2, String prop,
                       SoundEvent cast, SoundEvent hit) {
 
+    /** Palette for a class (warrior, rogue, ranger, summoner) or, failing that, an element id. */
+    public static Palette of(String key) {
+        return switch (key) {
+            case "warrior" -> new Palette("warrior", ParticleTypes.CRIT, ParticleTypes.SMOKE, ParticleTypes.FLAME, 0xD23A22, 0xC9CED6,
+                    "minecraft:iron_block", SoundEvents.IRON_GOLEM_ATTACK, SoundEvents.ANVIL_LAND);
+            case "rogue" -> new Palette("rogue", ParticleTypes.SQUID_INK, ParticleTypes.SMOKE,
+                    new BlockParticleOption(ParticleTypes.BLOCK, Blocks.SLIME_BLOCK.defaultBlockState()), 0x6A2FA8, 0x58D63A,
+                    "minecraft:black_concrete", SoundEvents.PLAYER_ATTACK_SWEEP, SoundEvents.PLAYER_ATTACK_CRIT);
+            case "ranger" -> new Palette("ranger", ParticleTypes.HAPPY_VILLAGER, ParticleTypes.COMPOSTER, ParticleTypes.CRIT, 0x4CB04A, 0xE8C34A,
+                    "minecraft:moss_block", SoundEvents.ARROW_SHOOT, SoundEvents.ARROW_HIT);
+            case "summoner" -> new Palette("summoner", ParticleTypes.SOUL_FIRE_FLAME, ParticleTypes.SOUL, ParticleTypes.END_ROD, 0x3FD8C8, 0xE8FFFB,
+                    "minecraft:soul_sand", SoundEvents.AMETHYST_BLOCK_CHIME, SoundEvents.SOUL_ESCAPE.value());
+            default -> of(Element.valueOf(key.toUpperCase(java.util.Locale.ROOT)));
+        };
+    }
+
     public static Palette of(Element element) {
         return switch (element) {
             case FIRE -> new Palette("fire", ParticleTypes.FLAME, ParticleTypes.SMALL_FLAME, ParticleTypes.LAVA, 0xFF6A1A, 0xFFC040,

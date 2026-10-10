@@ -2,7 +2,6 @@ package dev.gatebound.skill.fx;
 
 import dev.architectury.event.events.common.LifecycleEvent;
 import dev.architectury.event.events.common.PlayerEvent;
-import dev.gatebound.skill.mage.MageCore;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
@@ -111,7 +110,7 @@ public final class Props {
 
         /** Removes the prop after a delay. */
         public void removeAfter(int ticks) {
-            MageCore.after(ticks, server -> remove());
+            Tasks.after(ticks, server -> remove());
         }
     }
 

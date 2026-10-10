@@ -19,6 +19,7 @@ $elements = [ordered]@{
   earth     = @{ glow = @(140, 100, 55);  core = @(190, 235, 120) }
   light     = @{ glow = @(255, 205, 90);  core = @(255, 252, 225) }
   dark      = @{ glow = @(140, 50, 225);  core = @(235, 200, 255) }
+  warrior   = @{ glow = @(210, 58, 34);   core = @(255, 225, 190) }
 }
 
 function NewCanvas($size) {
@@ -151,6 +152,10 @@ function DrawCircle($name, $glow, $core, $seed) {
     'light'     { for ($i = 0; $i -lt 16; $i++) { $a = $i * [math]::PI / 8; $len = if ($i % 2 -eq 0) { 150 } else { 112 }
                     GlowLines $g ([System.Drawing.PointF[]]@((Pt ($c + [math]::Cos($a) * 50) ($c + [math]::Sin($a) * 50)), (Pt ($c + [math]::Cos($a) * $len) ($c + [math]::Sin($a) * $len)))) $glow $core 1.0 }
                   GlowCircle $g $c $c 50 $glow $core 1.1 }
+    'warrior'   { PolyStar $g $c $c 158 4 1 ([math]::PI / 4) $glow $core 1.3
+                  PolyStar $g $c $c 158 4 1 0 $glow $core 0.8
+                  for ($i = 0; $i -lt 4; $i++) { $a = $i * [math]::PI / 2 + [math]::PI / 4; GlowLines $g ([System.Drawing.PointF[]]@((Pt ($c + [math]::Cos($a) * 30) ($c + [math]::Sin($a) * 30)), (Pt ($c + [math]::Cos($a) * 112) ($c + [math]::Sin($a) * 112)))) $glow $core 1.4 }
+                  GlowCircle $g $c $c 60 $glow $core 1.1 }
     'dark'      { PolyStar $g $c $c 156 5 2 ([math]::PI / 2) $glow $core 1.2
                   GlowCircle $g $c $c 70 $glow $core 1.0
                   GlowCircle $g $c $c 24 $glow $core 1.2 }
@@ -309,4 +314,159 @@ DrawMeteor
 WriteModel 'meteor' 'meteor' @(
   (BoxEl @(3, 3, 3) @(13, 13, 13) 'y' 0), (BoxEl @(3.5, 3.5, 3.5) @(12.5, 12.5, 12.5) 'y' 45), (BoxEl @(3.5, 3.5, 3.5) @(12.5, 12.5, 12.5) 'x' 45),
   (BoxEl @(3.5, 3.5, 3.5) @(12.5, 12.5, 12.5) 'z' 45), (BoxEl @(2, 5, 5) @(14, 11, 11) 'y' 22.5), (BoxEl @(5, 2, 5) @(11, 14, 11) 'x' 22.5))
+
+# ------------------------------------------------------------------ warrior set
+function SavePng($cv, $file) {
+  $cv.g.Dispose()
+  $cv.bmp.Save((Join-Path $texDir $file), [System.Drawing.Imaging.ImageFormat]::Png)
+  $cv.bmp.Dispose()
+}
+function PtArr($list) { return [System.Drawing.PointF[]]$list }
+
+# A crescent slash: stacked arcs, thin and faint at the inside, bright at the outer edge, fading out at both tips.
+function DrawSlash($file, $glow, $core) {
+  $cv = NewCanvas 128; $g = $cv.g
+  for ($k = 0; $k -lt 9; $k++) {
+    $r = 40 + $k * 2.4; $cy = 92 - $k * 0.6
+    $pts = @()
+    for ($i = 0; $i -le 40; $i++) { $a = [math]::PI * (1.12 + 0.76 * $i / 40); $pts += , (Pt (64 + [math]::Cos($a) * $r * 1.25) ($cy + [math]::Sin($a) * $r)) }
+    $alpha = [int](25 + $k * 22)
+    $pen = New-Object System.Drawing.Pen (C $alpha $glow[0] $glow[1] $glow[2]), ([single]3.2)
+    $pen.StartCap = 'Round'; $pen.EndCap = 'Round'
+    $g.DrawLines($pen, (PtArr $pts)); $pen.Dispose()
+  }
+  $pts = @()
+  for ($i = 0; $i -le 40; $i++) { $a = [math]::PI * (1.14 + 0.72 * $i / 40); $pts += , (Pt (64 + [math]::Cos($a) * 59 * 1.25) (91.5 + [math]::Sin($a) * 59)) }
+  $pen = New-Object System.Drawing.Pen (C 255 $core[0] $core[1] $core[2]), ([single]2.2)
+  $pen.StartCap = 'Round'; $pen.EndCap = 'Round'
+  $g.DrawLines($pen, (PtArr $pts)); $pen.Dispose()
+  SavePng $cv $file
+}
+
+# Ground cracks: dark fissures radiating from the centre with a hot ember line inside.
+function DrawCrack($file, $glow, $core) {
+  $cv = NewCanvas 256; $g = $cv.g; $c = 128
+  $rng = New-Object System.Random 31
+  for ($i = 0; $i -lt 11; $i++) {
+    $a = 2 * [math]::PI * $i / 11 + $rng.NextDouble() * 0.3
+    $x = $c; $y = $c; $pts = @((Pt $x $y)); $len = 0
+    $maxLen = 90 + $rng.Next(0, 34)
+    while ($len -lt $maxLen) {
+      $step = 9 + $rng.Next(0, 9); $a += ($rng.NextDouble() - 0.5) * 0.7
+      $x += [math]::Cos($a) * $step; $y += [math]::Sin($a) * $step; $len += $step
+      $pts += , (Pt $x $y)
+      if ($rng.Next(0, 5) -eq 0) {
+        $ba = $a + ($rng.NextDouble() - 0.5) * 1.6; $bx = $x + [math]::Cos($ba) * 22; $by = $y + [math]::Sin($ba) * 22
+        $pen = New-Object System.Drawing.Pen (C 220 25 18 14), ([single]2.2)
+        $g.DrawLine($pen, [single]$x, [single]$y, [single]$bx, [single]$by); $pen.Dispose()
+      }
+    }
+    $pen = New-Object System.Drawing.Pen (C 230 25 18 14), ([single]6); $pen.LineJoin = 'Round'; $pen.StartCap = 'Round'; $pen.EndCap = 'Round'
+    $g.DrawLines($pen, (PtArr $pts)); $pen.Dispose()
+    $pen = New-Object System.Drawing.Pen (C 190 $glow[0] $glow[1] $glow[2]), ([single]2.4); $pen.LineJoin = 'Round'
+    $g.DrawLines($pen, (PtArr $pts)); $pen.Dispose()
+    $pen = New-Object System.Drawing.Pen (C 220 $core[0] $core[1] $core[2]), ([single]0.9)
+    $g.DrawLines($pen, (PtArr $pts)); $pen.Dispose()
+  }
+  SavePng $cv $file
+}
+
+# A spectral greatsword, tip up: ghostly red-white blade with a fuller, a crossguard and a grip.
+function DrawSword($file, $glow, $core) {
+  $cv = NewCanvas 128; $g = $cv.g
+  $br = New-Object System.Drawing.SolidBrush (C 70 $glow[0] $glow[1] $glow[2])
+  $g.FillPolygon($br, (PtArr @((Pt 64 2), (Pt 80 24), (Pt 80 92), (Pt 48 92), (Pt 48 24)))); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 220 $core[0] $core[1] $core[2])
+  $g.FillPolygon($br, (PtArr @((Pt 64 8), (Pt 74 28), (Pt 74 90), (Pt 54 90), (Pt 54 28)))); $br.Dispose()
+  $pen = New-Object System.Drawing.Pen (C 255 $glow[0] $glow[1] $glow[2]), ([single]2)
+  $g.DrawPolygon($pen, (PtArr @((Pt 64 8), (Pt 74 28), (Pt 74 90), (Pt 54 90), (Pt 54 28)))); $pen.Dispose()
+  GlowLines $g (PtArr @((Pt 64 24), (Pt 64 86))) $glow $core 0.8
+  $br = New-Object System.Drawing.SolidBrush (C 255 $glow[0] $glow[1] $glow[2])
+  $g.FillRectangle($br, 30, 90, 68, 8); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 255 $core[0] $core[1] $core[2])
+  $g.FillRectangle($br, 34, 92, 60, 3); $br.Dispose()
+  $br = New-Object System.Drawing.SolidBrush (C 235 70 24 20)
+  $g.FillRectangle($br, 59, 98, 10, 22); $g.FillEllipse($br, 57, 118, 14, 9); $br.Dispose()
+  SavePng $cv $file
+}
+
+# A heater shield sigil with a glowing sword emblem, drawn upright.
+function DrawShieldSigil($file, $glow, $core) {
+  $cv = NewCanvas 256; $g = $cv.g
+  $outline = @((Pt 128 14), (Pt 214 38), (Pt 214 128), (Pt 190 184), (Pt 128 240), (Pt 66 184), (Pt 42 128), (Pt 42 38), (Pt 128 14))
+  $br = New-Object System.Drawing.SolidBrush (C 55 $glow[0] $glow[1] $glow[2])
+  $g.FillPolygon($br, (PtArr $outline)); $br.Dispose()
+  GlowLines $g (PtArr $outline) $glow $core 1.6
+  $inner = @((Pt 128 34), (Pt 196 52), (Pt 196 126), (Pt 176 172), (Pt 128 218), (Pt 80 172), (Pt 60 126), (Pt 60 52), (Pt 128 34))
+  GlowLines $g (PtArr $inner) $glow $core 0.7
+  GlowLines $g (PtArr @((Pt 128 62), (Pt 128 180))) $glow $core 1.4
+  GlowLines $g (PtArr @((Pt 100 92), (Pt 156 92))) $glow $core 1.4
+  GlowLines $g (PtArr @((Pt 128 62), (Pt 118 74), (Pt 138 74), (Pt 128 62))) $glow $core 0.8
+  SavePng $cv $file
+}
+
+# Brushed steel with rivets and a hot rim.
+function DrawSteel($file) {
+  $cv = NewCanvas 64; $g = $cv.g
+  $rect = New-Object System.Drawing.Rectangle 0, 0, 64, 64
+  $br = New-Object System.Drawing.Drawing2D.LinearGradientBrush $rect, (C 255 190 198 208), (C 255 92 100 112), 90.0
+  $g.FillRectangle($br, $rect); $br.Dispose()
+  $rng = New-Object System.Random 5
+  for ($i = 0; $i -lt 40; $i++) { $y = $rng.Next(0, 64); $pen = New-Object System.Drawing.Pen (C 60 255 255 255), ([single]1); $g.DrawLine($pen, 0, $y, 64, $y); $pen.Dispose() }
+  $pen = New-Object System.Drawing.Pen (C 255 210 80 40), ([single]3); $g.DrawRectangle($pen, 1, 1, 61, 61); $pen.Dispose()
+  foreach ($pt in @(@(8, 8), @(52, 8), @(8, 52), @(52, 52))) { $br = New-Object System.Drawing.SolidBrush (C 255 60 66 76); $g.FillEllipse($br, $pt[0], $pt[1], 5, 5); $br.Dispose() }
+  SavePng $cv $file
+}
+
+# A ring of eight blades, tips swept round, lying flat.
+function DrawBladeRing($file, $glow, $core) {
+  $cv = NewCanvas 256; $g = $cv.g; $c = 128
+  GlowCircle $g $c $c 100 $glow $core 0.6
+  for ($i = 0; $i -lt 8; $i++) {
+    $a = 2 * [math]::PI * $i / 8
+    $pts = @()
+    foreach ($f in @(@(-0.20, 96), @(0.0, 118), @(0.34, 100), @(0.0, 106), @(-0.20, 96))) {
+      $aa = $a + $f[0]; $pts += , (Pt ($c + [math]::Cos($aa) * $f[1]) ($c + [math]::Sin($aa) * $f[1]))
+    }
+    $br = New-Object System.Drawing.SolidBrush (C 215 $core[0] $core[1] $core[2])
+    $g.FillPolygon($br, (PtArr $pts)); $br.Dispose()
+    GlowLines $g (PtArr $pts) $glow $core 0.9
+  }
+  SavePng $cv $file
+}
+
+# Cracked grey-brown stone for spikes.
+function DrawStone($file) {
+  $cv = NewCanvas 64; $g = $cv.g
+  $rng = New-Object System.Random 17
+  $g.Clear((C 255 104 98 92))
+  for ($i = 0; $i -lt 260; $i++) {
+    $x = $rng.Next(0, 64); $y = $rng.Next(0, 64); $v = $rng.Next(-26, 26)
+    $br = New-Object System.Drawing.SolidBrush (C 255 (104 + $v) (98 + $v) (92 + $v)); $g.FillRectangle($br, $x, $y, 3, 3); $br.Dispose()
+  }
+  for ($i = 0; $i -lt 5; $i++) {
+    $x = $rng.Next(0, 64); $y = $rng.Next(0, 64); $pts = @((Pt $x $y))
+    for ($k = 0; $k -lt 4; $k++) { $x += $rng.Next(-12, 13); $y += $rng.Next(-12, 13); $pts += , (Pt $x $y) }
+    $pen = New-Object System.Drawing.Pen (C 255 40 36 34), ([single]1.4); $g.DrawLines($pen, (PtArr $pts)); $pen.Dispose()
+  }
+  SavePng $cv $file
+}
+
+$w = $elements['warrior']
+DrawSlash 'slash.png' $w.glow $w.core
+WriteModel 'slash' 'slash' @((PlaneEl 'y'))
+DrawCrack 'crack.png' $w.glow $w.core
+WriteModel 'crack' 'crack' @((PlaneEl 'y'))
+DrawSword 'sword.png' $w.glow $w.core
+WriteModel 'sword' 'sword' @((PlaneEl 'z'), (PlaneEl 'x'))
+DrawShieldSigil 'shield_sigil.png' $w.glow $w.core
+WriteModel 'shield_sigil' 'shield_sigil' @((PlaneEl 'z'))
+DrawSteel 'steel_plate.png'
+WriteModel 'steel_plate' 'steel_plate' @((BoxEl @(5, 3, 7) @(11, 13, 9) 'y' 0), (BoxEl @(6, 4, 6.4) @(10, 12, 7) 'y' 0))
+DrawBladeRing 'blade_ring.png' $w.glow $w.core
+WriteModel 'blade_ring' 'blade_ring' @((PlaneEl 'y'))
+DrawStone 'stone_spike.png'
+WriteModel 'stone_spike' 'stone_spike' @(
+  (BoxEl @(3.5, 0, 3.5) @(12.5, 5, 12.5) 'y' 15), (BoxEl @(4.8, 5, 4.8) @(11.2, 10, 11.2) 'y' 15), (BoxEl @(6.1, 10, 6.1) @(9.9, 14, 9.9) 'y' 15),
+  (BoxEl @(7.2, 14, 7.2) @(8.8, 18, 8.8) 'y' 15), (BoxEl @(4, 0, 4) @(12, 4, 12) 'y' 50), (BoxEl @(5.5, 4, 5.5) @(10.5, 9, 10.5) 'y' 50))
 Write-Output 'done'

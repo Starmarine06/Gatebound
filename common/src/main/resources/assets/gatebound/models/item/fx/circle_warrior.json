@@ -1,0 +1,1 @@
+{"textures": {"0": "gatebound:item/fx/circle_warrior", "particle": "gatebound:item/fx/circle_warrior"}, "elements": [{"from": [0, 8, 0], "to": [16, 8, 16], "faces": {"up": {"uv": [0, 0, 16, 16], "texture": "#0"}, "down": {"uv": [0, 0, 16, 16], "texture": "#0"}}}]}

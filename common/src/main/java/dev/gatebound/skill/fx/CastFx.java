@@ -2,7 +2,6 @@ package dev.gatebound.skill.fx;
 
 import dev.gatebound.compat.Compat;
 import dev.gatebound.data.Element;
-import dev.gatebound.skill.mage.MageCore;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -21,7 +20,7 @@ public final class CastFx {
         Circles.ground(level, element, p.position(), 3.2, 16);   // under the feet
         Circles.castCircle(p, element, 3.0, 12);                 // upright in front, the spell is cast through it
         Fx.orbit(p, pal, 12);
-        MageCore.sound(level, p.position(), pal.cast(), 0.7f, 1.3f);
+        Tasks.sound(level, p.position(), pal.cast(), 0.7f, 1.3f);
     }
 
     /** A transformation: pillar, big circle, shockwave and a burst of sparks. The form's own aura carries on after it. */
@@ -35,7 +34,7 @@ public final class CastFx {
         Fx.shockwave(level, pal, at, 7, 10);
         Fx.spiral(level, pal.main(), at, 1.2, 3.2, 3, 16);
         Fx.sphere(level, pal.accent(), at.add(0, 1, 0), 30, 0.35);
-        MageCore.flash(level, at.x, at.y + 1, at.z);
-        MageCore.sound(level, at, pal.hit(), 1.2f, 0.7f);
+        Tasks.flash(level, at.x, at.y + 1, at.z);
+        Tasks.sound(level, at, pal.hit(), 1.2f, 0.7f);
     }
 }
