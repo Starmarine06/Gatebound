@@ -17,6 +17,8 @@ public final class RangerConfig {
     /** Damage bonus at full range (0.5 = +50% at rangeFullBlocks or more, growing linearly from zero). */
     public static double rangeBonus = 0.5;
     public static double rangeFullBlocks = 24;
+    /** A shot that lands from at least this far away plays the hit "ding" for the shooter (vanilla only does so for players). */
+    public static double dingDistance = 12;
     /** Extra damage per Agility point on the Ranger's own bow shots (0.01 = +1%). */
     public static double agilityShotBonus = 0.01;
 
