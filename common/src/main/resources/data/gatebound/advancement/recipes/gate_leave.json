@@ -1,0 +1,8 @@
+{
+  "criteria": {
+    "has_pearl": {"trigger": "minecraft:inventory_changed", "conditions": {"items": [{"items": "minecraft:ender_pearl"}]}},
+    "has_paper": {"trigger": "minecraft:inventory_changed", "conditions": {"items": [{"items": "minecraft:paper"}]}}
+  },
+  "requirements": [["has_pearl", "has_paper"]],
+  "rewards": {"recipes": ["gatebound:gate_leave"]}
+}

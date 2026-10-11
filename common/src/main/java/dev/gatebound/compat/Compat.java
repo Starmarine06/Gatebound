@@ -28,6 +28,7 @@ import net.minecraft.world.scores.PlayerTeam;
  * the Stonecutter conditionals live here. Client-only differences are in {@link ClientCompat}.
  */
 public final class Compat {
+    /** Static holder; not instantiable. */
     private Compat() {
     }
 
@@ -37,6 +38,18 @@ public final class Compat {
     //?} else {
     /*public static final PushReaction IMMOVABLE = PushReaction.BLOCK;
     *///?}
+
+    /** A style that runs a command when clicked and shows a hint on hover (click/hover events became records in 1.21.5). */
+    public static net.minecraft.network.chat.Style clickCommand(net.minecraft.network.chat.Style base, String command, String hint) {
+        //? if >=26.1 {
+        return base.withClickEvent(new net.minecraft.network.chat.ClickEvent.RunCommand(command))
+                .withHoverEvent(new net.minecraft.network.chat.HoverEvent.ShowText(net.minecraft.network.chat.Component.literal(hint)));
+        //?} else {
+        /*return base.withClickEvent(new net.minecraft.network.chat.ClickEvent(net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND, command))
+                .withHoverEvent(new net.minecraft.network.chat.HoverEvent(net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT,
+                        net.minecraft.network.chat.Component.literal(hint)));
+        *///?}
+    }
 
     /** Action-bar message. {@code Player.sendOverlayMessage} is new in 26.1; before it this was displayClientMessage. */
     public static void overlay(net.minecraft.world.entity.player.Player player, net.minecraft.network.chat.Component message) {
@@ -108,6 +121,7 @@ public final class Compat {
     public record Input(boolean forward, boolean backward, boolean jump, boolean shift) {
     }
 
+    /** The player's last movement input. */
     public static Input input(ServerPlayer player) {
         //? if >=26.1 {
         net.minecraft.world.entity.player.Input in = player.getLastClientInput();
@@ -159,10 +173,12 @@ public final class Compat {
         *///?}
     }
 
+    /** Swings the entity's arm. */
     public static void swing(LivingEntity entity, InteractionHand hand) {
         swing(entity, hand, false);
     }
 
+    /** Swings the entity's arm, optionally broadcasting it. */
     public static void swing(LivingEntity entity, InteractionHand hand, boolean broadcast) {
         //? if >=26.3 {
         entity.swing(hand, net.minecraft.world.item.component.SwingAnimation.DEFAULT, broadcast);
@@ -180,6 +196,7 @@ public final class Compat {
         *///?}
     }
 
+    /** Makes an entity permanently invulnerable or not. */
     public static void setPermanentlyInvulnerable(Entity entity, boolean value) {
         //? if >=26.3 {
         entity.setPermanentlyInvulnerable(value);
@@ -188,6 +205,7 @@ public final class Compat {
         *///?}
     }
 
+    /** True if the entity is permanently invulnerable. */
     public static boolean isPermanentlyInvulnerable(Entity entity) {
         //? if >=26.3 {
         return entity.isPermanentlyInvulnerable();
@@ -223,6 +241,7 @@ public final class Compat {
     public static final Block PURPLE_STAINED_GLASS = Blocks.PURPLE_STAINED_GLASS;
     *///?}
 
+    /** Sets a team's colour (gold or default). */
     public static void setTeamColor(PlayerTeam team, boolean gold) {
         //? if >=26.2 {
         team.setColor(java.util.Optional.of(gold ? net.minecraft.world.scores.TeamColor.GOLD : net.minecraft.world.scores.TeamColor.DARK_PURPLE));
@@ -237,6 +256,7 @@ public final class Compat {
         EventResult breakBlock(Level level, BlockPos pos, BlockState state, ServerPlayer player);
     }
 
+    /** Registers a block-break handler. */
     public static void onBlockBreak(BreakHandler handler) {
         //? if >=26.2 {
         BlockEvent.BREAK.register(handler::breakBlock);
@@ -245,6 +265,7 @@ public final class Compat {
         *///?}
     }
 
+    /** Registers a client-to-server packet. */
     public static <T extends CustomPacketPayload> void registerC2S(CustomPacketPayload.Type<T> type,
             StreamCodec<? super RegistryFriendlyByteBuf, T> codec, NetworkManager.NetworkReceiver<T> receiver) {
         //? if >=26.2 {
@@ -254,6 +275,7 @@ public final class Compat {
         *///?}
     }
 
+    /** Registers a server-to-client packet. */
     public static <T extends CustomPacketPayload> void registerS2C(CustomPacketPayload.Type<T> type,
             StreamCodec<? super RegistryFriendlyByteBuf, T> codec, NetworkManager.NetworkReceiver<T> receiver) {
         //? if >=26.2 {

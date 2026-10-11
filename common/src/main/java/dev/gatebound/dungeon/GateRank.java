@@ -34,14 +34,29 @@ public enum GateRank implements StringRepresentable {
         return id;
     }
 
+    /** Rank id. */
     public String id() {
         return id;
     }
 
+    /** Particle colour of the rank (0xRRGGBB). */
+    public int rgb() {
+        return switch (this) {
+            case E -> 0xB4B4B4;
+            case D -> 0x55E655;
+            case C -> 0xFFE933;
+            case B -> 0xFFA21A;
+            case A -> 0xFF3030;
+            case S -> 0xD25CFF;
+        };
+    }
+
+    /** Rank colour. */
     public ChatFormatting color() {
         return color;
     }
 
+    /** XP reward for clearing. */
     public int xpReward() {
         return xpReward;
     }
@@ -51,10 +66,29 @@ public enum GateRank implements StringRepresentable {
         return roomCount;
     }
 
+    /** Seconds the dungeon stays open after its guardian falls; harder gates are less stable. */
+    public int collapseSeconds() {
+        return switch (this) {
+            case E -> 180;
+            case D -> 165;
+            case C -> 150;
+            case B -> 135;
+            case A -> 120;
+            case S -> 100;
+        };
+    }
+
+    /** Rooms between the start and the guardian: the longer the walk, the harder the gate. */
+    public int chainRooms() {
+        return 5 + ordinal() * 2;
+    }
+
+    /** Display label, like "S-Rank". */
     public String label() {
         return name() + "-Rank";
     }
 
+    /** Rank by id, or null. */
     public static GateRank byId(String id) {
         for (GateRank r : values()) {
             if (r.id.equalsIgnoreCase(id)) {
@@ -64,6 +98,7 @@ public enum GateRank implements StringRepresentable {
         return E;
     }
 
+    /** Rank by index (clamped). */
     public static GateRank byIndex(int i) {
         GateRank[] v = values();
         return v[Math.max(0, Math.min(v.length - 1, i))];
@@ -85,6 +120,7 @@ public enum GateRank implements StringRepresentable {
         };
     }
 
+    /** Boss entity type for the rank. */
     public EntityType<? extends Mob> bossType() {
         return switch (this) {
             case E -> MobTypes.ZOMBIE;
@@ -96,6 +132,7 @@ public enum GateRank implements StringRepresentable {
         };
     }
 
+    /** Boss size scale for the rank. */
     public double bossScale() {
         return switch (this) {
             case E -> 1.7;

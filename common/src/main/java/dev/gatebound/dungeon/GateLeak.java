@@ -39,15 +39,21 @@ public final class GateLeak {
 
     private static final Map<BlockPos, Long> NEXT = new HashMap<>();
     private static final Set<BlockPos> WARNED = new HashSet<>();
+    private static final Set<BlockPos> CLEANED = new HashSet<>();
 
+    /** Static holder; not instantiable. */
     private GateLeak() {
     }
 
+    /** Leaks monsters out of open gates over time and banishes them when a gate closes. */
     public static void tick(MinecraftServer server, DungeonStore store, long now) {
         if (!DungeonConfig.gateLeaks) {
             return;
         }
         for (DungeonStore.GateRef g : store.gates) {
+            if (g.cleared && DungeonConfig.leakDespawnOnClose && CLEANED.add(g.pos.immutable())) {
+                banish(server, g);
+            }
             if (g.cleared || !Spire.isGate(g.floor)) {
                 continue;
             }
@@ -88,6 +94,21 @@ public final class GateLeak {
         }
     }
 
+    /** The gate has closed: everything it leaked is pulled back through in a burst of smoke. */
+    private static void banish(MinecraftServer server, DungeonStore.GateRef g) {
+        ServerLevel level = server.getLevel(g.dim);
+        if (level == null || !level.hasChunkAt(g.pos)) {
+            CLEANED.remove(g.pos);
+            return;
+        }
+        for (Mob m : level.getEntitiesOfClass(Mob.class, new AABB(g.pos).inflate(64), x -> x.entityTags().contains(TAG_LEAK))) {
+            level.sendParticles(ParticleTypes.REVERSE_PORTAL, m.getX(), m.getY() + m.getBbHeight() * 0.5, m.getZ(), 15, 0.3, 0.5, 0.3, 0.15);
+            m.discard();
+        }
+        level.playSound(null, g.pos, GateboundSounds.of(SoundEvents.PORTAL_TRAVEL), SoundSource.HOSTILE, 0.6f, 0.5f);
+    }
+
+    /** Spawns one leaked monster in front of a gate. */
     private static boolean spawnOne(ServerLevel level, BlockPos gate, GateRank rank, RandomSource rng) {
         BlockState st = level.getBlockState(gate);
         Direction f = st.getBlock() instanceof GateBlock ? st.getValue(GateBlock.FACING) : Direction.SOUTH;

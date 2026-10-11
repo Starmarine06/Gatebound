@@ -89,7 +89,8 @@ public final class GateboundHud {
         if (s == null) {
             return;
         }
-        boolean affordable = ClientSkillData.mana >= s.manaCost();
+        int cost = ClientPlayerData.skillCost(s);
+        boolean affordable = ClientSkillData.mana >= cost;
         g.fill(x - 3, y - 2, x + w + 3, y + 11, 0x90000000);
         if (affordable) {
             g.fill(x - 3, y - 2, x - 1, y + 11, 0xFF3DDC84);
@@ -97,7 +98,7 @@ public final class GateboundHud {
         String key = ClientHooks.WHEEL.getTranslatedKeyMessage().getString();
         g.text(mc.font, "[" + key + "] " + Component.translatable(s.nameKey()).getString(), x + 3, y,
                 affordable ? 0xFFFFFFFF : 0xFF7A7A99, true);
-        g.text(mc.font, s.manaCost() + "mp", x + w - 22, y, affordable ? 0xFF8FB8FF : 0xFF666680, true);
+        g.text(mc.font, cost + "mp", x + w - 22, y, affordable ? 0xFF8FB8FF : 0xFF666680, true);
         g.text(mc.font, "Tap to cast, hold to choose", x, y + 14, 0xFF888894, true);
     }
 

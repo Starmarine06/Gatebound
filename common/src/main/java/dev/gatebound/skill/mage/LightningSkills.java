@@ -197,7 +197,7 @@ public final class LightningSkills {
     /** Overcharge: faster, and every hit shocks the target. */
     public static boolean overcharge(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.LIGHTNING, OVERCHARGE_COST);
-        int ticks = MageConfig.buffSeconds * 20;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, MageConfig.buffSeconds * 20);
         MageCore.buff(p, OVERCHARGE, ticks);
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 0));
         p.addEffect(new MobEffectInstance(MobEffects.HASTE, ticks, 1));
@@ -296,7 +296,7 @@ public final class LightningSkills {
 
     /** Thunder God: ultimate lightning form. */
     public static boolean thunderGod(ServerPlayer p, ServerLevel level, PlayerData data) {
-        int ticks = MageConfig.formSeconds * 20;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, MageConfig.formSeconds * 20);
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 2));
         p.addEffect(new MobEffectInstance(MobEffects.HASTE, ticks, 2));
         MageCore.form(p, Element.LIGHTNING, 10, o -> {

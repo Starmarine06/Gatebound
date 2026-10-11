@@ -64,9 +64,11 @@ public final class DungeonManager {
     private static int selfTestPending;
     private static long selfTestStart;
 
+    /** Static holder; not instantiable. */
     private DungeonManager() {
     }
 
+    /** Registers the dungeon systems, hooks and tick. */
     public static void init() {
         DungeonRegistries.init();
         DungeonCommands.register();
@@ -134,6 +136,10 @@ public final class DungeonManager {
                 sl.playSound(null, pos, GateboundSounds.custom("chest.smash"), SoundSource.BLOCKS, 1f, 1f);
                 return EventResult.interruptFalse();
             }
+            // Mana crystals are the one thing in the Spire meant to be mined.
+            if (state.is(DungeonRegistries.MANA_CRYSTAL.get())) {
+                return EventResult.pass();
+            }
             if (player != null && (DungeonConfig.protectFromCreative || !player.isCreative()) && protectedBlock(level, pos)) {
                 return EventResult.interruptFalse();
             }
@@ -147,6 +153,7 @@ public final class DungeonManager {
         });
     }
 
+    /** True if the block is protected from breaking in the Spire. */
     private static boolean protectedBlock(net.minecraft.world.level.LevelAccessor level, BlockPos pos) {
         if (!(level instanceof Level l)) {
             return false;
@@ -161,6 +168,7 @@ public final class DungeonManager {
         return false;
     }
 
+    /** Server start: clears chunk tickets left by an interrupted build. */
     private static void onStarted(MinecraftServer server) {
         // Chunk tickets from a build interrupted by a crash or shutdown are not wanted; floors rebuild on demand.
         DungeonStore store = DungeonStore.get(server);
@@ -193,15 +201,18 @@ public final class DungeonManager {
 
     // ------------------------------------------------------------------ portals
 
+    /** Current overworld game time. */
     private static long now(MinecraftServer server) {
         return server.overworld().getGameTime();
     }
 
+    /** True if the player may use a portal now (not held, cooldown over). */
     public static boolean portalReady(ServerPlayer player) {
         return !WorkQueue.isHolding(player.getUUID())
                 && now(player.level().getServer()) >= COOLDOWNS.getOrDefault(player.getUUID(), 0L);
     }
 
+    /** Starts the player's portal cooldown. */
     public static void markPortalUsed(ServerPlayer player) {
         COOLDOWNS.put(player.getUUID(), now(player.level().getServer()) + DungeonConfig.portalCooldownTicks);
     }
@@ -261,11 +272,11 @@ public final class DungeonManager {
         markPortalUsed(player);
         GatePull.grantImmunity(player);
         GateRank r = Spire.rank(g.floor, total);
-        // Every party (or lone player) gets its own copy of the dungeon behind a gate.
-        int floor = instanceFloor(store, g, Parties.instanceKey(player), r);
+        // One dungeon per gate, the same for everyone; arrivals are scattered (a party arrives together).
+        int floor = instanceFloor(store, g, SHARED, r);
         player.sendSystemMessage(Component.literal(PREFIX + "You are pulled through the gate into a " + r.label() + " dungeon!")
                 .withStyle(r.color()));
-        travelFloor(player, floor, WorkQueue.Dest.BOTTOM);
+        travelFloor(player, floor, WorkQueue.Dest.RIFT);
     }
 
     /** A floor portal block was used. */
@@ -336,6 +347,7 @@ public final class DungeonManager {
                 .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.ITALIC));
     }
 
+    /** True for boss and final floors that are not gate floors. */
     static boolean isBossFloor(int floor, int total) {
         Spire.Kind kind = Spire.kind(floor, total);
         return !Spire.isGate(floor) && (kind == Spire.Kind.BOSS || kind == Spire.Kind.FINAL);
@@ -380,7 +392,7 @@ public final class DungeonManager {
         BlockPos target = switch (dest) {
             case BOTTOM -> fs.downArrive;
             case TOP -> fs.upArrive;
-            case RIFT -> fs.rifts.isEmpty() ? fs.downArrive : fs.rifts.get(player.getRandom().nextInt(fs.rifts.size()));
+            case RIFT -> riftFor(player, fs);
         };
         if (target.equals(BlockPos.ZERO)) {
             target = fs.downArrive;
@@ -394,6 +406,12 @@ public final class DungeonManager {
             player.sendSystemMessage(Component.literal(PREFIX + gr.label() + " gate dungeon. Slay the guardian to close the gate and stop the monsters leaking out.")
                     .withStyle(gr.color(), ChatFormatting.BOLD));
             Compat.overlay(player, Component.literal(gr.label() + " Gate Dungeon").withStyle(gr.color()));
+            if (DungeonConfig.gateSpawnProtectTicks > 0) {
+                player.removeEffect(MobEffects.RESISTANCE);
+                player.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, DungeonConfig.gateSpawnProtectTicks + 10, 4, false, false));
+                PROTECTED.put(player.getUUID(), now(server) + DungeonConfig.gateSpawnProtectTicks);
+                Compat.overlay(player, Component.literal("Spawn protection: " + (DungeonConfig.gateSpawnProtectTicks + 19) / 20 + "s").withStyle(ChatFormatting.AQUA));
+            }
             return;
         }
         int total = store.totalFloors;
@@ -473,6 +491,7 @@ public final class DungeonManager {
 
     // ------------------------------------------------------------------ kills and clears
 
+    /** Death hook: checks whether the floor or boss is done. */
     private static void onMobDeath(ServerLevel level, Entity entity) {
         DungeonStore store = DungeonStore.get(level.getServer());
         int total = store.totalFloors;
@@ -504,11 +523,13 @@ public final class DungeonManager {
         }
     }
 
-    private static List<ServerPlayer> playersOnFloor(ServerLevel dungeon, int floor) {
+    /** Players standing inside a floor's bounds. */
+    static List<ServerPlayer> playersOnFloor(ServerLevel dungeon, int floor) {
         AABB box = Spire.bounds(floor);
         return dungeon.getPlayers(p -> box.contains(p.getX(), p.getY(), p.getZ()));
     }
 
+    /** Marks a floor cleared and gives XP to the players on it. */
     private static void onFloorCleared(ServerLevel level, DungeonStore store, DungeonStore.FloorState fs, int f, int total) {
         fs.cleared = true;
         fs.clearedAt = now(level.getServer());
@@ -522,6 +543,7 @@ public final class DungeonManager {
         }
     }
 
+    /** Boss died: rewards and weakens the floor's mana crystals. */
     private static void onBossDeath(ServerLevel level, DungeonStore store, DungeonStore.FloorState fs, int f, int total) {
         MinecraftServer server = level.getServer();
         Spire.Kind kind = Spire.kind(f, total);
@@ -529,6 +551,18 @@ public final class DungeonManager {
         boolean gate = Spire.isGate(f);
         boolean fin = kind == Spire.Kind.FINAL || gate;
         fs.bossDead = true;
+        for (net.minecraft.core.BlockPos cp : fs.crystals) {
+            BlockState cs = level.getBlockState(cp);
+            if (cs.is(DungeonRegistries.MANA_CRYSTAL.get())) {
+                level.setBlock(cp, cs.setValue(ManaCrystalBlock.WEAKENED, true), 3);
+                level.sendParticles(ParticleTypes.END_ROD, cp.getX() + 0.5, cp.getY() + 0.7, cp.getZ() + 0.5, 12, 0.3, 0.4, 0.3, 0.05);
+            }
+        }
+        for (net.minecraft.world.entity.Mob m : level.getEntitiesOfClass(net.minecraft.world.entity.Mob.class, Spire.bounds(f),
+                x -> x.entityTags().contains(dev.gatebound.mob.MobAbilities.MINION))) {
+            level.sendParticles(ParticleTypes.POOF, m.getX(), m.getY() + 1, m.getZ(), 8, 0.3, 0.5, 0.3, 0.02);
+            m.discard();
+        }
         fs.cleared = true;
         fs.clearedAt = now(server);
         store.setDirty();
@@ -555,6 +589,9 @@ public final class DungeonManager {
             }
         }
         List<ServerPlayer> here = playersOnFloor(level, f);
+        if (gate) {
+            GateCollapse.start(level, fs, rank, here, now(server));
+        }
         for (ServerPlayer p : here) {
             int ways = Parties.shareCount(p, here);
             if (gate) {
@@ -582,23 +619,24 @@ public final class DungeonManager {
         }
     }
 
+    /** Tells the player a gate was cleared. */
     private static void gateCleared(ServerPlayer p, GateRank rank, int ways) {
         p.sendSystemMessage(Component.literal(PREFIX + "The gate guardian has fallen! The gate is closing; no more monsters will leak out.")
                 .withStyle(rank.color(), ChatFormatting.BOLD));
-        p.sendSystemMessage(Component.literal(PREFIX + "A portal out and treasure appear.").withStyle(ChatFormatting.GRAY));
+        p.sendSystemMessage(Component.literal(PREFIX + "A portal out and treasure appear. Take what you can and go.").withStyle(ChatFormatting.GRAY));
         Compat.overlay(p, Component.literal("GATE CLEARED").withStyle(rank.color(), ChatFormatting.BOLD));
         p.level().playSound(null, p.blockPosition(), GateboundSounds.of(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE), SoundSource.PLAYERS, 1f, 1f);
         int xp = Parties.share(rank.xpReward(), ways);
         int shards = Parties.share(3 + rank.ordinal() * 3, ways);
         Progression.giveXp(p, xp);
         giveItem(p, new ItemStack(TradeItems.GATE_SHARD.get(), shards));
-        giveItem(p, new ItemStack(TradeItems.MANA_POTION.get(), 1 + rank.ordinal() / 2));
+        giveItem(p, new ItemStack(DungeonRegistries.MANA_CRYSTAL_ITEM.get(), 1 + rank.ordinal() / 2));
         String extra = "";
         if (rank.ordinal() >= 2) {
             giveItem(p, new ItemStack(TradeItems.ECHO_SHARD.get(), 1));
             extra = " and an Echo Shard";
         }
-        p.sendSystemMessage(Component.literal(PREFIX + "Clear reward: " + xp + " XP, " + shards + " Gate Shards" + extra + " and mana potions.")
+        p.sendSystemMessage(Component.literal(PREFIX + "Clear reward: " + xp + " XP, " + shards + " Gate Shards" + extra + " and mana crystals.")
                 .withStyle(ChatFormatting.GOLD));
     }
 
@@ -612,6 +650,7 @@ public final class DungeonManager {
         }
     }
 
+    /** Registers a new gate and assigns it a dungeon. */
     static DungeonStore.GateRef newGate(DungeonStore store, net.minecraft.resources.ResourceKey<Level> dim, BlockPos pos,
                                         GateRank rank, boolean natural, long now) {
         DungeonStore.GateRef g = new DungeonStore.GateRef(dim, pos, 0, natural, now, 0);
@@ -663,6 +702,7 @@ public final class DungeonManager {
             fs.populatedAt = 0;
             fs.cleared = false;
             fs.bossDead = false;
+            fs.collapseAt = 0;
             fs.kills = 0;
             fs.totalMobs = 0;
         }
@@ -687,11 +727,21 @@ public final class DungeonManager {
                 }
                 long idle = now - INSTANCE_SEEN.computeIfAbsent(f, k -> now);
                 DungeonStore.FloorState fs = store.floors.get(f);
+                if (fs != null && fs.built && !fs.bossDead) {
+                    continue; // an unfinished gate dungeon stays exactly as it is until its guardian falls
+                }
                 long limit = fs != null && fs.bossDead ? 1200 : DungeonConfig.gateInstanceIdleTicks;
                 if (idle >= limit) {
                     it.remove();
                     INSTANCE_SEEN.remove(f);
                     changed = true;
+                    if (Spire.isGate(f) && WorkQueue.find("wipe:" + f) == null) {
+                        // The run is over: fill the gate floor back to bedrock. A later run rebuilds it from scratch.
+                        if (fs != null) {
+                            fs.built = false;
+                        }
+                        WorkQueue.enqueue(new GateWipeJob(f));
+                    }
                 }
             }
             if (changed) {
@@ -700,6 +750,7 @@ public final class DungeonManager {
         }
     }
 
+    /** Gives an item, dropping it if the inventory is full. */
     private static void giveItem(ServerPlayer player, ItemStack stack) {
         if (!player.getInventory().add(stack) && !stack.isEmpty()) {
             player.spawnAtLocation(player.level(), stack);
@@ -708,6 +759,7 @@ public final class DungeonManager {
 
     // ------------------------------------------------------------------ maintenance
 
+    /** Per-tick driver: work queue, gate pull, maintenance and respawns. */
     private static void tick(MinecraftServer server) {
         WorkQueue.tick(server);
         int tc = server.getTickCount();
@@ -753,6 +805,24 @@ public final class DungeonManager {
         if (DungeonConfig.selfTest) {
             selfTest(server, store, tc);
         }
+        if (!PROTECTED.isEmpty()) {
+            long nowT = now(server);
+            for (var it = PROTECTED.entrySet().iterator(); it.hasNext(); ) {
+                var en = it.next();
+                ServerPlayer p = server.getPlayerList().getPlayer(en.getKey());
+                long left = en.getValue() - nowT;
+                if (p == null) {
+                    it.remove();
+                } else if (left <= 0) {
+                    p.removeEffect(MobEffects.RESISTANCE);
+                    Compat.overlay(p, Component.literal("GO!").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
+                    p.level().playSound(null, p.blockPosition(), GateboundSounds.of(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE), SoundSource.PLAYERS, 0.6f, 1.4f);
+                    it.remove();
+                } else {
+                    Compat.overlay(p, Component.literal("Spawn protection: " + (left + 19) / 20 + "s").withStyle(ChatFormatting.AQUA));
+                }
+            }
+        }
         maintainGates(server, store);
         GateLeak.tick(server, store, now(server));
         ServerLevel dungeon = server.getLevel(DungeonRegistries.DUNGEON);
@@ -764,8 +834,38 @@ public final class DungeonManager {
         }
     }
 
+    /** The single shared instance key of a gate dungeon. */
+    private static final UUID SHARED = new UUID(0L, 0L);
+    private static final Map<UUID, Long> PROTECTED = new HashMap<>();
+    private static final Map<String, BlockPos> PARTY_RIFT = new HashMap<>();
+    private static final Map<Integer, Integer> LAST_RIFT = new HashMap<>();
+
+    /** Where a gate arrival lands: a random rift (not the one used last), or the rift the player's party already uses. */
+    private static BlockPos riftFor(ServerPlayer player, DungeonStore.FloorState fs) {
+        if (fs.rifts.isEmpty()) {
+            return fs.downArrive;
+        }
+        Parties.Party party = Parties.of(player);
+        String key = party == null ? null : fs.floor + ":" + party.id;
+        if (key != null && PARTY_RIFT.containsKey(key)) {
+            return PARTY_RIFT.get(key);
+        }
+        int n = fs.rifts.size();
+        int i = player.getRandom().nextInt(n);
+        if (n > 1 && i == LAST_RIFT.getOrDefault(fs.floor, -1)) {
+            i = (i + 1 + player.getRandom().nextInt(n - 1)) % n;
+        }
+        LAST_RIFT.put(fs.floor, i);
+        BlockPos pos = fs.rifts.get(i);
+        if (key != null) {
+            PARTY_RIFT.put(key, pos);
+        }
+        return pos;
+    }
+
     private static final Set<UUID> GATE_DEATHS = new HashSet<>();
 
+    /** Places a player who fell: home after a gate death, otherwise their last rest. */
     private static void respawnAfterFall(ServerPlayer p, DungeonStore store) {
         if (GATE_DEATHS.remove(p.getUUID())) {
             sendHome(p);
@@ -780,6 +880,7 @@ public final class DungeonManager {
         }
     }
 
+    /** Periodic upkeep of the dungeon floors. */
     private static void maintainDungeon(MinecraftServer server, ServerLevel dungeon, DungeonStore store, int tc) {
         int total = store.totalFloors;
         if (total <= 0) {
@@ -807,6 +908,14 @@ public final class DungeonManager {
             if (DungeonConfig.restFloorHealing && Spire.kind(f, total) == Spire.Kind.REST && tc % 40 == 0) {
                 p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 100, 1, true, false));
                 p.addEffect(new MobEffectInstance(MobEffects.SATURATION, 40, 0, true, false));
+            }
+        }
+        for (DungeonStore.FloorState fs : new ArrayList<>(store.floors.values())) {
+            if (fs.collapseAt > 0 && Spire.isGate(fs.floor)) {
+                GateCollapse.tick(dungeon, fs, Spire.rank(fs.floor, total), now);
+                if (fs.collapseAt == 0) {
+                    store.setDirty();
+                }
             }
         }
         if (tc % 200 == 0) {
@@ -871,8 +980,13 @@ public final class DungeonManager {
         double dz = towardZ - (pos.getZ() + 0.5);
         Direction f = Math.abs(dx) > Math.abs(dz) ? (dx > 0 ? Direction.EAST : Direction.WEST)
                 : (dz > 0 ? Direction.SOUTH : Direction.NORTH);
+        placeGate(level, pos, rank, f);
+    }
+
+    /** Places a gate at the given position with its front facing the given direction. */
+    public static void placeGate(ServerLevel level, BlockPos pos, GateRank rank, Direction facing) {
         level.setBlock(pos, DungeonRegistries.GATE.get().defaultBlockState()
-                .setValue(GateBlock.RANK, rank).setValue(GateBlock.FACING, f), 3);
+                .setValue(GateBlock.RANK, rank).setValue(GateBlock.FACING, facing), 3);
     }
 
     /** Op command: places a gate leading to the given floor (0 = random floor of the rank's band). */
@@ -891,13 +1005,15 @@ public final class DungeonManager {
         // Grace period so the player standing inside the new gate is not pulled in at once.
         markPortalUsed(player);
         GatePull.grantImmunity(player);
-        placeGate(level, pos, rank, player.getX(), player.getZ() + 1.0);
+        // The gate's front faces back at the player, so its pane stands across the way they are looking.
+        placeGate(level, pos, rank, player.getDirection().getOpposite());
         store.gates.removeIf(g -> g.dim.equals(level.dimension()) && g.pos.equals(pos));
         floor = newGate(store, level.dimension(), pos, rank, false, now(server)).floor;
         store.setDirty();
         return floor;
     }
 
+    /** Periodic upkeep of gates. */
     private static void maintainGates(MinecraftServer server, DungeonStore store) {
         long now = now(server);
         boolean changed = false;
@@ -934,26 +1050,30 @@ public final class DungeonManager {
         }
     }
 
+    /** Rolls a chance for a natural gate to appear near each player. */
     private static void rollNaturalGate(MinecraftServer server, DungeonStore store) {
         ServerLevel level = server.overworld();
         List<ServerPlayer> players = level.players();
-        if (players.isEmpty()) {
-            return;
-        }
-        int natural = 0;
-        for (DungeonStore.GateRef g : store.gates) {
-            if (g.natural) {
-                natural++;
+        for (ServerPlayer player : players) {
+            int natural = 0;
+            for (DungeonStore.GateRef g : store.gates) {
+                if (g.natural) {
+                    natural++;
+                }
             }
+            if (natural >= DungeonConfig.maxNaturalGates) {
+                return;
+            }
+            rollGateNear(server, store, level, player);
         }
-        if (natural >= DungeonConfig.maxNaturalGates) {
-            return;
-        }
+    }
+
+    /** One spawn roll for a single player: a village gate if one is loaded nearby, otherwise open ground around them. */
+    private static void rollGateNear(MinecraftServer server, DungeonStore store, ServerLevel level, ServerPlayer player) {
         RandomSource rng = level.getRandom();
         if (rng.nextDouble() >= DungeonConfig.spawnChance) {
             return;
         }
-        ServerPlayer player = players.get(rng.nextInt(players.size()));
         for (DungeonStore.GateRef g : store.gates) {
             if (g.natural && g.dim.equals(level.dimension())) {
                 double dx = g.pos.getX() - player.getX();
@@ -969,7 +1089,7 @@ public final class DungeonManager {
         }
 
         int span = Math.max(1, DungeonConfig.spawnMaxDistance - DungeonConfig.spawnMinDistance);
-        for (int attempt = 0; attempt < 6; attempt++) {
+        for (int attempt = 0; attempt < 12; attempt++) {
             double dist = DungeonConfig.spawnMinDistance + rng.nextInt(span + 1);
             double ang = rng.nextDouble() * Math.PI * 2;
             int x = (int) Math.floor(player.getX() + Math.cos(ang) * dist);
@@ -1019,7 +1139,7 @@ public final class DungeonManager {
                 }
             }
         }
-        for (int attempt = 0; attempt < 12; attempt++) {
+        for (int attempt = 0; attempt < 24; attempt++) {
             double ang = rng.nextDouble() * Math.PI * 2;
             double dist = 8 + rng.nextInt(22);
             int x = village.getX() + (int) Math.floor(Math.cos(ang) * dist);
@@ -1047,10 +1167,12 @@ public final class DungeonManager {
         return false;
     }
 
+    /** True if the spot suits a gate (natural ground only). */
     private static boolean validGateSpot(ServerLevel level, BlockPos pos) {
         return validGateSpot(level, pos, false);
     }
 
+    /** True if the spot suits a gate, optionally allowing structures. */
     private static boolean validGateSpot(ServerLevel level, BlockPos pos, boolean allowStructures) {
         BlockPos below = pos.below();
         BlockState ground = level.getBlockState(below);
@@ -1075,6 +1197,7 @@ public final class DungeonManager {
         return allowStructures || !level.structureManager().getStructureWithPieceAt(pos, h -> true).isValid();
     }
 
+    /** Picks a gate rank by the configured weights. */
     private static GateRank pickRank(RandomSource rng) {
         int total = 0;
         for (int w : DungeonConfig.rankWeights) {
@@ -1155,10 +1278,12 @@ public final class DungeonManager {
 
     // ------------------------------------------------------------------ self test (headless)
 
+    /** Test hook: clears portal cooldowns. */
     static void testClearCooldowns() {
         COOLDOWNS.clear();
     }
 
+    /** Test hook: runs boss-death handling on a floor. */
     static void testBossDeath(ServerLevel level, DungeonStore store, int floor) {
         onBossDeath(level, store, store.floor(floor), floor, store.totalFloors);
     }
@@ -1224,6 +1349,7 @@ public final class DungeonManager {
                 floor, open, leaks, noFloor, badArrival, missingPortals, chestsFound, plan.chests.size(), ok ? "OK" : "PROBLEM");
     }
 
+    /** Runs the staged self test. */
     private static void selfTest(MinecraftServer server, DungeonStore store, int tc) {
         if (tc < 200) {
             return;

@@ -1,0 +1,7 @@
+{
+  "criteria": {
+    "has_void_essence": {"trigger": "minecraft:inventory_changed", "conditions": {"items": [{"items": "gatebound:void_essence"}]}}
+  },
+  "requirements": [["has_void_essence"]],
+  "rewards": {"recipes": ["gatebound:void_essence_to_template"]}
+}

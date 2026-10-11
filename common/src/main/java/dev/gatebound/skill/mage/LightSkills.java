@@ -397,7 +397,7 @@ public final class LightSkills {
 
     /** Seraph Form: ultimate light form with flight and a healing aura. */
     public static boolean seraphForm(ServerPlayer p, ServerLevel level, PlayerData data) {
-        int ticks = MageConfig.formSeconds * 20;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, MageConfig.formSeconds * 20);
         p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, ticks, 1));
         MageCore.flight(p, ticks);
         MageCore.form(p, Element.LIGHT, 20, o -> {

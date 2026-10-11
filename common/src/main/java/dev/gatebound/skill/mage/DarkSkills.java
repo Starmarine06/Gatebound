@@ -312,7 +312,7 @@ public final class DarkSkills {
     /** Void Lord: ultimate dark form with spreading curses and void pulses. */
     public static boolean voidLord(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.sacrifice(p, 6.0f);
-        int ticks = MageConfig.formSeconds * 20;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, MageConfig.formSeconds * 20);
         p.addEffect(new MobEffectInstance(MobEffects.STRENGTH, ticks, 1));
         MageCore.form(p, Element.DARK, 10, o -> {
             ServerLevel lv = o.level();

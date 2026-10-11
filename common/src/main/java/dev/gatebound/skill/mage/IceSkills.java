@@ -228,7 +228,7 @@ public final class IceSkills {
     /** Ice Armor: take less damage; attackers are chilled. */
     public static boolean iceArmor(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.ICE, ARMOR_COST);
-        int ticks = MageConfig.buffSeconds * 20;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, MageConfig.buffSeconds * 20);
         MageCore.buff(p, ARMOR, ticks);
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, ticks, 0));
         Fx.spiral(level, ICE.main(), p.position(), 0.9, 2.2, 3, 14);
@@ -260,7 +260,7 @@ public final class IceSkills {
             for (int w = -1; w <= 1; w++) {
                 Vec3 q = p.position().add(flat.scale(step)).add(side.scale(w));
                 BlockPos pos = new BlockPos((int) Math.floor(q.x), y, (int) Math.floor(q.z));
-                if (MageCore.tempBlock(level, pos, Blocks.PACKED_ICE.defaultBlockState(), MageConfig.pathSeconds * 20)) {
+                if (MageCore.tempBlock(level, pos, Blocks.PACKED_ICE.defaultBlockState(), dev.gatebound.skill.Proficiency.duration(p, MageConfig.pathSeconds * 20))) {
                     placed++;
                     int s = step;
                     // The ice spreads out from the caster one step at a time.
@@ -409,7 +409,7 @@ public final class IceSkills {
 
     /** Frost Sovereign: ultimate ice form; hits freeze. */
     public static boolean frostSovereign(ServerPlayer p, ServerLevel level, PlayerData data) {
-        p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, MageConfig.formSeconds * 20, 1));
+        p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, dev.gatebound.skill.Proficiency.duration(p, MageConfig.formSeconds * 20), 1));
         MageCore.form(p, Element.ICE, 10, o -> {
             ServerLevel lv = o.level();
             for (LivingEntity e : MageCore.foes(o, lv, 4.5)) {

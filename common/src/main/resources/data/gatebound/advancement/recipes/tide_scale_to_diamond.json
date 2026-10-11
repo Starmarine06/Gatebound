@@ -1,0 +1,7 @@
+{
+  "criteria": {
+    "has_tide_scale": {"trigger": "minecraft:inventory_changed", "conditions": {"items": [{"items": "gatebound:tide_scale"}]}}
+  },
+  "requirements": [["has_tide_scale"]],
+  "rewards": {"recipes": ["gatebound:tide_scale_to_diamond"]}
+}

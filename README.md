@@ -1,6 +1,6 @@
 # Gatebound
 
-An original isekai-style RPG mod for Minecraft 26.3 (Fabric + NeoForge, built with Architectury API).
+An original RPG mod for Minecraft 26.3 (Fabric + NeoForge, built with Architectury API).
 Pick a class, level up, parry and dodge, cast magic, conquer dungeon gates, bind allies and trade for upgrades.
 
 ## Requirements

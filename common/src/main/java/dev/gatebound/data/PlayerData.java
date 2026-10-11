@@ -4,7 +4,9 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /** Per-player progression. Mutate it, then persist through Progression.save. */
 public final class PlayerData {
@@ -22,7 +24,8 @@ public final class PlayerData {
             Codec.STRING.listOf().optionalFieldOf("elements", List.of()).forGetter(d -> d.elements),
             Codec.DOUBLE.optionalFieldOf("mana", MANA_UNSET).forGetter(d -> d.mana),
             dev.gatebound.echo.EchoRoster.CODEC.optionalFieldOf("echo", new dev.gatebound.echo.EchoRoster()).forGetter(d -> d.echo),
-            Codec.STRING.listOf().optionalFieldOf("spell_picks", List.of()).forGetter(d -> d.picks)
+            Codec.STRING.listOf().optionalFieldOf("spell_picks", List.of()).forGetter(d -> d.picks),
+            Codec.unboundedMap(Codec.STRING, Codec.INT).optionalFieldOf("skill_uses", Map.of()).forGetter(d -> d.uses)
     ).apply(i, PlayerData::new));
 
     public int level;
@@ -34,19 +37,23 @@ public final class PlayerData {
     public final List<String> elements = new ArrayList<>();
     /** Skill ids a multi-element Mage has chosen to unlock (one element's spell per tier; see SpellPicks). */
     public final List<String> picks = new ArrayList<>();
+    /** Successful casts per skill id; the skill's proficiency rank comes from this (see Proficiency). */
+    public final Map<String, Integer> uses = new HashMap<>();
     public double mana;
     /** Summoner's saved Echoes (bound mobs). */
     public dev.gatebound.echo.EchoRoster echo = new dev.gatebound.echo.EchoRoster();
 
     /** Creates fresh player data. */
     public PlayerData() {
-        this(1, 0, 0, List.of(), "", List.of(), MANA_UNSET, new dev.gatebound.echo.EchoRoster(), List.of());
+        this(1, 0, 0, List.of(), "", List.of(), MANA_UNSET, new dev.gatebound.echo.EchoRoster(), List.of(), Map.of());
     }
 
     /** Creates player data from saved values. */
     private PlayerData(int level, int xp, int statPoints, List<Integer> savedStats, String classId,
-                       List<String> savedElements, double mana, dev.gatebound.echo.EchoRoster echo, List<String> savedPicks) {
+                       List<String> savedElements, double mana, dev.gatebound.echo.EchoRoster echo, List<String> savedPicks,
+                       Map<String, Integer> savedUses) {
         this.echo = echo.copy();
+        this.uses.putAll(savedUses);
         this.picks.addAll(savedPicks);
         this.level = Math.max(1, Math.min(MAX_LEVEL, level));
         this.xp = Math.max(0, xp);

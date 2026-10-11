@@ -246,7 +246,7 @@ public final class Skills {
         }
         float damage = intel(data, 4, 0.6);
         dev.gatebound.skill.fx.SummonerFx.drain(player, hits.get(0));
-        hits.get(0).hurtServer(level, magic(player, level), damage);
+        hits.get(0).hurtServer(level, magic(player, level), dev.gatebound.skill.Proficiency.damage(player, damage));
         player.heal(damage * 0.5f);
         return true;
     }

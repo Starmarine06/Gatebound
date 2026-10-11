@@ -73,6 +73,7 @@ public final class SkillHandler {
             ManaState.forget(player.getUUID());
             COOLDOWN_END.remove(player.getUUID());
             LAST_CAST.remove(player.getUUID());
+            Proficiency.forget(player.getUUID());
         });
     }
 
@@ -114,13 +115,13 @@ public final class SkillHandler {
         int now = player.level().getServer().getTickCount();
         if (mage) {
             Integer last = LAST_CAST.get(player.getUUID());
-            if (last != null && now - last < MageConfig.castGapTicks) {
+            if (last != null && now - last < Proficiency.castTime(MageConfig.castGapTicks, data.uses.getOrDefault(skill.id(), 0))) {
                 Compat.overlay(player, Component.literal("Your magic is still settling."));
                 return;
             }
         }
         // Skills have no cooldowns: mana is the only limit.
-        if (!ManaState.spend(player, skill.manaCost())) {
+        if (!ManaState.spend(player, Proficiency.cost(skill.manaCost(), data.uses.getOrDefault(skill.id(), 0)))) {
             Compat.overlay(player, Component.translatable("skill.gatebound.not_enough_mana"));
             return;
         }
@@ -135,6 +136,7 @@ public final class SkillHandler {
             dev.gatebound.skill.fx.ClassCastFx.cast(player, skill);
         }
 
+        Proficiency.begin(player, skill.id(), data);
         boolean connected = skill.effect().cast(player, player.level(), data);
         net.minecraft.sounds.SoundEvent signature = dev.gatebound.sound.GateboundSounds.skill(skill.id());
         if (signature != null && connected) {
@@ -142,6 +144,12 @@ public final class SkillHandler {
         }
         if (!connected) {
             Compat.overlay(player, Component.translatable("skill.gatebound.no_target"));
+        } else {
+            int ranked = Proficiency.addUse(data, skill.id());
+            if (ranked > 0) {
+                Compat.overlay(player, Component.translatable("skill.gatebound.rank_up", Component.translatable(skill.nameKey()), ranked));
+                dev.gatebound.data.Progression.refresh(player);
+            }
         }
         PlayerDataStore.markDirty(player);
     }

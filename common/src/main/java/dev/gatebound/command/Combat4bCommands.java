@@ -48,7 +48,7 @@ public final class Combat4bCommands {
             })));
         }
 
-        return Commands.literal("combat")
+        return Commands.literal("combat").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                 .then(tune)
                 .then(Commands.literal("telegraph").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)).then(Commands.argument("on", BoolArgumentType.bool()).executes(ctx -> {
                     CombatConfig.telegraphEnabled = BoolArgumentType.getBool(ctx, "on");

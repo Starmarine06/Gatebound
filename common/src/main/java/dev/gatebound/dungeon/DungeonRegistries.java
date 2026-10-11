@@ -40,20 +40,40 @@ public final class DungeonRegistries {
                     .lightLevel(state -> 13)
                     .pushReaction(Compat.IMMOVABLE)));
 
+    public static final RegistrySupplier<Block> MANA_CRYSTAL = BLOCKS.register("mana_crystal", () ->
+            new ManaCrystalBlock(BlockBehaviour.Properties.of()
+                    .setId(blockKey("mana_crystal"))
+                    .noOcclusion()
+                    .strength(50.0f, 1200.0f)
+                    .requiresCorrectToolForDrops()
+                    .lightLevel(state -> 10)
+                    .sound(net.minecraft.world.level.block.SoundType.AMETHYST_CLUSTER)
+                    .pushReaction(Compat.IMMOVABLE)));
+
+    /** What a broken mana crystal drops; crafted into mana potions. */
+    public static final RegistrySupplier<Item> MANA_CRYSTAL_ITEM = ITEMS.register("mana_crystal", () ->
+            new Item(new Item.Properties()
+                    .arch$tab(GateboundRegistries.MAIN_TAB)
+                    .rarity(net.minecraft.world.item.Rarity.UNCOMMON)
+                    .setId(ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, "mana_crystal")))));
+
     public static final RegistrySupplier<Item> GATE_ITEM = ITEMS.register("gate", () ->
             new BlockItem(GATE.get(), new Item.Properties()
                     .arch$tab(GateboundRegistries.MAIN_TAB)
                     .useBlockDescriptionPrefix()
                     .setId(ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, "gate")))));
 
+    /** Static holder; not instantiable. */
     private DungeonRegistries() {
     }
 
+    /** Registers the dungeon blocks and items. */
     public static void init() {
         BLOCKS.register();
         ITEMS.register();
     }
 
+    /** Block registry key for a path. */
     private static ResourceKey<Block> blockKey(String path) {
         return ResourceKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, path));
     }

@@ -153,7 +153,7 @@ public final class WarriorSkills {
     /** Deals magic damage from the player, ignoring invulnerability frames. */
     private static void strike(ServerPlayer p, ServerLevel level, LivingEntity target, float amount) {
         Compat.setInvulnerableTime(target, 0);
-        target.hurtServer(level, level.damageSources().indirectMagic(p, p), amount);
+        target.hurtServer(level, level.damageSources().indirectMagic(p, p), dev.gatebound.skill.Proficiency.damage(p, amount));
     }
 
     /** Knocks an entity away from a point. */
@@ -383,14 +383,14 @@ public final class WarriorSkills {
         p.setDeltaMovement(flat.x * WarriorConfig.chargeSpeed, 0.15, flat.z * WarriorConfig.chargeSpeed);
         send(p);
         PlayerCombat.grantIFrames(p, 6);
-        CHARGE.put(p.getUUID(), new Charge(now(p) + WarriorConfig.chargeTicks));
+        CHARGE.put(p.getUUID(), new Charge(now(p) + dev.gatebound.skill.Proficiency.castTime(WarriorConfig.chargeTicks, data.uses.getOrDefault("charge", 0))));
         sound(p, level, GateboundSounds.of(SoundEvents.RAVAGER_STEP), 0.8f);
         return true;
     }
 
     /** War Cry: Strength and Resistance for you; nearby enemies turn on you. */
     public static boolean warCry(ServerPlayer p, ServerLevel level, PlayerData data) {
-        int ticks = (10 + data.level / 10) * 20;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, (10 + data.level / 10) * 20);
         int amp = Math.min(2, data.level / 40);
         p.addEffect(new MobEffectInstance(MobEffects.STRENGTH, ticks, amp));
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, ticks, Math.min(1, amp)));
@@ -428,7 +428,7 @@ public final class WarriorSkills {
 
     /** Iron Skin: long Resistance II and Absorption. */
     public static boolean ironSkin(ServerPlayer p, ServerLevel level, PlayerData data) {
-        int ticks = (8 + data.level / 8) * 20;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, (8 + data.level / 8) * 20);
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, ticks, 1));
         p.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, ticks, 1 + data.level / 50));
         WarriorFx.ironSkin(p, ticks);
@@ -472,7 +472,7 @@ public final class WarriorSkills {
 
     /** Bulwark: Resistance III and part of melee damage is struck back. */
     public static boolean bulwark(ServerPlayer p, ServerLevel level, PlayerData data) {
-        int ticks = (WarriorConfig.bulwarkSeconds + data.level / 20) * 20;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, (WarriorConfig.bulwarkSeconds + data.level / 20) * 20);
         BULWARK.put(p.getUUID(), now(p) + ticks);
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, ticks, 2));
         WarriorFx.bulwark(p, ticks);
@@ -529,7 +529,7 @@ public final class WarriorSkills {
 
     /** Berserker Rage: Strength II, Speed and lifesteal. */
     public static boolean berserkerRage(ServerPlayer p, ServerLevel level, PlayerData data) {
-        int ticks = (WarriorConfig.rageBaseSeconds + data.level / 10) * 20;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, (WarriorConfig.rageBaseSeconds + data.level / 10) * 20);
         RAGE.put(p.getUUID(), now(p) + ticks);
         FxState.set(p, "bar:rage:" + ticks, ticks);
         p.addEffect(new MobEffectInstance(MobEffects.STRENGTH, ticks, 1));
@@ -578,7 +578,7 @@ public final class WarriorSkills {
 
     /** Avatar of War: ultimate form with huge buffs, pulses, lifesteal and a final slam. */
     public static boolean avatarOfWar(ServerPlayer p, ServerLevel level, PlayerData data) {
-        int ticks = (WarriorConfig.avatarBaseSeconds + data.level / 10) * 20;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, (WarriorConfig.avatarBaseSeconds + data.level / 10) * 20);
         long now = now(p);
         AVATAR.put(p.getUUID(), new Avatar(now + ticks, now + 20));
         FxState.set(p, "bar:avatar:" + ticks, ticks);
