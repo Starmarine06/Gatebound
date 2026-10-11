@@ -36,5 +36,5 @@ Check the real file names after `./gradlew build`. Upload the remapped jar, not 
 See `SCREENSHOTS.md` for the full shot list, setup commands and tips.
 
 ## Notes
-- Do not claim features that are not in the build you upload. HANDOFF.md lists several systems that have not been played through yet.
+- Do not claim features that are not in the build you upload. Several systems have not been played through yet.
 - Keep the description free of internal tool and process notes.
