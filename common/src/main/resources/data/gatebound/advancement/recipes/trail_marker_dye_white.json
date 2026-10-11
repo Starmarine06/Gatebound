@@ -1,0 +1,7 @@
+{
+  "criteria": {
+    "has_trail_marker": {"trigger": "minecraft:inventory_changed", "conditions": {"items": [{"items": "gatebound:trail_marker"}]}}
+  },
+  "requirements": [["has_trail_marker"]],
+  "rewards": {"recipes": ["gatebound:trail_marker_dye_white"]}
+}

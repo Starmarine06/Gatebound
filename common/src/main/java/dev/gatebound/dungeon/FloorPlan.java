@@ -57,7 +57,11 @@ public final class FloorPlan {
     public BlockPos boss;
     public BlockPos center;
     public final List<BlockPos> mobSpots = new ArrayList<>();
+    /** Gate dungeons: arrival points players are scattered over. */
+    public final List<BlockPos> rifts = new ArrayList<>();
     public final List<Chest> chests = new ArrayList<>();
+    /** Where mana crystals grow: against walls, spread out, more of them the higher the rank. */
+    public final List<BlockPos> crystals = new ArrayList<>();
     public int arenaCx;
     public int arenaCz;
     public int arenaR;
@@ -72,6 +76,7 @@ public final class FloorPlan {
     private int startCx;
     private int startCz;
 
+    /** Creates a plan for one attempt (seeded by world, floor and attempt). */
     private FloorPlan(long worldSeed, int floor, int total, int attempt, boolean forceRooms) {
         this.floor = floor;
         this.total = total;
@@ -88,6 +93,7 @@ public final class FloorPlan {
         this.blocked = new boolean[size * size];
     }
 
+    /** Generates a floor plan, retrying with new attempts until a layout works. */
     public static FloorPlan generate(long worldSeed, int floor, int total) {
         for (int attempt = 0; attempt < 8; attempt++) {
             FloorPlan p = new FloorPlan(worldSeed, floor, total, attempt, attempt >= 4);
@@ -103,10 +109,11 @@ public final class FloorPlan {
 
     // ------------------------------------------------------------------ build
 
+    /** Lays out the floor for its kind (rest, gate, boss, rooms or cave). */
     private boolean build() {
         boolean ok = switch (kind) {
             case REST -> layoutRest();
-            case BOSS, FINAL -> layoutRooms(true);
+            case BOSS, FINAL -> Spire.isGate(floor) ? layoutGate() : layoutRooms(true);
             default -> theme.cave() && !forceRooms ? layoutCave() : layoutRooms(false);
         };
         if (!ok) {
@@ -115,6 +122,7 @@ public final class FloorPlan {
         planPools();
         pickMobSpots();
         pickChests();
+        pickCrystals();
         computeWalls();
         decorate();
         int[] dist = bfs(startCx, startCz);
@@ -122,26 +130,32 @@ public final class FloorPlan {
         return reachable;
     }
 
+    /** Grid index of a block position. */
     private int cell(BlockPos p) {
         return (p.getZ()) * size + (p.getX() - ox);
     }
 
+    /** Grid index of a cell. */
     private int idx(int i, int j) {
         return j * size + i;
     }
 
+    /** True if the cell is open floor. */
     private boolean open(int i, int j) {
         return i >= 0 && j >= 0 && i < size && j < size && h[j * size + i] > 0;
     }
 
+    /** Random int in a..b inclusive. */
     private int rnd(int a, int b) {
         return a + rng.nextInt(b - a + 1);
     }
 
+    /** Position hash for a cell and salt. */
     private int hash(int i, int j, int salt) {
         return (int) (Spire.mix(seed ^ (salt * 0x9E37L), i, j) >>> 33);
     }
 
+    /** Carves a rectangle of floor at a height. */
     private void carveRect(int x1, int z1, int x2, int z2, int hh) {
         for (int j = Math.max(2, z1); j <= Math.min(size - 3, z2); j++) {
             for (int i = Math.max(2, x1); i <= Math.min(size - 3, x2); i++) {
@@ -153,6 +167,7 @@ public final class FloorPlan {
         }
     }
 
+    /** Carves a circle of floor at a height. */
     private void carveCircle(int cx, int cz, int r, int hh) {
         for (int j = cz - r; j <= cz + r; j++) {
             for (int i = cx - r; i <= cx + r; i++) {
@@ -166,6 +181,7 @@ public final class FloorPlan {
         }
     }
 
+    /** Carves a corridor of a width between two rooms. */
     private void corridor(Room a, Room b, int cw) {
         int hh = cw >= 5 ? 6 : 5;
         int half = cw / 2;
@@ -252,6 +268,7 @@ public final class FloorPlan {
         return Spire.abs(floor, i, Spire.FY + 1, j);
     }
 
+    /** Distance map (steps) from a start cell over open cells. */
     private int[] bfs(int sx, int sz) {
         int[] dist = new int[size * size];
         java.util.Arrays.fill(dist, -1);
@@ -279,10 +296,12 @@ public final class FloorPlan {
         return dist;
     }
 
+    /** Reserves a circular keep-clear area. */
     private void addKeep(int x, int z, int r) {
         keep.add(new int[]{x, z, r});
     }
 
+    /** True if the cell is near a keep-clear area. */
     private boolean nearKeep(int i, int j, int extra) {
         for (int[] k : keep) {
             int dx = i - k[0];
@@ -295,6 +314,7 @@ public final class FloorPlan {
         return false;
     }
 
+    /** True if the cell is near the boss arena. */
     private boolean inArena(int i, int j, int extra) {
         if (arenaR <= 0) {
             return false;
@@ -307,6 +327,7 @@ public final class FloorPlan {
 
     // ------------------------------------------------------------------ layouts
 
+    /** Lays out rooms and corridors (with an arena for boss floors). */
     private boolean layoutRooms(boolean arena) {
         int cw = theme.corridorWidth();
         int count = theme.roomCount();
@@ -409,6 +430,76 @@ public final class FloorPlan {
         return true;
     }
 
+    /**
+     * A gate dungeon is one winding path: a start room, a chain of rooms (more of them for higher ranks) laid out
+     * as a snake across the floor, and the guardian's arena at the very end. Each room joins only the next one, so
+     * there are no branches or shortcuts.
+     */
+    private boolean layoutGate() {
+        GateRank rank = Spire.rank(floor, total);
+        int cw = theme.corridorWidth();
+        arenaR = 18;
+        arenaCx = size - arenaR - 10 - rng.nextInt(4);
+        arenaCz = size / 2 + rng.nextInt(11) - 5;
+        int ah = 14;
+        carveCircle(arenaCx, arenaCz, arenaR, ah);
+        Room arenaRoom = new Room(arenaCx - arenaR, arenaCz - arenaR, arenaR * 2, arenaR * 2, ah, true);
+        rooms.add(arenaRoom);
+
+        int n = rank.chainRooms();
+        int rows = 3;
+        int cols = (n + rows - 1) / rows;
+        int x0 = 5;
+        int x1 = arenaCx - arenaR - 8;
+        int cellW = (x1 - x0) / cols;
+        int cellH = (size - 10) / rows;
+        if (cellW < 14 || cellH < 14) {
+            return false;
+        }
+        List<Room> chain = new ArrayList<>();
+        for (int k = 0; k < n; k++) {
+            int col = k / rows;
+            int r = k % rows;
+            int row = col % 2 == 0 ? r : rows - 1 - r;
+            int wMax = Math.max(7, Math.min(theme.roomMax(), cellW - 6));
+            int dMax = Math.max(7, Math.min(theme.roomMax(), cellH - 6));
+            int w = rnd(Math.min(theme.roomMin(), wMax), wMax);
+            int d = rnd(Math.min(theme.roomMin(), dMax), dMax);
+            int x = x0 + col * cellW + 3 + rng.nextInt(Math.max(1, cellW - w - 5));
+            int z = 5 + row * cellH + 3 + rng.nextInt(Math.max(1, cellH - d - 5));
+            int hh = rnd(theme.heightMin(), theme.heightMax());
+            carveRect(x, z, x + w - 1, z + d - 1, hh);
+            Room room = new Room(x, z, w, d, hh, false);
+            rooms.add(room);
+            chain.add(room);
+        }
+        for (int k = 0; k + 1 < chain.size(); k++) {
+            gateCorridor(chain.get(k), chain.get(k + 1), cw);
+        }
+        gateCorridor(chain.get(chain.size() - 1), arenaRoom, cw);
+
+        Room start = chain.get(0);
+        placeStart(start.cx(), start.cz());
+        int px = arenaCx + arenaR - 6;
+        placeExit(px, arenaCz, px - 2, arenaCz);
+        boss = Spire.abs(floor, arenaCx - 4, Spire.FY + 1, arenaCz);
+        // Players arriving through the gate are scattered over the first part of the path, far from the guardian.
+        int scatter = Math.max(2, (int) Math.ceil(n * 0.6));
+        for (int k = 0; k < scatter && k < chain.size(); k++) {
+            rifts.add(Spire.abs(floor, chain.get(k).cx(), Spire.FY + 1, chain.get(k).cz() + 1));
+        }
+        return true;
+    }
+
+    /** Horizontal leg first, then vertical, so a corridor never leaves the cells of the two rooms it joins. */
+    private void gateCorridor(Room a, Room b, int cw) {
+        int hh = cw >= 5 ? 6 : 5;
+        int half = cw / 2;
+        carveRect(Math.min(a.cx(), b.cx()) - half, a.cz() - half, Math.max(a.cx(), b.cx()) + half, a.cz() + half, hh);
+        carveRect(b.cx() - half, Math.min(a.cz(), b.cz()) - half, b.cx() + half, Math.max(a.cz(), b.cz()) + half, hh);
+    }
+
+    /** Places the arrival area and the way-down portal. */
     private void placeStart(int cx, int cz) {
         carveCircle(cx, cz, 3, 6);
         startCx = cx + 2;
@@ -418,6 +509,7 @@ public final class FloorPlan {
         addKeep(cx, cz, 4);
     }
 
+    /** Places the way-up portal and its arrival spot. */
     private void placeExit(int px, int pz, int ax, int az) {
         carveCircle(px, pz, 3, 6);
         carveCircle(ax, az, 1, 6);
@@ -426,6 +518,7 @@ public final class FloorPlan {
         addKeep(px, pz, 4);
     }
 
+    /** Lays out a cave floor with noise. */
     private boolean layoutCave() {
         int n = size * size;
         boolean[] wall = new boolean[n];
@@ -546,6 +639,7 @@ public final class FloorPlan {
         return true;
     }
 
+    /** Smooth value noise at a point. */
     private double noise(double x, double z) {
         int x0 = (int) Math.floor(x);
         int z0 = (int) Math.floor(z);
@@ -560,6 +654,7 @@ public final class FloorPlan {
         return (a * (1 - fx) + b * fx) * (1 - fz) + (c * (1 - fx) + d * fx) * fz;
     }
 
+    /** Lays out the rest floor. */
     private boolean layoutRest() {
         int cx = size / 2;
         int cz = size / 2;
@@ -584,6 +679,7 @@ public final class FloorPlan {
 
     // ------------------------------------------------------------------ features
 
+    /** Plans fluid pools for themed floors. */
     private void planPools() {
         if (theme.fluid() == null) {
             return;
@@ -649,6 +745,7 @@ public final class FloorPlan {
         }
     }
 
+    /** True if every cell within a radius is open. */
     private boolean allOpen(int i, int j, int r) {
         for (int dj = -r; dj <= r; dj++) {
             for (int di = -r; di <= r; di++) {
@@ -660,6 +757,7 @@ public final class FloorPlan {
         return true;
     }
 
+    /** Marks cells (and their surroundings) as blocked. */
     private void markBlocked(List<Integer> cells) {
         for (int k : cells) {
             int i = k % size;
@@ -674,6 +772,7 @@ public final class FloorPlan {
         }
     }
 
+    /** All open cells. */
     private List<int[]> openCells() {
         List<int[]> out = new ArrayList<>();
         for (int j = 0; j < size; j++) {
@@ -686,6 +785,7 @@ public final class FloorPlan {
         return out;
     }
 
+    /** Picks mob spawn spots. */
     private void pickMobSpots() {
         if (kind == Spire.Kind.REST) {
             return;
@@ -723,6 +823,7 @@ public final class FloorPlan {
         }
     }
 
+    /** Picks chest spots against walls. */
     private void pickChests() {
         int want = kind == Spire.Kind.REST ? 0 : DungeonConfig.chestsPerFloor + band / 2;
         if (want <= 0) {
@@ -770,6 +871,65 @@ public final class FloorPlan {
         }
     }
 
+    /** Picks mana crystal spots. */
+    private void pickCrystals() {
+        if (kind == Spire.Kind.REST) {
+            return;
+        }
+        int want = Spire.isGate(floor) ? DungeonConfig.gateCrystalBase + DungeonConfig.gateCrystalPerRank * band
+                : DungeonConfig.floorCrystalBase + DungeonConfig.floorCrystalPerBand * band;
+        List<int[]> cands = new ArrayList<>();
+        for (int j = 3; j < size - 3; j++) {
+            for (int i = 3; i < size - 3; i++) {
+                if (h[idx(i, j)] < 4 || blocked[idx(i, j)] || nearKeep(i, j, 6) || inArena(i, j, 1)) {
+                    continue;
+                }
+                int sdx = i - startCx;
+                int sdz = j - startCz;
+                if (sdx * sdx + sdz * sdz < 15 * 15 || !(!open(i + 1, j) || !open(i - 1, j) || !open(i, j + 1) || !open(i, j - 1))) {
+                    continue;
+                }
+                boolean nearChest = false;
+                for (Chest ch : chests) {
+                    int cx = ch.pos().getX() - ox - i;
+                    int cz = ch.pos().getZ() - j;
+                    if (cx * cx + cz * cz < 16) {
+                        nearChest = true;
+                        break;
+                    }
+                }
+                if (!nearChest) {
+                    cands.add(new int[]{i, j});
+                }
+            }
+        }
+        Collections.shuffle(cands, new java.util.Random(rng.nextLong()));
+        List<int[]> picked = new ArrayList<>();
+        for (int spacing : new int[]{100, 36, 9}) {
+            for (int[] cnd : cands) {
+                if (picked.size() >= want) {
+                    break;
+                }
+                boolean ok = true;
+                for (int[] q : picked) {
+                    int ddx = q[0] - cnd[0];
+                    int ddz = q[1] - cnd[1];
+                    if (ddx * ddx + ddz * ddz < spacing) {
+                        ok = false;
+                        break;
+                    }
+                }
+                if (ok) {
+                    picked.add(cnd);
+                }
+            }
+        }
+        for (int[] q : picked) {
+            crystals.add(Spire.abs(floor, q[0], Spire.FY + 1, q[1]));
+        }
+    }
+
+    /** Computes the wall cells around the open floor. */
     private void computeWalls() {
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
@@ -793,18 +953,21 @@ public final class FloorPlan {
 
     // ------------------------------------------------------------------ block choice
 
+    /** Wall block at a position (weighted by the theme). */
     public BlockState wallState(int x, int y, int z) {
         int r = (int) ((Spire.mix(seed, x * 31L + y, z) >>> 40) % 100);
         BlockState[] w = theme.wall();
         return r < 70 ? w[0] : r < 90 ? w[1] : w[2];
     }
 
+    /** Floor block at a cell (weighted by the theme). */
     public BlockState floorState(int i, int j) {
         int r = hash(i, j, 3) % 100;
         BlockState[] f = theme.floor();
         return r < 55 ? f[0] : r < 85 ? f[1] : f[2];
     }
 
+    /** Ceiling block at a cell (weighted by the theme). */
     public BlockState ceilingState(int i, int j) {
         int r = hash(i, j, 4) % 100;
         BlockState[] c = theme.ceiling();
@@ -813,10 +976,12 @@ public final class FloorPlan {
 
     // ------------------------------------------------------------------ decoration
 
+    /** Records a decoration block. */
     private void deco(int i, int y, int j, BlockState s) {
         decos.put(((long) y << 32) | ((long) j << 16) | i, s);
     }
 
+    /** Plans the floor's decorations. */
     private void decorate() {
         // Pools and their sealing ring (ring first so pool cells win).
         BlockState base = theme.floor()[0];
@@ -931,6 +1096,7 @@ public final class FloorPlan {
         }
     }
 
+    /** Plans the rest floor's decorations. */
     private void decorateRest() {
         int cx = size / 2;
         int cz = size / 2;

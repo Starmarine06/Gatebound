@@ -328,7 +328,7 @@ public final class RangerSkills {
         applying = true;
         try {
             Compat.setInvulnerableTime(target, 0);
-            target.hurtServer(level, level.damageSources().indirectMagic(p, p), (float) (base * multiplier(p, target, now(p))));
+            target.hurtServer(level, level.damageSources().indirectMagic(p, p), (float) (base * multiplier(p, target, now(p)) * dev.gatebound.skill.Proficiency.damageFactor(p)));
         } finally {
             applying = false;
         }
@@ -966,8 +966,8 @@ public final class RangerSkills {
         }
         LivingEntity q = hits.get(0);
         QUARRY.put(p.getUUID(), q.getUUID());
-        q.addEffect(new MobEffectInstance(MobEffects.GLOWING, RangerConfig.quarryGlowSeconds * 20, 0, false, false));
-        dev.gatebound.skill.fx.RangerFx.quarry(p, q, RangerConfig.quarryGlowSeconds * 20);
+        q.addEffect(new MobEffectInstance(MobEffects.GLOWING, dev.gatebound.skill.Proficiency.duration(p, RangerConfig.quarryGlowSeconds * 20), 0, false, false));
+        dev.gatebound.skill.fx.RangerFx.quarry(p, q, dev.gatebound.skill.Proficiency.duration(p, RangerConfig.quarryGlowSeconds * 20));
         sound(p, level, GateboundSounds.of(SoundEvents.AMETHYST_BLOCK_CHIME), 1.4f);
         return true;
     }
@@ -1070,7 +1070,7 @@ public final class RangerSkills {
 
     /** Hunter's Trance: skills cost no mana, faster, arrows seek. */
     public static boolean huntersTrance(ServerPlayer p, ServerLevel level, PlayerData data) {
-        int ticks = (RangerConfig.tranceBaseSeconds + data.level / 10) * 20;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, (RangerConfig.tranceBaseSeconds + data.level / 10) * 20);
         TRANCE.put(p.getUUID(), now(p) + ticks);
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 1));
         dev.gatebound.skill.fx.RangerFx.trance(p, ticks);
@@ -1109,7 +1109,7 @@ public final class RangerSkills {
 
     /** Apex Predator: ultimate; spectral arrows strike every enemy each second, drains mana until empty. */
     public static boolean apexPredator(ServerPlayer p, ServerLevel level, PlayerData data) {
-        int ticks = (RangerConfig.apexBaseSeconds + data.level / 10) * 20;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, (RangerConfig.apexBaseSeconds + data.level / 10) * 20);
         long now = now(p);
         APEX.put(p.getUUID(), new Apex(now + ticks, now + 20));
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 2));

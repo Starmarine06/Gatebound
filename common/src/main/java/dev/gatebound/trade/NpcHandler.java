@@ -27,9 +27,11 @@ public final class NpcHandler {
     public static final String BROKER_TAG = "gatebound_broker";
     public static final String SCHOLAR_TAG = "gatebound_scholar";
 
+    /** Static holder; not instantiable. */
     private NpcHandler() {
     }
 
+    /** Registers trade items, trades, shard drops and NPC spawn commands. */
     public static void init() {
         TradeItems.init();
         NpcTrades.init();
@@ -37,6 +39,7 @@ public final class NpcHandler {
         EntityEvent.LIVING_DEATH.register((entity, source) -> {
             if (entity instanceof Enemy && source.getEntity() instanceof ServerPlayer
                     && entity.level() instanceof ServerLevel level
+                    && level.dimension().equals(dev.gatebound.dungeon.DungeonRegistries.DUNGEON)
                     && entity.getRandom().nextDouble() < TradeConfig.shardDropChance) {
                 int count = 1 + (entity.getMaxHealth() >= 50 ? TradeConfig.bossShardBonus : 0);
                 entity.spawnAtLocation(level, new ItemStack(TradeItems.GATE_SHARD.get(), count));
@@ -64,6 +67,7 @@ public final class NpcHandler {
         });
     }
 
+    /** True if the entity is a Gatebound NPC. */
     public static boolean isNpc(Entity entity) {
         return entity instanceof GateboundNpc;
     }
@@ -87,6 +91,7 @@ public final class NpcHandler {
         return npc;
     }
 
+    /** Spawn command: places a Broker or Scholar here. */
     private static int spawn(CommandSourceStack source, boolean broker) {
         ServerLevel level = source.getLevel();
         BlockPos pos = BlockPos.containing(source.getPosition());

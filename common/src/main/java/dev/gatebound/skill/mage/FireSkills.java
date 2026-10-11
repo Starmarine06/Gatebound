@@ -198,7 +198,7 @@ public final class FireSkills {
     /** Ignite: weapon and arrows set targets alight; fire resistance. */
     public static boolean ignite(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.FIRE, IGNITE_COST);
-        int ticks = MageConfig.buffSeconds * 20;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, MageConfig.buffSeconds * 20);
         MageCore.buff(p, IGNITE, ticks);
         p.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, ticks, 0));
         Fx.spiral(level, ParticleTypes.FLAME, p.position(), 0.9, 2.2, 3, 14);
@@ -266,7 +266,7 @@ public final class FireSkills {
     /** Immolate: burning aura around you. */
     public static boolean immolate(ServerPlayer p, ServerLevel level, PlayerData data) {
         MageCore.freeCast(p, Element.FIRE, IMMOLATE_COST);
-        int ticks = 240;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, 240);
         MageCore.buff(p, IMMOLATE, ticks);
         p.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, ticks, 0));
         // The aura follows the caster, so it is a ticker on the player rather than a fixed zone.
@@ -391,7 +391,7 @@ public final class FireSkills {
 
     /** Ifrit Form: ultimate fire form with a burning aura. */
     public static boolean ifritForm(ServerPlayer p, ServerLevel level, PlayerData data) {
-        p.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, MageConfig.formSeconds * 20, 0));
+        p.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, dev.gatebound.skill.Proficiency.duration(p, MageConfig.formSeconds * 20), 0));
         MageCore.form(p, Element.FIRE, 20, o -> {
             ServerLevel lv = o.level();
             PlayerData d = PlayerDataStore.of(o);

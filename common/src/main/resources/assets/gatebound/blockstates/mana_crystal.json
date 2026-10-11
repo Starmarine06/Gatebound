@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "weakened=false": {"model": "gatebound:block/mana_crystal"},
+    "weakened=true": {"model": "gatebound:block/mana_crystal_weak"}
+  }
+}

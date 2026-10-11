@@ -286,7 +286,7 @@ public final class EarthSkills {
 
     /** Titan Form: ultimate earth form with huge health and strength. */
     public static boolean titanForm(ServerPlayer p, ServerLevel level, PlayerData data) {
-        int ticks = MageConfig.formSeconds * 20;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, MageConfig.formSeconds * 20);
         p.addEffect(new MobEffectInstance(MobEffects.HEALTH_BOOST, ticks, 4));
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, ticks, 2));
         p.addEffect(new MobEffectInstance(MobEffects.STRENGTH, ticks, 1));

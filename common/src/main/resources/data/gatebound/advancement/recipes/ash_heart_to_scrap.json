@@ -1,0 +1,7 @@
+{
+  "criteria": {
+    "has_ash_heart": {"trigger": "minecraft:inventory_changed", "conditions": {"items": [{"items": "gatebound:ash_heart"}]}}
+  },
+  "requirements": [["has_ash_heart"]],
+  "rewards": {"recipes": ["gatebound:ash_heart_to_scrap"]}
+}

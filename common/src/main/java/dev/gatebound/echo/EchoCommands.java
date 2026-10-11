@@ -21,7 +21,7 @@ final class EchoCommands {
     /** Registers the echo commands. */
     static void init() {
         CommandRegistrationEvent.EVENT.register((dispatcher, registry, selection) -> {
-            LiteralArgumentBuilder<CommandSourceStack> echo = Commands.literal("echo");
+            LiteralArgumentBuilder<CommandSourceStack> echo = Commands.literal("echo").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS));
 
             echo.then(Commands.literal("list").executes(ctx -> {
                 ServerPlayer player = ctx.getSource().getPlayerOrException();

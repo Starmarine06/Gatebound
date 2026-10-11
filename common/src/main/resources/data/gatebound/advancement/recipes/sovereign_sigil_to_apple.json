@@ -1,0 +1,7 @@
+{
+  "criteria": {
+    "has_sovereign_sigil": {"trigger": "minecraft:inventory_changed", "conditions": {"items": [{"items": "gatebound:sovereign_sigil"}]}}
+  },
+  "requirements": [["has_sovereign_sigil"]],
+  "rewards": {"recipes": ["gatebound:sovereign_sigil_to_apple"]}
+}

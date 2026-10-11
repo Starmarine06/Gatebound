@@ -109,7 +109,9 @@ public final class DungeonStore extends SavedData {
                 BlockPos.CODEC.optionalFieldOf("down_arrive", BlockPos.ZERO).forGetter(f -> f.downArrive),
                 BlockPos.CODEC.optionalFieldOf("up_arrive", BlockPos.ZERO).forGetter(f -> f.upArrive),
                 BlockPos.CODEC.optionalFieldOf("up_portal", BlockPos.ZERO).forGetter(f -> f.upPortal),
-                BlockPos.CODEC.listOf().optionalFieldOf("rifts", List.of()).forGetter(f -> f.rifts)
+                BlockPos.CODEC.listOf().optionalFieldOf("rifts", List.of()).forGetter(f -> f.rifts),
+                Codec.LONG.optionalFieldOf("collapse_at", 0L).forGetter(f -> f.collapseAt),
+                BlockPos.CODEC.listOf().optionalFieldOf("crystals", List.of()).forGetter(f -> f.crystals)
         ).apply(i, FloorState::new));
 
         public final int floor;
@@ -126,10 +128,16 @@ public final class DungeonStore extends SavedData {
         public BlockPos upArrive;
         public BlockPos upPortal;
         public List<BlockPos> rifts;
+        /** Gate dungeons: game time at which the dungeon collapses after its guardian fell (0 = no countdown running). */
+        public long collapseAt;
+        /** Mana crystals placed on this floor (turned weakened when the guardian falls). */
+        public List<BlockPos> crystals;
 
         public FloorState(int floor, boolean built, long populatedAt, int totalMobs, int kills, boolean cleared,
                           long clearedAt, boolean bossDead, int popLevel, BlockPos downArrive, BlockPos upArrive,
-                          BlockPos upPortal, List<BlockPos> rifts) {
+                          BlockPos upPortal, List<BlockPos> rifts, long collapseAt, List<BlockPos> crystals) {
+            this.collapseAt = collapseAt;
+            this.crystals = new ArrayList<>(crystals);
             this.floor = floor;
             this.built = built;
             this.populatedAt = populatedAt;
@@ -146,7 +154,7 @@ public final class DungeonStore extends SavedData {
         }
 
         public FloorState(int floor) {
-            this(floor, false, 0L, 0, 0, false, 0L, false, 1, BlockPos.ZERO, BlockPos.ZERO, BlockPos.ZERO, List.of());
+            this(floor, false, 0L, 0, 0, false, 0L, false, 1, BlockPos.ZERO, BlockPos.ZERO, BlockPos.ZERO, List.of(), 0L, List.of());
         }
     }
 
@@ -217,9 +225,11 @@ public final class DungeonStore extends SavedData {
     public final List<GateRef> gates = new ArrayList<>();
     public final Map<UUID, Progress> progress = new HashMap<>();
 
+    /** Creates an empty store. */
     public DungeonStore() {
     }
 
+    /** Creates a store from saved data. */
     private DungeonStore(int total, boolean built, BlockPos towerPos, boolean placed, BlockPos entMin, BlockPos entMax,
                          BlockPos exit, int radius, int top, List<FloorState> floors, List<Return> returns,
                          List<GateRef> gates, List<Progress> progress, int layout) {
@@ -245,6 +255,7 @@ public final class DungeonStore extends SavedData {
         }
     }
 
+    /** The server's dungeon store (stale floors are marked for rebuild). */
     public static DungeonStore get(MinecraftServer server) {
         DungeonStore s = server.overworld().getDataStorage().computeIfAbsent(TYPE);
         if (s.layout != LAYOUT_VERSION) {
@@ -277,14 +288,17 @@ public final class DungeonStore extends SavedData {
         return totalFloors;
     }
 
+    /** Floor state, created on demand. */
     public FloorState floor(int f) {
         return floors.computeIfAbsent(f, FloorState::new);
     }
 
+    /** A player's progress, created on demand. */
     public Progress progressOf(UUID id) {
         return progress.computeIfAbsent(id, k -> new Progress(k, 0, 0, List.of()));
     }
 
+    /** The gate at a position, or null. */
     public GateRef gateAt(ResourceKey<Level> dim, BlockPos pos) {
         for (GateRef g : gates) {
             if (g.dim.equals(dim) && g.pos.equals(pos)) {

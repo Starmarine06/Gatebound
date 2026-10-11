@@ -21,21 +21,26 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
 public final class GateboundCommands {
+    /** Static holder; not instantiable. */
     private GateboundCommands() {
     }
 
+    /** Registers the /gatebound commands. */
     public static void init() {
         CommandRegistrationEvent.EVENT.register((dispatcher, registry, selection) -> {
             LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal("gatebound");
 
-            root.then(Commands.literal("ping").executes(ctx -> {
+            root.then(Commands.literal("ping").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)).executes(ctx -> {
                 ServerPlayer player = ctx.getSource().getPlayerOrException();
                 NetworkManager.sendToPlayer(player, new PingPayload("pong from the server"));
                 ctx.getSource().sendSuccess(() -> Component.literal("Ping sent"), false);
                 return 1;
             }));
 
-            root.then(Commands.literal("status").executes(ctx -> {
+            root.then(LocateCommand.build());
+            LocateCommand.attachToVanilla(dispatcher);
+
+            root.then(Commands.literal("status").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)).executes(ctx -> {
                 ServerPlayer player = ctx.getSource().getPlayerOrException();
                 PlayerData d = PlayerDataStore.of(player);
                 StringBuilder sb = new StringBuilder("Level " + d.level + " (" + d.xp + "/" + d.xpToNext() + " XP), "
@@ -48,7 +53,7 @@ public final class GateboundCommands {
             }));
 
             // Spend stat points: /gatebound stat <stat> <points>
-            LiteralArgumentBuilder<CommandSourceStack> stat = Commands.literal("stat");
+            LiteralArgumentBuilder<CommandSourceStack> stat = Commands.literal("stat").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS));
             for (Stat s : Stat.values()) {
                 stat.then(Commands.literal(s.id()).then(Commands.argument("points", IntegerArgumentType.integer(1))
                         .executes(ctx -> {
@@ -87,12 +92,12 @@ public final class GateboundCommands {
                             }))));
 
             // /gatebound awaken reopens the class screen if no class is chosen; /gatebound class reset is admin-only.
-            root.then(Commands.literal("awaken").executes(ctx -> {
+            root.then(Commands.literal("awaken").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)).executes(ctx -> {
                 Progression.openAwakeningIfNeeded(ctx.getSource().getPlayerOrException());
                 return 1;
             }));
             // /gatebound spells reopens the spell choice screen when a multi-element Mage has a pick waiting.
-            root.then(Commands.literal("spells").executes(ctx -> {
+            root.then(Commands.literal("spells").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)).executes(ctx -> {
                 Progression.openSpellPickIfNeeded(ctx.getSource().getPlayerOrException());
                 return 1;
             }));
@@ -104,7 +109,7 @@ public final class GateboundCommands {
                     })));
 
             // Combat testing: /gatebound combat debug, /gatebound combat window <ticks>, /gatebound combat posture <value>
-            root.then(Commands.literal("combat")
+            root.then(Commands.literal("combat").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                     .then(Commands.literal("debug").executes(ctx -> {
                         ServerPlayer player = ctx.getSource().getPlayerOrException();
                         boolean on = CombatState.toggleDebug(player.getUUID());

@@ -123,16 +123,17 @@ public final class SkillWheelScreen extends Screen {
             int x = boxX(i);
             int y = boxY(i);
             boolean hover = i == hovered;
-            boolean affordable = ClientSkillData.mana >= s.manaCost();
+            int cost = ClientPlayerData.skillCost(s);
+            boolean affordable = ClientSkillData.mana >= cost;
             g.fill(x, y, x + BOX_W, y + BOX_H, hover ? 0xE03A4A9A : 0xC0101018);
             g.outline(x, y, BOX_W, BOX_H, hover ? 0xFFFFD866 : (i == selected ? 0xFF3DDC84 : 0xFF404058));
             int color = affordable ? 0xFFFFFFFF : 0xFF7A7A99;
             g.text(this.font, Component.translatable(s.nameKey()).getString(), x + 4, y + 6, color, true);
-            g.text(this.font, s.manaCost() + "", x + BOX_W - 4 - this.font.width(s.manaCost() + ""), y + 6,
+            g.text(this.font, cost + "", x + BOX_W - 4 - this.font.width(cost + ""), y + 6,
                     affordable ? 0xFF8FB8FF : 0xFF666680, true);
         }
         Skill h = skills.get(hovered);
-        g.centeredText(this.font, Component.translatable(h.nameKey()), cx, cy - 12, 0xFFFFD866);
+        g.centeredText(this.font, Component.translatable(h.nameKey()).append(" (rank " + ClientPlayerData.skillRank(h) + ")"), cx, cy - 12, 0xFFFFD866);
         g.centeredText(this.font, Component.translatable(h.descriptionKey()), cx, cy, 0xFFCCCCCC);
         g.centeredText(this.font, "Release to select. Esc cancels.", cx, cy + 14, 0xFF888894);
     }

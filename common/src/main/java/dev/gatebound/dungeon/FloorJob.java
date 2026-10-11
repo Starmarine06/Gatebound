@@ -58,6 +58,7 @@ public final class FloorJob extends WorkQueue.Job {
     /** Graves lifted out of the floor before a rebuild wiped it; set down again at the arrival point afterwards. */
     private List<dev.gatebound.grave.GraveHandler.Saved> savedGraves = List.of();
 
+    /** Creates a job that builds or populates a floor. */
     public FloorJob(int floor, boolean rebuild, boolean populateOnly, int popLevel) {
         super("floor:" + floor, "Floor " + floor);
         this.floor = floor;
@@ -86,10 +87,12 @@ public final class FloorJob extends WorkQueue.Job {
         return phase.name();
     }
 
+    /** Number of blocks placed so far. */
     public long placedBlocks() {
         return placed;
     }
 
+    /** Number of mobs spawned so far. */
     public int spawnedMobs() {
         return spawned;
     }
@@ -160,6 +163,7 @@ public final class FloorJob extends WorkQueue.Job {
         return false;
     }
 
+    /** The phase that follows another. */
     private Phase next(Phase p) {
         return switch (p) {
             case PLAN -> Phase.FORCE;
@@ -185,6 +189,7 @@ public final class FloorJob extends WorkQueue.Job {
 
     // ------------------------------------------------------------------ chunks
 
+    /** Lists the chunks the floor covers. */
     private void listChunks() {
         if (chunks.isEmpty() && plan != null) {
             for (int cx = plan.ox >> 4; cx <= (plan.ox + plan.size - 1) >> 4; cx++) {
@@ -206,6 +211,7 @@ public final class FloorJob extends WorkQueue.Job {
         return forceIdx >= chunks.size();
     }
 
+    /** Forces or releases the floor's chunks. */
     private void forceChunks(ServerLevel level, boolean on) {
         listChunks();
         for (long[] c : chunks) {
@@ -218,6 +224,7 @@ public final class FloorJob extends WorkQueue.Job {
         forced = on;
     }
 
+    /** Waits until all floor chunks are loaded (with a timeout). */
     private boolean waitForChunks(ServerLevel level) {
         waitTicks++;
         boolean all = true;
@@ -240,11 +247,13 @@ public final class FloorJob extends WorkQueue.Job {
 
     // ------------------------------------------------------------------ block placement
 
+    /** Places a block (counted). */
     private void set(ServerLevel level, int x, int y, int z, BlockState state) {
         level.setBlock(mp.set(x, y, z), state, BULK);
         placed++;
     }
 
+    /** Clears or fills the floor volume within the work budget. */
     private boolean sweep(ServerLevel level, WorkQueue.Budget b, boolean clear) {
         int n = plan.size * plan.size;
         BlockState air = Blocks.AIR.defaultBlockState();
@@ -302,6 +311,7 @@ public final class FloorJob extends WorkQueue.Job {
         return true;
     }
 
+    /** Places decorations within the work budget. */
     private boolean decos(ServerLevel level, WorkQueue.Budget b) {
         if (decoIt == null) {
             decoIt = plan.decos.entrySet().iterator();
@@ -322,6 +332,7 @@ public final class FloorJob extends WorkQueue.Job {
         return true;
     }
 
+    /** Places portals and the other floor features. */
     private boolean features(ServerLevel level) {
         DungeonStore store = DungeonStore.get(level.getServer());
         DungeonStore.FloorState fs = store.floor(floor);
@@ -336,6 +347,7 @@ public final class FloorJob extends WorkQueue.Job {
             PortalPlacer.place(level, plan.upPortal, GateExitBlock.Kind.UP, net.minecraft.core.Direction.EAST);
         }
         placeChests(level);
+        placeCrystals(level, fs);
         if (!savedGraves.isEmpty()) {
             dev.gatebound.grave.GraveHandler.restore(level, savedGraves, plan.downArrive);
             savedGraves = List.of();
@@ -343,6 +355,7 @@ public final class FloorJob extends WorkQueue.Job {
         return true;
     }
 
+    /** Places the floor's chests. */
     private void placeChests(ServerLevel level) {
         boolean rest = plan.kind == Spire.Kind.REST;
         for (FloorPlan.Chest c : plan.chests) {
@@ -350,12 +363,25 @@ public final class FloorJob extends WorkQueue.Job {
         }
     }
 
+    /** Re-places chests and crystals. */
     private void refreshChests(ServerLevel level) {
         placeChests(level);
+        placeCrystals(level, DungeonStore.get(level.getServer()).floor(floor));
+    }
+
+    /** Places mana crystals (weak once the boss is dead). */
+    private void placeCrystals(ServerLevel level, DungeonStore.FloorState fs) {
+        net.minecraft.world.level.block.state.BlockState st = DungeonRegistries.MANA_CRYSTAL.get().defaultBlockState()
+                .setValue(ManaCrystalBlock.WEAKENED, fs.bossDead);
+        for (net.minecraft.core.BlockPos pos : plan.crystals) {
+            level.setBlock(pos, st, 3);
+        }
+        fs.crystals = new ArrayList<>(plan.crystals);
     }
 
     // ------------------------------------------------------------------ entities
 
+    /** Sends players on the floor home. */
     private void evacuate(MinecraftServer server, ServerLevel level) {
         AABB box = Spire.bounds(floor);
         for (ServerPlayer p : level.getPlayers(pl -> box.contains(pl.getX(), pl.getY(), pl.getZ()))) {
@@ -363,6 +389,7 @@ public final class FloorJob extends WorkQueue.Job {
         }
     }
 
+    /** Removes non-player entities from the floor (optionally only Spire mobs). */
     private void discardEntities(ServerLevel level, boolean onlySpireMobs) {
         AABB box = Spire.bounds(floor);
         for (Entity e : level.getEntitiesOfClass(Entity.class, box)) {
@@ -376,16 +403,41 @@ public final class FloorJob extends WorkQueue.Job {
         }
     }
 
+    /** Gate dungeons keep a 10 block radius around every arrival point (and the start) free of monsters. */
+    private boolean nearArrival(BlockPos spot) {
+        if (!Spire.isGate(floor)) {
+            return false;
+        }
+        double r2 = 10.0 * 10.0;
+        for (BlockPos p : plan.rifts) {
+            if (p.distSqr(spot) < r2) {
+                return true;
+            }
+        }
+        return plan.downArrive != null && plan.downArrive.distSqr(spot) < r2;
+    }
+
+    /** Spawns the floor's mobs gradually; true when done. */
     private boolean mobs(ServerLevel level) {
         if (plan.kind == Spire.Kind.REST) {
             return true;
         }
         if (mobIndex == 0 && mobTarget == 0) {
-            mobTarget = FloorPopulator.mobCount(plan);
+            mobTarget = Spire.isGate(floor) && !plan.mobSpots.isEmpty()
+                    ? FloorPopulator.gateMobCount(Spire.rank(floor, total), rng)
+                    : FloorPopulator.mobCount(plan);
         }
-        int budget = Math.max(1, DungeonConfig.mobsPerTick);
+        int budget = Math.max(1, DungeonConfig.mobsPerTick) * (Spire.isGate(floor) ? 3 : 1);
         while (budget-- > 0 && mobIndex < mobTarget) {
-            Mob m = FloorPopulator.spawnRegular(level, plan.mobSpots.get(mobIndex), plan, popLevel, rng, 1.0);
+            BlockPos spot = plan.mobSpots.get(mobIndex % plan.mobSpots.size());
+            if (mobIndex >= plan.mobSpots.size()) {
+                // More monsters than spots: packs, scattered a few blocks around each spot.
+                BlockPos near = spot.offset(rng.nextInt(7) - 3, 0, rng.nextInt(7) - 3);
+                if (level.getBlockState(near).isAir() && level.getBlockState(near.below()).isSolid()) {
+                    spot = near;
+                }
+            }
+            Mob m = nearArrival(spot) ? null : FloorPopulator.spawnRegular(level, spot, plan, popLevel, rng, 1.0);
             if (m != null) {
                 spawned++;
             }
@@ -416,6 +468,7 @@ public final class FloorJob extends WorkQueue.Job {
 
     // ------------------------------------------------------------------ finish
 
+    /** Finishes the job: marks the floor built and releases chunks. */
     private void finish(MinecraftServer server, DungeonStore store, ServerLevel level) {
         long now = server.overworld().getGameTime();
         DungeonStore.FloorState fs = store.floor(floor);
@@ -425,7 +478,7 @@ public final class FloorJob extends WorkQueue.Job {
             fs.downArrive = plan.downArrive;
             fs.upArrive = plan.upArrive;
             fs.upPortal = plan.upPortal;
-            fs.rifts = new ArrayList<>();
+            fs.rifts = new ArrayList<>(plan.rifts);
             if (rebuild) {
                 fs.bossDead = false;
             }

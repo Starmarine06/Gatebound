@@ -1,0 +1,7 @@
+{
+  "criteria": {
+    "has_diamond_knife": {"trigger": "minecraft:inventory_changed", "conditions": {"items": [{"items": "gatebound:diamond_knife"}]}}
+  },
+  "requirements": [["has_diamond_knife"]],
+  "rewards": {"recipes": ["gatebound:netherite_knife"]}
+}

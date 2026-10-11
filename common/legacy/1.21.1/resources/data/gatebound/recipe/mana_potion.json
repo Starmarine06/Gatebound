@@ -1,26 +1,13 @@
 {
-  "type": "minecraft:crafting_shaped",
+  "type": "minecraft:crafting_shapeless",
   "category": "misc",
-  "key": {
-    "D": {
-      "item": "minecraft:diamond"
-    },
-    "L": {
-      "item": "minecraft:lapis_lazuli"
-    },
-    "B": {
-      "item": "minecraft:glass_bottle"
-    },
-    "A": {
-      "item": "minecraft:amethyst_shard"
-    }
-  },
-  "pattern": [
-    "DDD",
-    "LBL",
-    " A "
+  "ingredients": [
+    {"item": "gatebound:mana_crystal"},
+    {"item": "gatebound:mana_crystal"},
+    {"item": "minecraft:glass_bottle"}
   ],
   "result": {
-    "id": "gatebound:mana_potion"
+    "id": "gatebound:mana_potion",
+    "count": 1
   }
 }

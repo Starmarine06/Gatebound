@@ -1,0 +1,7 @@
+{
+  "criteria": {
+    "has_magma_core": {"trigger": "minecraft:inventory_changed", "conditions": {"items": [{"items": "gatebound:magma_core"}]}}
+  },
+  "requirements": [["has_magma_core"]],
+  "rewards": {"recipes": ["gatebound:magma_core_to_book"]}
+}

@@ -209,7 +209,7 @@ public final class MageCore {
         applying = true;
         try {
             Compat.setInvulnerableTime(target, 0);
-            target.hurtServer(level, level.damageSources().indirectMagic(p, p), amount);
+            target.hurtServer(level, level.damageSources().indirectMagic(p, p), dev.gatebound.skill.Proficiency.damage(p, amount));
         } finally {
             applying = was;
         }
@@ -561,7 +561,7 @@ public final class MageCore {
      */
     public static void form(ServerPlayer p, Element element, int every, Consumer<ServerPlayer> aura) {
         UUID id = p.getUUID();
-        long until = p.level().getServer().getTickCount() + MageConfig.formSeconds * 20L;
+        long until = p.level().getServer().getTickCount() + dev.gatebound.skill.Proficiency.duration(p, MageConfig.formSeconds * 20);
         boolean fresh = !FORMS.containsKey(id);
         FORMS.put(id, new Form(element, until));
         if (!fresh) {

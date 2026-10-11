@@ -10,13 +10,11 @@ import dev.gatebound.data.Stat;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,9 +43,11 @@ public final class NpcTrades {
     /** NPC uuid -> uses today per offer index. */
     private static final Map<UUID, Stock> STOCK = new HashMap<>();
 
+    /** Static holder; not instantiable. */
     private NpcTrades() {
     }
 
+    /** Registers the offer and buy packets. */
     public static void init() {
         Compat.registerS2C(NpcOffersPayload.TYPE, NpcOffersPayload.CODEC, (payload, context) ->
                 context.queue(() -> EnvExecutor.runInEnv(Env.CLIENT, () -> () -> dev.gatebound.client.NpcClient.handle(payload))));
@@ -62,31 +62,35 @@ public final class NpcTrades {
 
     // ---------------------------------------------------------------- offers
 
+    /** Offers for a Broker or Scholar at a player level. */
     private static List<Def> defs(boolean broker, int level) {
         List<Def> o = new ArrayList<>();
         if (broker) {
-            o.add(new Def(TradeItems.RESPEC_TOKEN::get, 1, TradeItems.GATE_SHARD::get, 10 + level / 3, 2));
+            o.add(new Def(TradeItems.RESPEC_TOKEN::get, 1, TradeItems.GATE_SHARD::get, cost(10 + level / 3), 2));
             for (Stat s : new Stat[]{Stat.STRENGTH, Stat.AGILITY, Stat.VITALITY}) {
-                o.add(new Def(TradeItems.TOMES.get(s)::get, 1, TradeItems.GATE_SHARD::get, tomePrice(level), TradeConfig.offerStock));
+                o.add(new Def(TradeItems.TOMES.get(s)::get, 1, TradeItems.GATE_SHARD::get, cost(tomePrice(level)), TradeConfig.offerStock));
             }
-            o.add(new Def(TradeItems.ECHO_SHARD::get, 1, TradeItems.GATE_SHARD::get, 30 + level / 2, 2));
-            o.add(new Def(TradeItems.MANA_POTION::get, 1, TradeItems.GATE_SHARD::get, 25 + level / 5, 8));
-            o.add(new Def(TradeItems.GATE_SHARD::get, 5, () -> Items.DIAMOND, 1, 8));
+            o.add(new Def(TradeItems.ECHO_SHARD::get, 1, TradeItems.GATE_SHARD::get, cost(30 + level / 2), 2));
         } else {
-            o.add(new Def(TradeItems.INFO_SCROLL::get, 1, TradeItems.GATE_SHARD::get, 2 + level / 20, 10));
-            o.add(new Def(TradeItems.MANA_POTION::get, 1, TradeItems.GATE_SHARD::get, 25 + level / 5, 8));
+            o.add(new Def(TradeItems.INFO_SCROLL::get, 1, TradeItems.GATE_SHARD::get, cost(2 + level / 20), 10));
             for (Stat s : new Stat[]{Stat.INTELLECT, Stat.LUCK}) {
-                o.add(new Def(TradeItems.TOMES.get(s)::get, 1, TradeItems.GATE_SHARD::get, tomePrice(level), TradeConfig.offerStock));
+                o.add(new Def(TradeItems.TOMES.get(s)::get, 1, TradeItems.GATE_SHARD::get, cost(tomePrice(level)), TradeConfig.offerStock));
             }
-            o.add(new Def(TradeItems.GATE_SHARD::get, 2, () -> Items.EMERALD, 1, 16));
         }
         return o;
     }
 
+    /** Shop prices are the base value times TradeConfig.priceMultiplier. Shards cannot be bought with ordinary items. */
+    private static int cost(int base) {
+        return Math.max(1, (int) Math.round(base * TradeConfig.priceMultiplier));
+    }
+
+    /** Shard price of a stat tome at a player level. */
     private static int tomePrice(int level) {
         return 6 + level / 4;
     }
 
+    /** Today's use counts per offer (reset each day). */
     private static int[] usesToday(GateboundNpc npc, int size) {
         long day = npc.level().getGameTime() / 24000L;
         Stock s = STOCK.computeIfAbsent(npc.getUUID(), id -> new Stock());
@@ -97,10 +101,12 @@ public final class NpcTrades {
         return s.uses;
     }
 
+    /** Registry id of an item. */
     private static String id(Item item) {
         return BuiltInRegistries.ITEM.getKey(item).toString();
     }
 
+    /** Builds the offer list shown to a player. */
     private static NpcOffersPayload view(ServerPlayer player, GateboundNpc npc) {
         boolean broker = npc.isBroker();
         List<Def> defs = defs(broker, PlayerDataStore.of(player).level);
@@ -116,11 +122,13 @@ public final class NpcTrades {
 
     // ---------------------------------------------------------------- open / buy
 
+    /** Opens the shop for a player. */
     public static void open(ServerPlayer player, GateboundNpc npc) {
         Gatebound.LOGGER.info("[npc] {} opened the {} shop", player.getName().getString(), npc.isBroker() ? "broker" : "scholar");
         NetworkManager.sendToPlayer(player, view(player, npc));
     }
 
+    /** Handles a purchase request. */
     private static void buy(ServerPlayer player, int entityId, int index) {
         Entity e = player.level().getEntity(entityId);
         if (!(e instanceof GateboundNpc npc) || !npc.isAlive()) {
@@ -160,6 +168,7 @@ public final class NpcTrades {
         NetworkManager.sendToPlayer(player, view(player, npc));
     }
 
+    /** How many of an item the player carries. */
     private static int countItems(ServerPlayer player, Item item) {
         Inventory inv = player.getInventory();
         int n = 0;
@@ -172,6 +181,7 @@ public final class NpcTrades {
         return n;
     }
 
+    /** Removes an amount of an item from the player's inventory. */
     private static void removeItems(ServerPlayer player, Item item, int amount) {
         Inventory inv = player.getInventory();
         int left = amount;

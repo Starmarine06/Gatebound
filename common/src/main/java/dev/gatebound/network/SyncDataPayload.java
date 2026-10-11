@@ -8,11 +8,13 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /** Server to client snapshot of the player progression. */
 public record SyncDataPayload(int level, int xp, int xpToNext, int statPoints, List<Integer> stats, String classId,
-                              List<String> elements, List<String> picks) implements CustomPacketPayload {
+                              List<String> elements, List<String> picks, Map<String, Integer> uses) implements CustomPacketPayload {
     public static final Type<SyncDataPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, "sync_data"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, SyncDataPayload> CODEC = new StreamCodec<>() {
@@ -38,7 +40,12 @@ public record SyncDataPayload(int level, int xp, int xpToNext, int statPoints, L
             for (int i = 0; i < pickCount; i++) {
                 picks.add(buf.readUtf());
             }
-            return new SyncDataPayload(level, xp, xpToNext, points, stats, classId, elements, picks);
+            int useCount = buf.readVarInt();
+            Map<String, Integer> uses = new HashMap<>();
+            for (int i = 0; i < useCount; i++) {
+                uses.put(buf.readUtf(), buf.readVarInt());
+            }
+            return new SyncDataPayload(level, xp, xpToNext, points, stats, classId, elements, picks, uses);
         }
 
         @Override
@@ -60,6 +67,11 @@ public record SyncDataPayload(int level, int xp, int xpToNext, int statPoints, L
             for (String s : p.picks) {
                 buf.writeUtf(s);
             }
+            buf.writeVarInt(p.uses.size());
+            for (Map.Entry<String, Integer> e : p.uses.entrySet()) {
+                buf.writeUtf(e.getKey());
+                buf.writeVarInt(e.getValue());
+            }
         }
     };
 
@@ -70,7 +82,7 @@ public record SyncDataPayload(int level, int xp, int xpToNext, int statPoints, L
             stats.add(v);
         }
         return new SyncDataPayload(data.level, data.xp, data.xpToNext(), data.statPoints, stats, data.classId,
-                new ArrayList<>(data.elements), new ArrayList<>(data.picks));
+                new ArrayList<>(data.elements), new ArrayList<>(data.picks), new HashMap<>(data.uses));
     }
 
     @Override

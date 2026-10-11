@@ -1,0 +1,7 @@
+{
+  "criteria": {
+    "has_mana_crystal": {"trigger": "minecraft:inventory_changed", "conditions": {"items": [{"items": "gatebound:mana_crystal"}]}}
+  },
+  "requirements": [["has_mana_crystal"]],
+  "rewards": {"recipes": ["gatebound:mana_potion"]}
+}

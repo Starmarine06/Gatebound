@@ -43,7 +43,7 @@ public final class DungeonCommands {
             ctx.getSource().sendSuccess(() -> Component.literal("Placed a gate in the nearest village"), true);
             return 1;
         }));
-        return Commands.literal("gate")
+        return Commands.literal("gate").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                 .then(spawn)
                 .then(Commands.literal("leave").executes(ctx -> {
                     ServerPlayer player = ctx.getSource().getPlayerOrException();
@@ -59,7 +59,7 @@ public final class DungeonCommands {
     public static void register() {
         CommandRegistrationEvent.EVENT.register((dispatcher, registry, selection) -> {
             java.util.function.Predicate<CommandSourceStack> op = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
-            LiteralArgumentBuilder<CommandSourceStack> tower = Commands.literal("tower");
+            LiteralArgumentBuilder<CommandSourceStack> tower = Commands.literal("tower").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS));
 
             tower.then(Commands.literal("info").executes(ctx -> {
                 MinecraftServer server = ctx.getSource().getServer();

@@ -1,25 +1,18 @@
 package dev.gatebound.mob;
 
-import dev.gatebound.sound.GateboundSounds;
 import dev.architectury.event.EventResult;
 import dev.architectury.event.events.common.EntityEvent;
-import dev.architectury.event.events.common.TickEvent;
 import dev.architectury.registry.level.entity.EntityAttributeRegistry;
 import dev.architectury.registry.registries.DeferredRegister;
 import dev.architectury.registry.registries.RegistrySupplier;
 import dev.gatebound.Gatebound;
-import dev.gatebound.dungeon.DungeonRegistries;
 import dev.gatebound.dungeon.FloorPopulator;
 import dev.gatebound.dungeon.Spire;
 import net.minecraft.core.Holder;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -37,13 +30,11 @@ import net.minecraft.world.entity.monster.skeleton.Skeleton;
 import net.minecraft.world.entity.monster.skeleton.WitherSkeleton;
 import net.minecraft.world.entity.monster.spider.Spider;
 import net.minecraft.world.entity.monster.zombie.Zombie;
-import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
@@ -62,7 +53,6 @@ public final class SpireMobs {
 
     private static final List<Def> DEFS = new ArrayList<>();
     private static final Map<EntityType<?>, Def> BY_TYPE = new HashMap<>();
-    private static final Map<UUID, Long> NEXT_SLAM = new HashMap<>();
 
     // E, the crypts
     public static final RegistrySupplier<EntityType<Zombie>> CRYPT_SHAMBLER = zombie("crypt_shambler", 0, false, MobEffects.HUNGER, 100, 0);
@@ -91,9 +81,11 @@ public final class SpireMobs {
     /** The last guardian of the whole tower. */
     public static final RegistrySupplier<EntityType<WitherSkeleton>> SPIRE_SOVEREIGN = witherSkeleton("spire_sovereign", 5, true, MobEffects.WITHER, 200, 8);
 
+    /** Static holder; not instantiable. */
     private SpireMobs() {
     }
 
+    /** Registers the custom Spire mob types. */
     public static void init() {
         ENTITY_TYPES.register();
         for (Def d : DEFS) {
@@ -114,26 +106,15 @@ public final class SpireMobs {
             }
             return EventResult.pass();
         });
-        TickEvent.SERVER_POST.register(server -> {
-            if (server.getTickCount() % 20 != 9) {
-                return;
-            }
-            ServerLevel dungeon = server.getLevel(DungeonRegistries.DUNGEON);
-            if (dungeon == null) {
-                return;
-            }
-            long now = server.getTickCount();
-            for (ServerPlayer p : dungeon.players()) {
-                for (Mob m : dungeon.getEntitiesOfClass(Mob.class, p.getBoundingBox().inflate(12), mob -> mob.isAlive()
-                        && mob.getTarget() != null && BY_TYPE.containsKey(mob.getType()) && BY_TYPE.get(mob.getType()).boss())) {
-                    slam(dungeon, m, BY_TYPE.get(m.getType()), now);
-                }
-            }
+        EntityEvent.ADD.register((entity, level) -> {
+            MobAbilities.install(entity);
+            return EventResult.pass();
         });
     }
 
     // ------------------------------------------------------------------ lookups used by the floor populator
 
+    /** True if the type is a custom Spire mob. */
     public static boolean isCustom(EntityType<?> type) {
         return BY_TYPE.containsKey(type);
     }
@@ -162,42 +143,38 @@ public final class SpireMobs {
         return CRYPT_LORD.get();
     }
 
-    // ------------------------------------------------------------------ abilities
+    /** Id of a custom mob type. */
+    public static String idOf(EntityType<?> type) {
+        Def d = BY_TYPE.get(type);
+        return d == null ? "" : d.id();
+    }
 
-    /** The guardians stamp the ground when a player stands close: damage, a shove and a short effect. */
-    private static void slam(ServerLevel level, Mob boss, Def d, long now) {
-        if (NEXT_SLAM.getOrDefault(boss.getUUID(), 0L) > now) {
-            return;
-        }
-        List<ServerPlayer> near = level.getEntitiesOfClass(ServerPlayer.class, boss.getBoundingBox().inflate(6, 2, 6), pl -> pl.isAlive() && !pl.isSpectator());
-        if (near.isEmpty()) {
-            return;
-        }
-        NEXT_SLAM.put(boss.getUUID(), now + 160);
-        if (NEXT_SLAM.size() > 256) {
-            NEXT_SLAM.values().removeIf(t -> t < now);
-        }
-        float dmg = 4f + 2f * d.band();
-        for (ServerPlayer p : near) {
-            Vec3 away = p.position().subtract(boss.position()).multiply(1, 0, 1);
-            Vec3 dir = away.lengthSqr() < 1.0E-4 ? new Vec3(0, 0, 1) : away.normalize();
-            p.hurtServer(level, level.damageSources().mobAttack(boss), dmg);
-            p.setDeltaMovement(p.getDeltaMovement().add(dir.x * 1.1, 0.5, dir.z * 1.1));
-            p.connection.send(new net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket(p));
-            if (d.effect() != null) {
-                p.addEffect(new MobEffectInstance(d.effect(), d.effectTicks(), 1));
-            }
-        }
-        level.sendParticles(ParticleTypes.EXPLOSION, boss.getX(), boss.getY() + 0.2, boss.getZ(), 6, 2.5, 0.1, 2.5, 0.0);
-        level.playSound(null, boss.blockPosition(), GateboundSounds.of(SoundEvents.GENERIC_EXPLODE.value()), SoundSource.HOSTILE, 1.0f, 0.7f);
+    /** True if the type is a Spire boss. */
+    public static boolean isBoss(EntityType<?> type) {
+        Def d = BY_TYPE.get(type);
+        return d != null && d.boss();
+    }
+
+    /** Floor band of a custom mob type. */
+    public static int bandOf(EntityType<?> type) {
+        Def d = BY_TYPE.get(type);
+        return d == null ? 0 : d.band();
+    }
+
+    /** Signature effect of a custom mob type. */
+    public static Holder<MobEffect> effectOf(EntityType<?> type) {
+        Def d = BY_TYPE.get(type);
+        return d == null ? null : d.effect();
     }
 
     // ------------------------------------------------------------------ registration helpers
 
+    /** Registry key for a mob id. */
     private static ResourceKey<EntityType<?>> key(String id) {
         return ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(Gatebound.MOD_ID, id));
     }
 
+    /** Registers a custom mob type. */
     private static <T extends Mob> RegistrySupplier<EntityType<T>> reg(String id, int band, boolean boss, Holder<MobEffect> effect,
                                                                     int effectTicks, int fire, EntityType.EntityFactory<T> factory,
                                                                     float w, float h, float eye) {
@@ -210,38 +187,47 @@ public final class SpireMobs {
         return s;
     }
 
+    /** Registers a Zombie-based Spire mob. */
     private static RegistrySupplier<EntityType<Zombie>> zombie(String id, int band, boolean boss, Holder<MobEffect> e, int t, int f) {
         return reg(id, band, boss, e, t, f, Zombie::new, 0.6f, 1.95f, 1.74f);
     }
 
+    /** Registers a Skeleton-based Spire mob. */
     private static RegistrySupplier<EntityType<Skeleton>> skeleton(String id, int band, boolean boss, Holder<MobEffect> e, int t, int f) {
         return reg(id, band, boss, e, t, f, Skeleton::new, 0.6f, 1.99f, 1.74f);
     }
 
+    /** Registers a Wither Skeleton-based Spire mob. */
     private static RegistrySupplier<EntityType<WitherSkeleton>> witherSkeleton(String id, int band, boolean boss, Holder<MobEffect> e, int t, int f) {
         return reg(id, band, boss, e, t, f, WitherSkeleton::new, 0.7f, 2.4f, 2.1f);
     }
 
+    /** Registers a Spider-based Spire mob. */
     private static RegistrySupplier<EntityType<Spider>> spider(String id, int band, boolean boss, Holder<MobEffect> e, int t, int f) {
         return reg(id, band, boss, e, t, f, Spider::new, 1.4f, 0.9f, 0.65f);
     }
 
+    /** Registers a Vindicator-based Spire mob. */
     private static RegistrySupplier<EntityType<Vindicator>> vindicator(String id, int band, boolean boss, Holder<MobEffect> e, int t, int f) {
         return reg(id, band, boss, e, t, f, Vindicator::new, 0.6f, 1.95f, 1.74f);
     }
 
+    /** Registers an Evoker-based Spire mob. */
     private static RegistrySupplier<EntityType<Evoker>> evoker(String id, int band, boolean boss, Holder<MobEffect> e, int t, int f) {
         return reg(id, band, boss, e, t, f, Evoker::new, 0.6f, 1.95f, 1.74f);
     }
 
+    /** Registers a Witch-based Spire mob. */
     private static RegistrySupplier<EntityType<Witch>> witch(String id, int band, boolean boss, Holder<MobEffect> e, int t, int f) {
         return reg(id, band, boss, e, t, f, Witch::new, 0.6f, 1.95f, 1.62f);
     }
 
+    /** Registers a Ravager-based Spire mob. */
     private static RegistrySupplier<EntityType<Ravager>> ravager(String id, int band, boolean boss, Holder<MobEffect> e, int t, int f) {
         return reg(id, band, boss, e, t, f, Ravager::new, 1.95f, 2.2f, 1.9f);
     }
 
+    /** Attribute builder for a mob definition. */
     private static Supplier<AttributeSupplier.Builder> attributesFor(Def d) {
         return switch (d.id()) {
             case "crypt_shambler", "crypt_lord", "mossback", "drowned_husk" -> Zombie::createAttributes;

@@ -208,7 +208,7 @@ public final class WindSkills {
 
     /** Wind Avatar: ultimate wind form with flight and knockback. */
     public static boolean windAvatar(ServerPlayer p, ServerLevel level, PlayerData data) {
-        int ticks = MageConfig.formSeconds * 20;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, MageConfig.formSeconds * 20);
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 1));
         MageCore.flight(p, ticks);
         MageCore.form(p, Element.WIND, 10, o -> {

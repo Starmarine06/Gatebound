@@ -1,6 +1,5 @@
 package dev.gatebound.dungeon;
 
-import dev.gatebound.compat.MobTypes;
 import dev.gatebound.registry.GateboundRegistries;
 import dev.gatebound.trade.TradeItems;
 import net.minecraft.ChatFormatting;
@@ -28,9 +27,11 @@ public final class FloorPopulator {
     public static final String TAG_MOB = "gatebound_mob";
     public static final String TAG_BOSS = "gatebound_boss";
 
+    /** Static holder; not instantiable. */
     private FloorPopulator() {
     }
 
+    /** Number of mobs for a floor. */
     public static int mobCount(FloorPlan plan) {
         if (plan.kind == Spire.Kind.REST) {
             return 0;
@@ -42,6 +43,32 @@ public final class FloorPopulator {
         return Math.min(plan.mobSpots.size(), (int) Math.min(DungeonConfig.mobMax, n));
     }
 
+
+    /**
+     * Monsters in a gate dungeon: an E gate already holds what an A gate used to, and every rank above is a good deal
+     * bigger. Each gate rolls its own count (about 75 to 125 percent of the table value), so no two are alike.
+     */
+    public static int gateMobCount(GateRank rank, RandomSource rng) {
+        int base = DungeonConfig.gateMobCounts[Math.min(rank.ordinal(), DungeonConfig.gateMobCounts.length - 1)];
+        return Math.max(8, (int) Math.round(base * (0.75 + 0.5 * rng.nextDouble())));
+    }
+
+    /** Level the gate is meant for when taken alone. Below it the monsters grow tougher the bigger the gap. */
+    public static int recommendedLevel(GateRank rank) {
+        return DungeonConfig.gateRecommendedLevels[Math.min(rank.ordinal(), DungeonConfig.gateRecommendedLevels.length - 1)];
+    }
+
+    /** Health multiplier for gate monsters when the strongest player is under the gate's recommended level. */
+    public static double gateHealthMult(GateRank rank, int popLevel) {
+        return 1.0 + Math.max(0, recommendedLevel(rank) - popLevel) * DungeonConfig.gateUnderlevelHealth;
+    }
+
+    /** Damage multiplier for gates above the party's level. */
+    public static double gateDamageMult(GateRank rank, int popLevel) {
+        return 1.0 + Math.max(0, recommendedLevel(rank) - popLevel) * DungeonConfig.gateUnderlevelDamage;
+    }
+
+    /** Spawns a regular mob at a spot. */
     public static Mob spawnRegular(ServerLevel level, BlockPos spot, FloorPlan plan, int popLevel, RandomSource rng, double mult) {
         GateRank rank = Spire.rank(plan.floor, plan.total);
         List<EntityType<? extends Mob>> pool = Spire.scaleFloor(plan.floor, plan.total) > DungeonConfig.customMobFloor
@@ -54,13 +81,19 @@ public final class FloorPopulator {
         }
         double hp = (1.0 + DungeonConfig.hpPerFloor * Spire.scaleFloor(plan.floor, plan.total)) * (1.0 + DungeonConfig.hpPerLevel * popLevel) * mult;
         double dmg = (1.0 + DungeonConfig.dmgPerFloor * Spire.scaleFloor(plan.floor, plan.total)) * (mult > 1.0 ? 1.15 : 1.0);
+        if (Spire.isGate(plan.floor)) {
+            hp *= gateHealthMult(rank, popLevel);
+            dmg *= gateDamageMult(rank, popLevel);
+        }
         setMaxHealth(mob, mob.getMaxHealth() * hp);
         scaleDamage(mob, dmg);
+        mob.addTag("gb_pow:" + Math.round(dmg * 100));
         mob.addTag(TAG_MOB);
         mob.setPersistenceRequired();
         return mob;
     }
 
+    /** Spawns the floor's boss. */
     public static Mob spawnBoss(ServerLevel level, FloorPlan plan, int popLevel) {
         boolean fin = plan.kind == Spire.Kind.FINAL;
         GateRank rank = Spire.rank(plan.floor, plan.total);
@@ -70,8 +103,15 @@ public final class FloorPopulator {
             return null;
         }
         double hp = 100.0 * (1.0 + 0.1 * Spire.scaleFloor(plan.floor, plan.total)) * (1.0 + 0.03 * popLevel) * (fin ? 2.5 : 1.0);
+        double dmgMult = 1.0;
+        if (Spire.isGate(plan.floor)) {
+            hp *= gateHealthMult(rank, popLevel);
+            dmgMult = gateDamageMult(rank, popLevel);
+        }
         setMaxHealth(boss, hp);
-        scaleDamage(boss, (1.0 + 0.02 * Spire.scaleFloor(plan.floor, plan.total)) * (fin ? 1.4 : 1.0));
+        double bossDmg = (1.0 + 0.02 * Spire.scaleFloor(plan.floor, plan.total)) * (fin ? 1.4 : 1.0) * dmgMult;
+        scaleDamage(boss, bossDmg);
+        boss.addTag("gb_pow:" + Math.round(bossDmg * 100));
         AttributeInstance size = boss.getAttribute(Attributes.SCALE);
         if (size != null) {
             size.setBaseValue(fin ? 2.4 : rank.bossScale());
@@ -89,6 +129,7 @@ public final class FloorPopulator {
         return boss;
     }
 
+    /** Sets a mob's max health and fills it. */
     private static void setMaxHealth(Mob mob, double value) {
         AttributeInstance hp = mob.getAttribute(Attributes.MAX_HEALTH);
         if (hp != null) {
@@ -97,6 +138,7 @@ public final class FloorPopulator {
         }
     }
 
+    /** Multiplies a mob's attack damage. */
     private static void scaleDamage(Mob mob, double mult) {
         AttributeInstance dmg = mob.getAttribute(Attributes.ATTACK_DAMAGE);
         if (dmg != null) {
@@ -106,11 +148,13 @@ public final class FloorPopulator {
 
     // ------------------------------------------------------------------ loot
 
+    /** Places and fills a chest. */
     public static void placeChest(ServerLevel level, FloorPlan.Chest chest, int floor, int total, RandomSource rng, boolean supplies) {
         level.setBlock(chest.pos(), Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, chest.facing()), 3);
         fillChest(level, chest.pos(), floor, total, rng, supplies);
     }
 
+    /** Fills a chest with loot. */
     public static void fillChest(ServerLevel level, BlockPos pos, int floor, int total, RandomSource rng, boolean supplies) {
         if (!(level.getBlockEntity(pos) instanceof ChestBlockEntity c)) {
             return;
@@ -130,6 +174,7 @@ public final class FloorPopulator {
         c.setChanged();
     }
 
+    /** Rolls loot for a floor. */
     public static List<ItemStack> loot(int floor, int total, RandomSource rng, boolean supplies) {
         int r = Spire.band(floor, total);
         List<ItemStack> out = new ArrayList<>();

@@ -2,18 +2,19 @@ package dev.gatebound.dungeon;
 
 /** Tunable values for gates and the Spire. Plain statics, like CombatConfig / MagicConfig (saved by GateboundConfig). */
 public final class DungeonConfig {
+    /** Static holder; not instantiable. */
     private DungeonConfig() {
     }
 
     // ------------------------------------------------------------- natural gates
     /** Master switch for natural overworld gate spawning. */
     public static boolean naturalSpawn = true;
-    /** Ticks between spawn rolls (per server, one random overworld player is rolled each time). */
-    public static int spawnCheckTicks = 600;
-    /** Chance per roll that a gate appears near the chosen player. */
-    public static double spawnChance = 0.02;
+    /** Ticks between spawn rolls (every overworld player is rolled each time). */
+    public static int spawnCheckTicks = 400;
+    /** Chance per roll that a gate appears near each rolled player. */
+    public static double spawnChance = 0.1;
     /** Maximum natural gates that may exist at once in the world. */
-    public static int maxNaturalGates = 8;
+    public static int maxNaturalGates = 16;
     /** An open gate leaks monsters until its guardian is killed from inside. */
     public static boolean gateLeaks = true;
     /** Ticks between leaks at first; it shortens as the gate ages, down to leakMinInterval. */
@@ -22,10 +23,10 @@ public final class DungeonConfig {
     /** Most leaked monsters alive near one gate; rises with its rank. */
     public static int leakCap = 8;
     /** Chance that a natural gate is placed in the nearest village (within villageSearchChunks) instead of at a random spot. */
-    public static double villageGateChance = 0.5;
+    public static double villageGateChance = 0.75;
     public static int villageSearchChunks = 8;
     /** A player will not get a new gate while another natural gate is within this many blocks. */
-    public static int perPlayerRadius = 160;
+    public static int perPlayerRadius = 96;
     public static int spawnMinDistance = 24;
     public static int spawnMaxDistance = 64;
     /** Relative weights for ranks E, D, C, B, A, S (which floor band a natural gate leads to). */
@@ -36,8 +37,44 @@ public final class DungeonConfig {
     public static long gateLifetimeTicks = 36000;
     /** A gate closes after this many entries. */
     public static int gateMaxUses = 8;
+    /** After a gate guardian falls the dungeon collapses; anyone still inside when it does dies. */
+    public static boolean gateCollapse = true;
+    /** Multiplier on each rank's collapse time (E 180 s down to S 100 s). */
+    public static double gateCollapseScale = 1.0;
+    /** Players caught in a collapse lose everything they carry (otherwise they die normally and leave a grave). */
+    public static boolean gateCollapseLoseItems = true;
+    /** Monsters that leaked out of a gate vanish when the gate closes. */
+    public static boolean leakDespawnOnClose = true;
+    /** Ticks of damage immunity after arriving in a gate dungeon (the countdown shows on the action bar). */
+    public static int gateSpawnProtectTicks = 100;
     /** Ticks between gate/exit re-trigger checks for the same player. */
     public static int portalCooldownTicks = 60;
+
+    // ------------------------------------------------------------- gate dungeon difficulty
+    /** Regular monsters in a gate dungeon by rank E..S (each gate rolls 75-125 percent of this). An E gate matches the old A gate. */
+    public static int[] gateMobCounts = {45, 70, 100, 140, 190, 250};
+    /** Level a player should have to take each rank alone (A is meant for level 90+). */
+    public static int[] gateRecommendedLevels = {1, 15, 35, 60, 90, 100};
+    /** Extra monster health / damage per level the strongest player is under the gate's recommended level. */
+    public static double gateUnderlevelHealth = 0.05;
+    public static double gateUnderlevelDamage = 0.025;
+
+    // ------------------------------------------------------------- mana crystals
+    /** Crystals in a gate dungeon: base + perRank * rank index (E 2 ... S 12). */
+    public static int gateCrystalBase = 2;
+    public static int gateCrystalPerRank = 2;
+    /** Crystals on an ordinary Spire floor: base + perBand * band. */
+    public static int floorCrystalBase = 1;
+    public static int floorCrystalPerBand = 1;
+    /** Break hardness of a crystal while its guardian lives (obsidian is 50; a diamond pickaxe needs about 28 seconds at 150). */
+    public static double crystalHardness = 150.0;
+    /** Break hardness of a crystal once its guardian has fallen (about 17 seconds with a diamond pickaxe at 90). */
+    public static double crystalWeakHardness = 90.0;
+    /** Mining speed is capped here so Efficiency and Haste cannot make crystals trivial (a diamond pickaxe is 8). */
+    public static double crystalMaxMineSpeed = 12.0;
+    /** Mana crystals dropped per broken crystal (min, max). */
+    public static int crystalDropMin = 1;
+    public static int crystalDropMax = 2;
 
     // ------------------------------------------------------------- gravitational pull
     public static boolean gatePull = true;

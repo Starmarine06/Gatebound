@@ -505,7 +505,7 @@ public final class RogueSkills {
         applying = true;
         try {
             Compat.setInvulnerableTime(target, 0);
-            target.hurtServer(level, level.damageSources().indirectMagic(p, p), amount);
+            target.hurtServer(level, level.damageSources().indirectMagic(p, p), dev.gatebound.skill.Proficiency.damage(p, amount));
         } finally {
             applying = false;
         }
@@ -1042,7 +1042,7 @@ public final class RogueSkills {
 
     /** Vanish: slip into Shadow (invisible, faster); the next strike is an Ambush. */
     public static boolean vanish(ServerPlayer p, ServerLevel level, PlayerData data) {
-        int ticks = (6 + data.level / 10) * 20;
+        int ticks = dev.gatebound.skill.Proficiency.duration(p, (6 + data.level / 10) * 20);
         enterShadow(p, level, ticks);
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 1));
         Compat.overlay(p, Component.literal("Shadow: your next strike is an Ambush.").withStyle(ChatFormatting.DARK_PURPLE));
@@ -1056,8 +1056,8 @@ public final class RogueSkills {
             return miss(p, MARK_COST, "Look at an enemy to mark it.");
         }
         LivingEntity t = hits.get(0);
-        mark(p, t, RogueConfig.markSeconds * 20);
-        RogueFx.mark(t, RogueConfig.markSeconds * 20);
+        mark(p, t, dev.gatebound.skill.Proficiency.duration(p, RogueConfig.markSeconds * 20));
+        RogueFx.mark(t, dev.gatebound.skill.Proficiency.duration(p, RogueConfig.markSeconds * 20));
         sound(p, level, GateboundSounds.of(SoundEvents.WITHER_SPAWN), 1.8f);
         Compat.overlay(p, Component.literal("Marked " + t.getName().getString() + " for " + RogueConfig.markSeconds + " s: +"
                 + Math.round(RogueConfig.markBonus * 100) + "% damage from you.").withStyle(ChatFormatting.DARK_PURPLE));
@@ -1221,7 +1221,7 @@ public final class RogueSkills {
                 }
             }
             if (next != null) {
-                mark(p, next, RogueConfig.markSeconds * 20);
+                mark(p, next, dev.gatebound.skill.Proficiency.duration(p, RogueConfig.markSeconds * 20));
             }
             Compat.overlay(p, Component.literal("EXECUTED! +20 mana").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD));
         }

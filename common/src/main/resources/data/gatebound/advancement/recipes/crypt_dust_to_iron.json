@@ -1,0 +1,7 @@
+{
+  "criteria": {
+    "has_crypt_dust": {"trigger": "minecraft:inventory_changed", "conditions": {"items": [{"items": "gatebound:crypt_dust"}]}}
+  },
+  "requirements": [["has_crypt_dust"]],
+  "rewards": {"recipes": ["gatebound:crypt_dust_to_iron"]}
+}

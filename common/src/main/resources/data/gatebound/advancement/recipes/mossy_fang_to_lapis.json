@@ -1,0 +1,7 @@
+{
+  "criteria": {
+    "has_mossy_fang": {"trigger": "minecraft:inventory_changed", "conditions": {"items": [{"items": "gatebound:mossy_fang"}]}}
+  },
+  "requirements": [["has_mossy_fang"]],
+  "rewards": {"recipes": ["gatebound:mossy_fang_to_lapis"]}
+}

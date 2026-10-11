@@ -3,9 +3,9 @@
 Last updated 2026-10-05. Read this first when picking the project back up.
 
 ## What this is
-An original isekai-RPG mod for **Minecraft 26.3**, for **Fabric and NeoForge** only, built with **Architectury** (API 22.0.3).
-Package `dev.gatebound`, mod id `gatebound`. Theme: Solo Leveling / DanMachi / SAO style (classes, levelling, stats, skills and
-magic, parry combat, a procedural tower, gates that break open, minions called Echoes, NPC trading).
+An original RPG mod for **Minecraft 26.3**, for **Fabric and NeoForge** only, built with **Architectury** (API 22.0.3).
+Package `dev.gatebound`, mod id `gatebound`. Features: classes, levelling, stats, skills and
+magic, parry combat, a procedural tower, gates that break open, minions called Echoes, NPC trading.
 
 Repo: `X:\Mods\AdventureTime` (git, branch `master`). Everything below is committed. Last commit before this file: the gate
 dungeon / leak change.
@@ -41,7 +41,7 @@ dungeon / leak change.
 | Echoes screen (orders, groups, gates) | H |
 
 ## Commands
-Everyone: `/gatebound status | stat <stat> <n> | awaken | ping | gate leave | echo list|summon|dismiss|release <i>|mode follow|guard | combat debug | tower info`.
+Everyone: `/gatebound locate [spire|gate]` (nearest Spire entrance / open gate), `/gatebound status | stat <stat> <n> | awaken | ping | gate leave | echo list|summon|dismiss|release <i>|mode follow|guard | combat debug | tower info`.
 Ops: `level set`, `xp add`, `class reset`, `mana set`, `element grant`, `magic odds`, `combat ...`,
 `gate spawn <rank e|d|c|b|a|s>`, `gate spawn floor <n>` (gate of that floor's rank), `gate spawn village`,
 `tower floor|build|regen|prebuild ...`, `npc spawn broker|scholar`,
@@ -480,3 +480,49 @@ Models and textures, not particles: `skill/fx/RogueFx` (called from `RogueSkills
 - Venom Blade: green circle at the caster and under each enemy a venomed hit lands on. Backstab / any ambush: double slash plus a shadow puff behind. Every skill `hit()` shows a small slash (`RogueFx.cut`). Blade Dance and Backstab (via `jumpBehind`): afterimage where you left and smoke where you arrive. Smoke Bomb: big lingering spheres over a 12-block sigil. Execute: reticle, giant X, puff. Shadow Dance: three silhouettes orbit and a dark sigil follows (the Rogue is invisible, so these are world props). Thousand Cuts: big sigil and a 3-slash flurry per enemy.
 - **Shadow Possession is a form** (`form:rogue`): black-violet skin with venom-green flecks, raven wings, halo and four swaying tendril arms (`FormBodyLayer`, case "rogue"); a sigil under each bound enemy, a chain from you to each, and `tendril` beams for every arm strike. The old particle lines (`EchoTrail`) now draw chain threads.
 - Because a shadowed Rogue is invisible, body-following attachments cannot show during Vanish, Meld or Dance (vanilla skips layers for invisible players).
+
+## Gate collapse timer (compiles on all common targets, untested in play)
+- Killing a gate guardian starts a **collapse countdown** (`dungeon/GateCollapse`, `FloorState.collapseAt`, persisted). Length by rank (`GateRank.collapseSeconds`): E 180 s, D 165, C 150, B 135, A 120, S 100, times `gateCollapseScale`.
+- Players get chat + action-bar countdown (red under 30 s, beeps in the last 10 s) and a rank-coloured light column over the exit portal. Whoever is still on the floor at zero dies; with `gateCollapseLoseItems` (default true) their inventory is cleared first, so nothing is left in a grave. They wake outside the gate (existing gate-death path). Creative/spectator are exempt.
+- Config (dungeon section): `gateCollapse`, `gateCollapseScale`, `gateCollapseLoseItems`, `leakDespawnOnClose`.
+- Leaked monsters now vanish when their gate is cleared (`GateLeak.banish`).
+- Gate vortex (`GatePull.vortex`) is rank-coloured with a turning ring; B+ add sparks, S adds end-rod motes.
+- To check in play: `/gatebound gate spawn e`, kill the guardian, watch the timer, leave via the portal (safe) and stay in (dies, loses items). Tune times after playing.
+
+## Gate dungeon rework (compiles on all common targets, untested in play)
+- **One shared dungeon per gate** (`DungeonManager.SHARED` key): built once, never regenerated for new visitors, and an unfinished one is no longer released when idle (`freeInstances`). It is only released after the guardian falls. Old per-party instances from earlier saves are ignored.
+- **Arrival:** everyone enters at `Dest.RIFT`: a random rift (not the one used last) on the first ~60% of the path; a party shares one rift (`riftFor`, `PARTY_RIFT`).
+- **Layout** (`FloorPlan.layoutGate`): linear snake of rooms ending in the boss arena, each room joined only to the next, no loops. Length by rank (`GateRank.chainRooms`): E 5, D 7, C 9, B 11, A 13, S 15 rooms.
+- **Monsters:** `DungeonConfig.gateMobCounts` {45,70,100,140,190,250} (E equals the old A gate), each gate rolls 75-125%; beyond the spot count they spawn in packs around spots (`FloorJob.mobs`).
+- **Level gating:** `gateRecommendedLevels` {1,15,35,60,90,100}. Gate monsters and the guardian get +5% health and +2.5% damage per level the strongest player is under it (`FloorPopulator.gateHealthMult/gateDamageMult`).
+
+### Summoner effects (batch F, untested in play)
+`skill/fx/SummonerFx` draws everything (gameplay stays in `EchoSkills`, `Skills.spiritWard/soulDrain`, `EchoView`, `EchoManager`). New assets (teal): `circle/ring_summoner`, `soul_wisp`, `soul_eye`, `soul_ghost`, `soul_beam` (pillars and threads), `soul_chain`, `soul_shackle`, `soul_cage` (domain dome), `reticle_soul`, `wings/crown/halo_summoner`, skin `form/summoner_0-3.png`.
+- Cast gesture: soul circle on the ground (+ upright in front for the bigger skills) via `ClassCastFx`.
+- Echo summon (R / Legion): circle, pillar, rising ghost and wisps. Echo falls: ghost + wisps. Echo dismissed: souls stream back to the Summoner.
+- Sovereign's Domain is the Summoner final form (`form:summoner`): ghost skin, wings, crown, three orbiting ghosts, spiralling wisps (client `FormBodyLayer`), 42-block circle, rotating latticed dome, pulses, halos on echoes.
+- Per-echo effects are capped at 8 echoes per cast.
+
+### Ranger effects (batch E, untested in play)
+`skill/fx/RangerFx` draws everything (gameplay stays in `RangerSkills`). New assets (green/gold): `circle/ring_ranger`, `arrow_glow` (rides every skill arrow, max 30 alive), `leaf`, `thorn_vine`, `hawk`, `hawk_eye`, `reticle_gold`, `silhouette_ranger`, `ranger_beam`, `wings_ranger`, `antlers_ranger`, skin `form/ranger_0-3.png`.
+- Skill arrows get a glowing arrow model; impact effects by arrow kind (poison = venom circle, snare = thorn vines + circle). Reticles for Eagle Eye / Homing / Quarry / Headshot, light beams for Piercing / Ricochet / Apex strikes, leaf swirl for Trance, big launcher circle for Barrage, rain circle where Rain lands.
+- Apex Predator is the Ranger final form (`form:ranger`): green skin, hawk wings, antlers, six orbiting glow arrows and a circling hawk (client `FormBodyLayer`), 22-block circle, light-beam strikes on enemies each second.
+- The compound bow is disabled for everyone (`CompoundBow.ENABLED = false`, recipe removed).
+
+### Lightning, Wind, Earth and Dark spell effects (batch G, untested in play)
+`skill/fx/SpellFx` draws them (gameplay unchanged in `skill/mage/*Skills`). New models: `curse_mark`, `eclipse_disc`, `storm_cloud`, `lightning_rod`, `dust_puff`, `gust_cone`; existing `bolt`, `wind_blade`, `slash`, `tornado`, `boulder`, `stone_spike`, `crack`, `void_sphere`, `tendril` and the element circles/rings are reused.
+- Lightning: bolt model rides Arc Bolt, jagged `bolt` beams between chain hops and along dashes, sky columns + `storm_cloud` for Thunder Storm / Thunderstrike, a metal rod model for Lightning Rod. Overcharge orbiting bolts are client-drawn (tag `overcharge`).
+- Wind: `gust_cone` crescents for Gust and Air Dash, `tornado` funnels for Cyclone / Updraft / Tornado, `wind_blade` projectiles, client-drawn barrier funnel (`wind_barrier`) and wings for Tempest Flight (`wind_wings`).
+- Earth: `stone_spike` bursts, `crack` decals, `dust_puff`, rolling `boulder`s (Boulder, Landslide), client-drawn stone armour (`stone_armor`: pauldrons + orbiting rocks) for Stone Skin / Bedrock.
+- Dark: `void_sphere` Shadow Bolt, `curse_mark` over every cursed enemy (once per curse), tendrils under enemies, `tendril` threads for Hex / Siphon / Harvest, Black Hole = void sphere + accretion disc + big circle, Eclipse = a black sun overhead + client halo (`eclipse`).
+
+## Spire mob attacks (compiles on all common targets, untested in play)
+- `mob/MobAbilities`: every custom Spire mob gets an `AbilityGoal` (installed from `SpireMobs` on entity add). It picks an attack from the mob's kit by range/cooldown/weight, stops, shows the attack name on the action bar of nearby players, telegraphs it (ground markers, aim lines, gathering particles, a cue sound) and then lands it. Replaces the old periodic boss slam.
+- Attack types: slam (marked ring), leap (landing marker), cleave (drawn arc), eruption (markers burst later), volley (aim line then bolt), summon (minions tagged `gatebound_minion`, removed when the guardian falls), blink (behind the target + stab), pull (chain), cloud (lingering zone), nova (ring to jump over), mend (heals allies). Kits per mob are in `MobAbilities.kit`.
+- Guardians enrage at 66% and 33% health: shorter gaps between attacks, Speed (and Strength at 33%), extra attacks marked `.phase(n)`.
+- Damage is `indirectMagic` from the mob (ignores armour, not parryable, only dodgeable; also avoids `PlayerCombat` cancelling non-telegraphed mob melee). Size = (3 + 1.6 x rank) x kit multiplier x the `gb_pow:<percent>` tag set by `FloorPopulator` (floor scaling and the gate level-gap multiplier). Tune after playing.
+- Not done: custom models/animations (mobs still wear vanilla models), so "animation" is particles, arm swings and movement only.
+- **/locate:** `/locate structure gatebound:spire` and `gatebound:gate` work (op level, like vanilla). They are literal nodes added next to the registry argument in `LocateCommand.attachToVanilla`, because the Spire is built by the mod, not world generation. Untested in game: check tab-completion and that the nodes survive `/reload`.
+- **Gate Shards:** only hostile mobs killed inside the dungeon dimension (Spire or gate dungeons) can drop them; leaked monsters and everything in the open world drop none. The diamond and emerald to shard offers were removed, so shards come only from the dungeon (drops, chests, clear rewards). All shard prices are multiplied by `TradeConfig.priceMultiplier` (2.5, e.g. mana potion 25 to 63, a tome 6+level/4 to 15+).
+- **Recipe unlocks:** every recipe that uses a Gatebound item (Crypt Dust, Mossy Fang, Tide Scale, Magma Core, Ash Heart, Void Essence, Sovereign Sigil, trail markers, diamond knife for the netherite knife) is now granted by an advancement (`data/gatebound/advancement/recipes/*.json`, trigger: the item enters the inventory). Picking up the material shows the recipe toast and adds it to the recipe book. Recipes can still be crafted by placing the items by hand; to forbid that, set the `limitedCrafting` game rule (not done, it affects vanilla recipes too). The files were generated from the recipe folder; add one when adding a recipe. Untested in game on all versions.
+- **Mana crystals** (`dungeon/ManaCrystalBlock`, `DungeonRegistries.MANA_CRYSTAL`, item `gatebound:mana_crystal`): grow against walls in the dungeon (`FloorPlan.pickCrystals`): gate dungeons 2 + 2 per rank (E 2 ... S 12), Spire floors 1 + 1 per band; placed by `FloorJob`, listed in `FloorState.crystals`. Hardness 50 (obsidian) while the guardian lives, 30 afterwards (`crystalWeakHardness`; the block state `weakened` carries it so the client predicts the break time). Needs a diamond pickaxe; drops 1-2 crystals (loot table). Mana potions are now crafted from 2 crystals + a glass bottle (old diamond recipe gone) and are no longer sold by the NPCs; gate clears now give crystals instead of potions. Textures are procedural placeholders (block, weakened block, item). Untested in play.
